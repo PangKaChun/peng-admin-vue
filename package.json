@@ -1,0 +1,60 @@
+{
+  "name": "peng-admin-vue",
+  "version": "1.0.0",
+  "description": "PENG ADMIN",
+  "scripts": {
+    "dev": "vue-cli-service serve",
+    "build:prod": "vue-cli-service build",
+    "build:stage": "vue-cli-service build --mode staging",
+    "preview": "node build/index.js --preview"
+  },
+  "keywords": [
+    "vue",
+    "admin",
+    "dashboard",
+    "element-ui",
+    "boilerplate",
+    "admin-template",
+    "management-system"
+  ],
+  "dependencies": {
+    "@riophae/vue-treeselect": "^0.4.0",
+    "axios": "^1.16.1",
+    "core-js": "^3.49.0",
+    "echarts": "^5.6.0",
+    "element-ui": "^2.15.14",
+    "file-saver": "^2.0.5",
+    "highlight.js": "^11.11.1",
+    "js-cookie": "^3.0.5",
+    "mammoth": "^1.12.0",
+    "nprogress": "^0.2.0",
+    "path-browserify": "^1.0.1",
+    "screenfull": "^5.2.0",
+    "sm-crypto": "^0.3.13",
+    "vue": "^2.7.16",
+    "vue-router": "^3.6.5",
+    "vuex": "^3.6.2",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "^5.0.9",
+    "@vue/cli-service": "^5.0.9",
+    "babel-plugin-dynamic-import-node": "^2.3.3",
+    "chalk": "^4.1.2",
+    "compression-webpack-plugin": "^12.0.0",
+    "connect": "^3.7.0",
+    "runjs": "^4.4.2",
+    "sass": "1.32.13",
+    "sass-loader": "^16.0.8",
+    "svg-sprite-loader": "^6.0.11",
+    "vue-template-compiler": "^2.7.16"
+  },
+  "engines": {
+    "node": ">=8.9",
+    "npm": ">= 3.0.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions"
+  ]
+}
