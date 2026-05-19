@@ -20,9 +20,6 @@ import { getDicts } from "@/api/sys/dict/data";
 import * as echarts from 'echarts';
 Vue.prototype.$echarts = echarts;
 
-//datav
-import dataV from '@jiaminghi/data-view'
-
 // 字典标签组件
 import DictTag from "@/components/DictTag";
 // 字典数据组件
@@ -72,7 +69,6 @@ Vue.component("RightTool", RightTool);
 
 Vue.use(directive);
 Vue.use(plugins);
-Vue.use(dataV);
 
 // ElementUI默认配置
 ElementUI.Dialog.props.closeOnClickModal.default = false

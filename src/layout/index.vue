@@ -32,7 +32,7 @@ export default {
   mixins: [ResizeMixin],
   data() {
     return {
-      resize: 205
+      resize: 200
     }
   },
   computed: {
