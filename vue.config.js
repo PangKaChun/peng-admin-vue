@@ -11,6 +11,8 @@ const name = process.env.VUE_APP_TITLE || "PENG ADMIN"; // 网页标题
 
 const port = process.env.port || process.env.npm_config_port || 80; // 端口
 
+const isProd = process.env.NODE_ENV === "production";
+
 // vue.config.js 配置说明
 //官方vue.config.js 参考文档 https://cli.vuejs.org/zh/config/#css-loaderoptions
 // 这里只列一部分，具体配置参考文档
@@ -30,6 +32,12 @@ module.exports = {
     host: "0.0.0.0",
     port: port,
     open: true,
+    client: {
+      overlay: {
+        warnings: false,
+        errors: true,
+      },
+    },
     proxy: {
       // detail: https://cli.vuejs.org/config/#devserver-proxy
       [process.env.VUE_APP_BASE_API]: {
@@ -59,19 +67,37 @@ module.exports = {
         path: require.resolve("path-browserify"),
       },
     },
-    plugins: [
-      // http://doc.ruoyi.vip/ruoyi-vue/other/faq.html#使用gzip解压缩静态文件
-      new CompressionPlugin({
-        test: /\.(js|css|html)?$/i, // 压缩文件格式
-        filename: "[path][base].gz", // 压缩后的文件名
-        algorithm: "gzip", // 使用gzip压缩
-        minRatio: 0.8, // 压缩率小于1才会压缩
-      }),
-    ],
+    // webpack 5 持久化缓存：二次构建大幅提速
+    cache: {
+      type: "filesystem",
+      buildDependencies: {
+        config: [__filename],
+      },
+    },
+    plugins: isProd
+      ? [
+          // gzip 压缩
+          new CompressionPlugin({
+            test: /\.(js|css|html|svg)?$/i,
+            filename: "[path][base].gz",
+            algorithm: "gzip",
+            threshold: 10240, // 仅压缩大于 10KB 的文件
+            minRatio: 0.8,
+          }),
+          // brotli 压缩，压缩率比 gzip 更高，现代浏览器和 nginx/cdn 普遍支持
+          new CompressionPlugin({
+            test: /\.(js|css|html|svg)?$/i,
+            filename: "[path][base].br",
+            algorithm: "brotliCompress",
+            threshold: 10240,
+            minRatio: 0.8,
+          }),
+        ]
+      : [],
   },
   chainWebpack(config) {
-    config.plugins.delete("preload"); // TODO: need test
-    config.plugins.delete("prefetch"); // TODO: need test
+    // 只删 prefetch；preload 保留，避免拖慢首屏 LCP
+    config.plugins.delete("prefetch");
 
     // set svg-sprite-loader
     config.module.rule("svg").exclude.add(resolve("src/assets/icons")).end();
@@ -111,11 +137,20 @@ module.exports = {
           },
         },
       });
-      config.optimization.runtimeChunk("single"),
-        {
-          from: path.resolve(__dirname, "./public/robots.txt"), //防爬虫文件
-          to: "./", //到根目录下
+      config.optimization.runtimeChunk("single");
+
+      // 生产构建去除 console / debugger，减小包体
+      config.optimization.minimizer("terser").tap((args) => {
+        const opts = args[0] || {};
+        opts.terserOptions = opts.terserOptions || {};
+        opts.terserOptions.compress = {
+          ...(opts.terserOptions.compress || {}),
+          drop_console: true,
+          drop_debugger: true,
+          pure_funcs: ["console.log"],
         };
+        return args;
+      });
     });
   },
 };
