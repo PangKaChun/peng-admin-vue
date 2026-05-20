@@ -71,20 +71,17 @@ service.interceptors.request.use(config => {
 
 // 响应拦截器
 service.interceptors.response.use(res => {
-  // 二进制数据直接返回
-  if (res.request.responseType === 'blob' || res.request.responseType === 'arraybuffer') {
-    return res.data
-  }
   return res.data
 },
 async (error) => {
   let { message, response } = error
+  message = message || ''
 
   if (response && response.data) {
     const code = response.data.code
     const originalRequest = error.config
 
-    if (code === 401) {
+    if (code === 401 || code === 424) {
       const EToken = getRefreshToken()
       
       if (!isRefreshing && EToken) {
@@ -112,7 +109,8 @@ async (error) => {
             return service(originalRequest)
           }
         } catch (refreshError) {
-          // 清空队列并引导登录
+          // 通知队列中的请求刷新失败，避免它们永远挂起
+          requests.forEach(cb => cb(null))
           requests = []
           return reloginMessageBox()
         } finally {
@@ -120,8 +118,12 @@ async (error) => {
         }
       } else if (isRefreshing) {
         // 正在刷新 token 时，其他 401 请求进入队列等待
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
           requests.push((token) => {
+            if (!token) {
+              reject(new Error('token 刷新失败'))
+              return
+            }
             originalRequest.headers.Authorization = `Bearer ${token}`
             resolve(service(originalRequest))
           })

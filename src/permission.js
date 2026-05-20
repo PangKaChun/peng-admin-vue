@@ -8,14 +8,14 @@ import { isRelogin } from '@/utils/request'
 
 NProgress.configure({ showSpinner: false })
 
-const whiteList = ['/login']
+const whiteList = ['/login', '/oauth/callback', '/login/legacy']
 
 router.beforeEach((to, from, next) => {
   NProgress.start()
   if (getToken()) {
     to.meta.title && store.dispatch('settings/setTitle', to.meta.title)
     /* has token*/
-    if (to.path === '/login' || to.path === '/h4a/login' || to.path === '/h4a/authorize') {
+    if (to.path === '/login' || to.path === '/login/legacy' || to.path === '/oauth/callback') {
       next({ path: '/' })
       NProgress.done()
     } else {

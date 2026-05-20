@@ -25,6 +25,16 @@ export const constantRoutes = [
     hidden: true
   },
   {
+    path: '/oauth/callback',
+    component: () => import('@/views/oauth/callback'),
+    hidden: true
+  },
+  {
+    path: '/login/legacy',
+    component: () => import('@/views/login-legacy'),
+    hidden: true
+  },
+  {
     path: '/404',
     component: () => import('@/views/error/404'),
     hidden: true

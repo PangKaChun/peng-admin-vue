@@ -95,10 +95,7 @@ export default {
         if (valid) {
           this.loginLoading = true
           this.$store
-            .dispatch('user/Login', this.form)
-            .then(() => {
-              this.$router.push({ path: this.redirect || '/' }).catch(() => {})
-            })
+            .dispatch('user/AuthorizeWithPKCE', this.form)
             .catch(() => {
               this.loginLoading = false
               this.getCaptcha()
