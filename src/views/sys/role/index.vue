@@ -165,14 +165,14 @@
 
     <!-- 菜单授权 -->
     <el-aside width="300px">
-      <el-card class="box-card" shadow="never">
+      <el-card v-show="roleId" class="box-card" shadow="never">
         <div slot="header" class="clearfix">
           <el-tooltip class="item" effect="dark" content="选择指定角色分配菜单" placement="top">
             <span class="role-span">权限分配</span>
           </el-tooltip>
           <el-button
             v-hasPermi="['sys:role:edit']"
-            :disabled="!saveAuthBtn"
+            :disabled="!roleId"
             :loading="saveAuthLoading"
             icon="el-icon-check"
             size="mini"
@@ -209,6 +209,14 @@
             />
           </el-tab-pane>
         </el-tabs>
+      </el-card>
+      <el-card v-show="!roleId" class="box-card" shadow="never">
+        <div slot="header" class="clearfix">
+          <span class="role-span">权限分配</span>
+        </div>
+        <div style="padding: 20px">
+          <div class="my-code">点击角色查看详情</div>
+        </div>
       </el-card>
     </el-aside>
   </el-container>
@@ -274,8 +282,6 @@ export default {
       authsLoading: false,
       // 授权标签页
       activeTabName: 'menu',
-      // 授权保存
-      saveAuthBtn: false,
       // 菜单数据
       menus: [],
       // 部门数据
@@ -298,6 +304,7 @@ export default {
   methods: {
     /** 查询角色列表 */
     getList() {
+      this.roleId = undefined
       this.loading = true
       listRole(this.addDateRange(this.queryParams, this.dateRange)).then(response => {
         this.roleList = response.records
@@ -307,6 +314,7 @@ export default {
     },
     /** 重置按钮操作 */
     resetQuery() {
+      this.roleId = undefined
       this.dateRange = []
       this.resetForm('queryForm')
       this.handleQuery()
@@ -426,7 +434,6 @@ export default {
           .finally(() => {
             this.authsLoading = false
           })
-        this.saveAuthBtn = true
       }
     },
     menuChange(menu) {
@@ -554,5 +561,15 @@ export default {
   + .el-checkbox {
     margin-top: 6px;
   }
+}
+
+.my-code {
+  position: relative;
+  padding: 15px;
+  line-height: 20px;
+  border-left: 5px solid #ddd;
+  color: #333;
+  font-family: Courier New, serif;
+  font-size: 12px;
 }
 </style>

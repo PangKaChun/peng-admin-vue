@@ -1,6 +1,5 @@
-import { login, logout, getInfo, exchangeCodeForToken, buildAuthorizeUrl, buildRedirectUri } from "@/api/login";
+import { login, logout, getInfo, exchangeCodeForToken, buildAuthorizeUrl, buildRedirectUri, precheck, verifyMfa } from "@/api/login";
 import { getToken, setToken, removeToken, getRefreshToken, setRefreshToken, removeRefreshToken } from "@/utils/auth";
-import { encrypt } from "@/utils/jsencrypt.js";
 import { generateCodeVerifier, generateCodeChallenge, generateState } from "@/utils/pkce";
 import router from "@/router";
 import store from "@/store";
@@ -61,8 +60,9 @@ const user = {
       const password = userInfo.password;
       const randomCode = userInfo.randomCode;
       const captcha = userInfo.captcha;
+      const mfaCode = userInfo.mfaCode;
       return new Promise((resolve, reject) => {
-        login(username, password, randomCode, captcha)
+        login(username, password, randomCode, captcha, mfaCode)
           .then((res) => {
             let token = res.data.access_token;
             if (token) {
@@ -82,15 +82,37 @@ const user = {
       });
     },
 
-    // authorization_code + PKCE
-    AuthorizeWithPKCE(_ctx, userInfo) {
+    // 两步登录第一步:预校验账号密码 + 图形验证码,返回 {mfaRequired, ticket}
+    Precheck(_ctx, userInfo) {
+      return new Promise((resolve, reject) => {
+        precheck((userInfo.username || "").trim(), userInfo.password, userInfo.randomCode, userInfo.captcha)
+          .then((res) => {
+            // res 为后端 R 包装:{ code, msg, data:{ mfaRequired, ticket } }
+            resolve(res.data || {});
+          })
+          .catch((error) => {
+            reject(error);
+          });
+      });
+    },
+
+    // 两步登录第二步:校验 Google Authenticator 动态口令
+    VerifyMfa(_ctx, { ticket, code }) {
+      return new Promise((resolve, reject) => {
+        verifyMfa(ticket, code)
+          .then(() => {
+            resolve();
+          })
+          .catch((error) => {
+            reject(error);
+          });
+      });
+    },
+
+    // authorization_code + PKCE:凭挑战票据完成发码(账密/动态码已在前序步骤校验)
+    AuthorizeWithPKCE(_ctx, { ticket }) {
       return new Promise(async (resolve, reject) => {
         try {
-          const username = (userInfo.username || "").trim();
-          const password = encrypt(userInfo.password);
-          const randomCode = userInfo.randomCode;
-          const captcha = userInfo.captcha;
-
           const verifier = generateCodeVerifier();
           const challenge = await generateCodeChallenge(verifier);
           const state = generateState();
@@ -113,10 +135,7 @@ const user = {
           appendHiddenInput(form, "state", state);
           appendHiddenInput(form, "code_challenge", challenge);
           appendHiddenInput(form, "code_challenge_method", "S256");
-          appendHiddenInput(form, "username", username);
-          appendHiddenInput(form, "password", password);
-          appendHiddenInput(form, "randomCode", randomCode);
-          appendHiddenInput(form, "captcha", captcha);
+          appendHiddenInput(form, "loginTicket", ticket);
 
           document.body.appendChild(form);
           form.submit();

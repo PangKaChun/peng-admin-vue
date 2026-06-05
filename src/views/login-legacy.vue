@@ -34,6 +34,17 @@
               </div>
             </el-form-item>
             <el-form-item>
+              <el-input
+                placeholder="动态验证码（选填）"
+                v-model.trim="form.mfaCode"
+                maxlength="6"
+                @keyup.enter.native="onSubmit"
+                autocomplete="off"
+              >
+                <i slot="prefix" class="el-input__icon el-icon-mobile-phone"></i>
+              </el-input>
+            </el-form-item>
+            <el-form-item>
               <el-button type="primary" style="width: 100%" @click="onSubmit" :loading="loginLoading">登录</el-button>
             </el-form-item>
           </el-form>
@@ -53,7 +64,8 @@ export default {
         username: 'admin',
         password: '123456',
         randomCode: this.guid(),
-        captcha: null
+        captcha: null,
+        mfaCode: null
       },
       rules: {
         username: [{ required: true, message: '请输入账号', trigger: 'blur' }],

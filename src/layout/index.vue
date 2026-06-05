@@ -2,7 +2,14 @@
   <el-container :class="classObj" class="app-wrapper" :style="{ '--current-color': theme }">
     <div v-if="device === 'mobile' && sidebar.opened" class="drawer-bg" @click="handleClickOutside" />
     <sidebar v-if="!sidebar.hide" class="sidebar-container" :style="`width:${sidebar.opened?resize:54}px !important`" />
-    <div v-show="device !== 'mobile'" class="resize"></div>
+    <div
+      v-show="device !== 'mobile'"
+      class="resize-sash"
+      :class="{ 'is-active': isResizing }"
+      :style="{ left: (sidebar.opened ? resize : 54) + 'px' }"
+      @mousedown="onSashMouseDown"
+      @dblclick="resetSashWidth"
+    ></div>
     <el-container class="main-container">
       <el-header>
         <navbar />
@@ -11,7 +18,6 @@
         <tags-view />
         <app-main />
       </el-main>
-      <!-- <el-footer>版权所有：福建榕基软件股份有限公司深圳分公司 2023 Rongji Software Corporation ShenZhen</el-footer> -->
     </el-container>
   </el-container>
 </template>
@@ -32,7 +38,13 @@ export default {
   mixins: [ResizeMixin],
   data() {
     return {
-      resize: 200
+      resize: 200,
+      defaultResize: 200,
+      minSidebarWidth: 200,
+      minMainWidth: 1000,
+      isResizing: false,
+      _onMouseMove: null,
+      _onMouseUp: null
     }
   },
   computed: {
@@ -54,46 +66,66 @@ export default {
   },
   mounted() {
     watermarkOption.set(this.username, this.parseTime(new Date(), '{y}-{m}-{d} {h}:{i}:{s}'))
-    this.dragControllerDiv()
+  },
+  beforeDestroy() {
+    // 防止组件销毁时拖拽未结束，残留全局监听
+    this.endResize()
   },
   methods: {
     handleClickOutside() {
       this.$store.dispatch('app/closeSideBar', { withoutAnimation: false })
     },
-    dragControllerDiv() {
-      var resize = document.getElementsByClassName('resize')
-      var left = document.getElementsByClassName('sidebar-container')
-      // var mid = document.getElementsByClassName('main-container')
-      var box = document.getElementsByClassName('app-wrapper')
-      let that = this
-      // 鼠标按下事件
-      resize[0].onmousedown = function (e) {
-        //颜色改变提醒
-        resize[0].style.background = '#0069CC'
-        var startX = e.clientX
-        resize[0].left = resize[0].offsetLeft
-        // 鼠标拖动事件
-        document.onmousemove = function (e) {
-          var endX = e.clientX
-          var moveLen = resize[0].left + (endX - startX) // （endx-startx）=移动的距离。resize[0].left+移动的距离=左边区域最后的宽度
-          var maxT = box[0].clientWidth - resize[0].offsetWidth // 容器宽度 - 左边区域的宽度 = 右边区域的宽度
+    // VS Code 风格的 sash 拖拽：mousedown 开始监听 document，mouseup 释放
+    onSashMouseDown(e) {
+      // 仅响应左键
+      if (e.button !== 0) return
+      e.preventDefault()
 
-          if (moveLen < 200) moveLen = 200 // 左边区域的最小宽度为200px
-          if (moveLen > maxT - 1000) moveLen = maxT - 1000 //右边区域最小宽度为1000px
-          left[0].style.width = moveLen + 'px !important'
-          that.resize = moveLen
-        }
-        // 鼠标松开事件
-        document.onmouseup = function (evt) {
-          //颜色恢复
-          resize[0].style.background = '#fff'
-          document.onmousemove = null
-          document.onmouseup = null
-          resize[0].releaseCapture && resize[0].releaseCapture() //当你不在需要继续获得鼠标消息就要应该调用ReleaseCapture()释放掉
-        }
-        resize[0].setCapture && resize[0].setCapture() //该函数在属于当前线程的指定窗口里设置鼠标捕获
-        return false
+      const box = document.querySelector('.app-wrapper')
+      if (!box) return
+
+      const startX = e.clientX
+      const startWidth = this.resize
+
+      this.isResizing = true
+      // 拖拽期间屏蔽全局文字选择 + 强制 cursor，避免穿过 iframe / 富文本时光标抖动
+      document.body.style.userSelect = 'none'
+      document.body.style.cursor = 'ew-resize'
+
+      this._onMouseMove = (evt) => {
+        const dx = evt.clientX - startX
+        // sash 不占布局空间，只需约束 sidebar / 主区的最小宽度
+        const maxAllowed = box.clientWidth - this.minMainWidth
+        let next = startWidth + dx
+        if (next < this.minSidebarWidth) next = this.minSidebarWidth
+        if (next > maxAllowed) next = maxAllowed
+        this.resize = next
       }
+      this._onMouseUp = () => {
+        this.endResize()
+      }
+
+      document.addEventListener('mousemove', this._onMouseMove)
+      document.addEventListener('mouseup', this._onMouseUp)
+    },
+    endResize() {
+      if (this._onMouseMove) {
+        document.removeEventListener('mousemove', this._onMouseMove)
+        this._onMouseMove = null
+      }
+      if (this._onMouseUp) {
+        document.removeEventListener('mouseup', this._onMouseUp)
+        this._onMouseUp = null
+      }
+      if (this.isResizing) {
+        this.isResizing = false
+        document.body.style.userSelect = ''
+        document.body.style.cursor = ''
+      }
+    },
+    // 双击 sash 恢复默认宽度，与 VS Code 行为一致
+    resetSashWidth() {
+      this.resize = this.defaultResize
     }
   }
 }
@@ -102,6 +134,11 @@ export default {
 <style lang="scss" scoped>
 .el-container {
   height: 100%;
+}
+
+// sash 用绝对定位浮在 sidebar / 主区交界处，需要 wrapper 提供定位上下文
+.app-wrapper {
+  position: relative;
 }
 
 .el-header {
@@ -145,19 +182,51 @@ export default {
   z-index: 999;
 }
 
-/*拖拽区div样式*/
-.resize {
-  cursor: e-resize;
-  float: left;
-  position: relative;
-  // top: 45%;
-  background-color: #fff;
-  width: 6px;
+/* VS Code 风格的可拖拽分隔条（sash） */
+.resize-sash {
+  position: absolute;
+  top: 0;
+  // left 由 :style 动态绑定到 sidebar 当前宽度
+  width: 4px;
   height: 100%;
-  background-size: cover;
-  background-position: center;
-  /*z-index: 99999;*/
-  font-size: 32px;
-  color: white;
+  // 通过负位移让 4px 热区横跨在边界线两侧，sash 中心正好落在 sidebar 右边缘
+  transform: translateX(-2px);
+  cursor: ew-resize;
+  background-color: transparent;
+  user-select: none;
+  z-index: 2000;
+  touch-action: none;
+
+  // 默认不显示高亮线 —— sidebar 自身的边框/背景已经把两侧分开
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 0;
+    height: 100%;
+    transform: translateX(-50%);
+    background-color: var(--current-color, #007fd4);
+    transition:
+      width 0.1s ease-out 0.2s,
+      opacity 0.1s ease-out 0.2s;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  // hover：延迟后浮现 4px 高亮条（VS Code sash 的标志性效果）
+  &:hover::before {
+    width: 4px;
+    opacity: 1;
+  }
+
+  // 拖拽中：立刻高亮，无延迟
+  &.is-active::before {
+    width: 4px;
+    opacity: 1;
+    transition:
+      width 0.1s ease-out,
+      opacity 0.1s ease-out;
+  }
 }
 </style>

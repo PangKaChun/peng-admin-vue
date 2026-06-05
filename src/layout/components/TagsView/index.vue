@@ -352,9 +352,9 @@ export default {
       transform-origin: 100% 50%;
       &:before {
         font-weight: bold;
-        // transform: scale(0.6);
+        transform: scale(0.8);
         display: inline-block;
-        vertical-align: -3px;
+        vertical-align: -2px;
       }
       &:hover {
         background-color: #b4bccc;

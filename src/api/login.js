@@ -13,8 +13,29 @@ export function buildAuthorizeUrl() {
   return process.env.VUE_APP_BASE_API + authAPI + process.env.VUE_APP_OAUTH_AUTHORIZE_ENDPOINT
 }
 
+// 两步登录第一步:校验账号密码 + 图形验证码,返回 {mfaRequired, ticket}
+export function precheck(username, password, randomCode, captcha) {
+  password = encrypt(password)
+  return request({
+    url: authAPI + "/login/precheck",
+    method: "post",
+    headers: { isToken: false },
+    data: { username, password, randomCode, captcha }
+  });
+}
+
+// 两步登录第二步:校验 Google Authenticator 动态口令
+export function verifyMfa(ticket, code) {
+  return request({
+    url: authAPI + "/login/mfa/verify",
+    method: "post",
+    headers: { isToken: false },
+    data: { ticket, code }
+  });
+}
+
 //登录
-export function login(username, password, randomCode, captcha) {
+export function login(username, password, randomCode, captcha, mfaCode) {
   password = encrypt(password)
   return request({
     auth: {
@@ -26,23 +47,20 @@ export function login(username, password, randomCode, captcha) {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded"
     },
-    data: { grant_type:'password',scope:'openid',username, password, randomCode, captcha },
+    data: { grant_type: 'password', scope: 'openid', username, password, randomCode, captcha, mfaCode },
   });
 }
 
 //刷新token
 export function refreshToken(refreshToken) {
   return request({
-    auth: {
-      username: process.env.VUE_APP_OAUTH_CLIENT_ID,
-      password: process.env.VUE_APP_OAUTH_CLIENT_SECRET
-    },
     url: authAPI + "/oauth2/token",
     method: "post",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
+      isToken: false,
     },
-    data: { grant_type:'refresh_token', refresh_token:refreshToken },
+    data: { client_id: process.env.VUE_APP_OAUTH_CLIENT_ID, grant_type: 'refresh_token', refresh_token: refreshToken },
   });
 }
 
@@ -62,15 +80,9 @@ export function logout() {
   });
 }
 
-// PKCE：用授权码 + code_verifier 换 access_token / refresh_token
-// 必须带 Basic auth：SAS 0.4.1 对 client_authentication_methods=none 的公共客户端不下发 refresh_token，
-// 此处用 client_secret_basic 走机密客户端认证，同时保留 PKCE 的 code_verifier 校验。
+// PKCE：authorization_code + code_verifier 换 access_token / refresh_token
 export function exchangeCodeForToken({ code, codeVerifier }) {
   return request({
-    auth: {
-      username: process.env.VUE_APP_OAUTH_CLIENT_ID,
-      password: process.env.VUE_APP_OAUTH_CLIENT_SECRET
-    },
     url: authAPI + "/oauth2/token",
     method: "post",
     headers: {
@@ -78,6 +90,7 @@ export function exchangeCodeForToken({ code, codeVerifier }) {
       isToken: false
     },
     data: {
+      client_id: process.env.VUE_APP_OAUTH_CLIENT_ID,
       grant_type: 'authorization_code',
       redirect_uri: buildRedirectUri(),
       code,

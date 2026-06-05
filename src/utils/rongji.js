@@ -302,18 +302,27 @@ export async function urlToFile(url, name) {
   }
 }
 //时间段转换成字符串
-export function time2Str(time) {
-  let timeStr ;
-  if (time < 1000){
-    timeStr = time
-  }else if (time < 1000 * 60){
-    timeStr = Math.ceil(time / 1000) +"秒"
-  }else if (time < 1000 * 60 * 60){
-    timeStr = parseInt(time / 60000) + "分" + parseInt((time % 60000) / 1000) + "秒";
-  }else if (time < 1000 * 60 * 60 * 24){
-    timeStr = parseInt(time / 3600000) + "小时" +parseInt((time % 3600000) / 60000) + "分";
-  }else{
-    timeStr = parseInt(time / (1000 * 60 * 60 * 24)) + "天" +parseInt((time % (1000 * 60 * 60 * 24)) / 3600000) + "小时";
+export function formatDuration(time) {
+  const SECOND = 1000;
+  const MINUTE = 60 * SECOND;
+  const HOUR = 60 * MINUTE;
+  const DAY = 24 * HOUR;
+
+  if (time < SECOND) {
+    return time + "毫秒";
   }
-  return timeStr;
+
+  const days = Math.floor(time / DAY);
+  const hours = Math.floor((time % DAY) / HOUR);
+  const minutes = Math.floor((time % HOUR) / MINUTE);
+  const seconds = Math.floor((time % MINUTE) / SECOND);
+
+  let result = "";
+
+  if (days) result += days + "天";
+  if (hours) result += hours + "小时";
+  if (minutes) result += minutes + "分";
+  if (seconds) result += seconds + "秒";
+
+  return result;
 }

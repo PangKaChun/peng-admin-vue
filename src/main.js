@@ -36,14 +36,12 @@ import {
   selectDictLabels,
   handleTree,
   json2FormData,
-  time2Str
+  formatDuration
 } from "@/utils/rongji";
 
 import { valiDators } from "@/utils/valiDator.js";
 
 import { dataToFile } from "@/utils/downloadFileAndImg";
-
-import { analysisWord } from "@/utils/analysisWord.js";
 
 // 分页组件
 import Pagination from "@/components/Pagination";
@@ -57,10 +55,9 @@ Vue.prototype.resetForm = resetForm;
 Vue.prototype.handleTree = handleTree;
 Vue.prototype.parseTime = parseTime;
 Vue.prototype.dataToFile = dataToFile;
-Vue.prototype.analysisWord = analysisWord;
 Vue.prototype.json2FormData = json2FormData;
 Vue.prototype.$valiDators = valiDators;
-Vue.prototype.time2Str = time2Str;
+Vue.prototype.formatDuration = formatDuration;
 
 // 全局组件挂载
 Vue.component("DictTag", DictTag);
