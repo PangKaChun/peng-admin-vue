@@ -5,7 +5,7 @@ const { sideTheme } = defaultSettings
 const storageSetting = JSON.parse(localStorage.getItem('layout-setting')) || ''
 const state = {
   title: '',
-  theme: storageSetting.theme || '#0063b1',
+  theme: storageSetting.theme || '#094194',
   sideTheme: storageSetting.sideTheme || sideTheme,
 }
 const mutations = {

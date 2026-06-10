@@ -86,9 +86,8 @@ const user = {
     Precheck(_ctx, userInfo) {
       return new Promise((resolve, reject) => {
         precheck((userInfo.username || "").trim(), userInfo.password, userInfo.randomCode, userInfo.captcha)
-          .then((res) => {
-            // res 为后端 R 包装:{ code, msg, data:{ mfaRequired, ticket } }
-            resolve(res.data || {});
+          .then((data) => {
+            resolve(data || {});
           })
           .catch((error) => {
             reject(error);

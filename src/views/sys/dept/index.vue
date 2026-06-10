@@ -30,11 +30,7 @@
         >
           <span class="custom-tree-node" slot-scope="{ node, data }">
             <span>
-              <svg-icon
-                slot="prefix"
-                :icon-class="node.childNodes.length>0?node.expanded?`folder-open`:`folder-close`:''"
-                class="el-input__icon"
-              />
+              <i :class="data.children && data.children.length ? node.expanded? 'el-icon-folder-opened' : 'el-icon-folder' : 'el-icon-document'" class="node-icon" />
               {{ node.label }}
             </span>
             <span>
@@ -271,6 +267,16 @@ export default {
     overflow-y: auto;
     padding: 0;
   }
+
+  ::v-deep .el-tree-node.is-current > .el-tree-node__content {
+    background: #1976d21f;
+    color: #094194;
+    font-weight: 600;
+
+    .node-icon {
+      color: #094194 !important;
+    }
+  }
 }
 .dept-span {
   font-weight: bold;
@@ -285,8 +291,17 @@ export default {
   justify-content: space-between;
   font-size: 14px;
   padding-right: 8px;
+
+  .node-icon {
+    font-size: 14px;
+    color: #f5a623;
+    flex-shrink: 0;
+  }
 }
 .el-input-number {
   width: 100%;
+}
+::v-deep .el-icon-document.node-icon {
+  color: #909399 !important;
 }
 </style>

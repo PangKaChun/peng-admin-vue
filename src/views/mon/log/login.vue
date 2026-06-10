@@ -22,7 +22,7 @@
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="50" align="center" />
-        <el-table-column label="用户名称" align="center" key="username" prop="username" v-if="columns[0].visible" />
+        <el-table-column label="登录名" align="center" key="username" prop="username" v-if="columns[0].visible" />
         <el-table-column label="登录地址" align="center" key="ipaddr" prop="ipaddr" v-if="columns[1].visible" />
         <el-table-column label="登录地点" align="center" key="loginLocation" prop="loginLocation" v-if="columns[2].visible" />
         <el-table-column label="浏览器" align="center" key="browser" prop="browser" v-if="columns[3].visible" />
@@ -70,7 +70,7 @@ export default {
       },
       // 列信息
       columns: [
-        { key: 0, label: `用户名称`, visible: true },
+        { key: 0, label: `登录名`, visible: true },
         { key: 1, label: `登录地址`, visible: true },
         { key: 2, label: `登录地点`, visible: true },
         { key: 3, label: `浏览器`, visible: true },

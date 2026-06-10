@@ -145,7 +145,7 @@ export default {
   height: 50px !important;
   background-color: #fff;
   padding: 0;
-  border-bottom: 1px solid rgb(220,231,242);
+  border-bottom: 1px solid #DCDCE0;
 }
 
 .el-aside {

@@ -3,21 +3,33 @@
 * So I modified the default color and you can modify it to your liking.
 **/
 
-/* theme color */
-$--color-primary: #0063b1;
-$--color-success: #34a853;
-$--color-warning: #ffb900;
-$--color-danger: #ea4335;
-// $--color-info: #1E1E1E;
+@import './tokens.scss';
+
+/* theme color —— 引用 Apple 设计 token */
+$--color-primary: $color-primary;
+$--color-success: $color-success;
+$--color-warning: $color-warning;
+$--color-danger:  $color-danger;
+$--color-info:    $color-info;
 
 $--button-font-weight: 400;
 
 // $--color-text-regular: #1f2d3d;
 
-$--border-color-light: #dfe4ed;
-$--border-color-lighter: #e6ebf5;
+$--border-color-light: $separator;
+$--border-color-lighter: $separator-light;
 
-$--table-border: 1px solid #dfe6ec;
+$--table-border: 1px solid $separator-light;
+
+/* 圆角 —— 按控件尺寸分级,避免小控件套大圆角 */
+$--border-radius-base: $radius-sm;    // 6px：按钮 / 输入框
+$--border-radius-small: $radius-xs;   // 4px：checkbox 等小控件
+$--card-border-radius: $radius-md;    // 8px：卡片（默认 4px 太方）
+$--msgbox-border-radius: $radius-lg;  // 14px：消息框,与弹窗一致
+
+/* 阴影 —— 柔和、低透明度 */
+$--box-shadow-base: $shadow-popover;
+$--box-shadow-light: $shadow-card;
 
 /* icon font path, required */
 $--font-path: '~element-ui/lib/theme-chalk/fonts';

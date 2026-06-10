@@ -186,6 +186,7 @@
             <el-tree
               ref="menu"
               :data="menus"
+              :expand-on-click-node="false"
               :default-expanded-keys="menus.map(item=>item.id)"
               :default-checked-keys="menuIds"
               :props="defaultProps"
@@ -200,6 +201,7 @@
               ref="dept"
               :data="depts"
               default-expand-all
+              :expand-on-click-node="false"
               :default-checked-keys="deptIds"
               :props="defaultProps"
               check-strictly

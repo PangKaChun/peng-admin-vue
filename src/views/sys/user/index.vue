@@ -23,7 +23,7 @@
           <el-form-item prop="username">
             <el-input
               v-model="queryParams.username"
-              placeholder="请输入用户名称"
+              placeholder="请输入登录名"
               clearable
               style="width: 240px"
               @keyup.enter.native="handleQuery"
@@ -98,7 +98,7 @@
         >
           <el-table-column type="selection" width="50" align="center" />
           <el-table-column
-            label="用户名称"
+            label="登录名"
             align="center"
             key="username"
             prop="username"
@@ -173,8 +173,8 @@
                 </el-form-item>
               </el-col>
               <el-col :span="12">
-                <el-form-item v-if="form.userId == undefined" label="用户名称" prop="username">
-                  <el-input v-model="form.username" placeholder="请输入用户名称" maxlength="30" />
+                <el-form-item v-if="form.userId == undefined" label="登录名" prop="username">
+                  <el-input v-model="form.username" placeholder="请输入登录名" maxlength="30" />
                 </el-form-item>
               </el-col>
             </el-row>
@@ -262,7 +262,7 @@ export default {
       },
       // 列信息
       columns: [
-        { key: 1, label: `用户名称`, visible: true },
+        { key: 1, label: `登录名`, visible: true },
         { key: 2, label: `用户昵称`, visible: true },
         { key: 3, label: `部门`, visible: true },
         { key: 4, label: `手机号码`, visible: true },
@@ -289,8 +289,8 @@ export default {
       // 表单校验
       rules: {
         username: [
-          { required: true, message: '用户名称不能为空', trigger: 'blur' },
-          { min: 2, max: 20, message: '用户名称长度必须介于 2 和 20 之间', trigger: 'blur' }
+          { required: true, message: '登录名不能为空', trigger: 'blur' },
+          { min: 2, max: 20, message: '登录名长度必须介于 2 和 20 之间', trigger: 'blur' }
         ],
         nickName: [{ required: true, message: '用户昵称不能为空', trigger: 'blur' }],
         phonenumber: [

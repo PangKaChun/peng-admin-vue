@@ -1,63 +1,69 @@
 <template>
-  <el-container>
-    <el-main>
-      <el-card class="box-card">
-        <div class="box-card-body">
-          <h1 style="font-size: 24px; text-align: center; color: #202124">PENG ADMIN</h1>
-          <el-divider></el-divider>
+  <div class="login">
+    <div class="login-card">
+      <div class="login-header">
+        <h1 class="login-title">PENG ADMIN</h1>
+        <p class="login-subtitle">欢迎登录</p>
+      </div>
 
-          <!-- 第一步:账号密码 + 图形验证码 -->
-          <el-form v-show="step === 1" :model="form" :rules="rules" ref="loginForm" @submit.native.prevent>
-            <el-form-item prop="username">
-              <el-input v-model.trim="form.username" placeholder="请输入用户名" @keyup.enter.native="onPrecheck" autocomplete="off">
-                <i slot="prefix" class="el-input__icon el-icon-user"></i>
-              </el-input>
-            </el-form-item>
-            <el-form-item prop="password">
-              <el-input placeholder="请输入密码" v-model.trim="form.password" show-password autocomplete="off" @keyup.enter.native="onPrecheck">
-                <i slot="prefix" class="el-input__icon el-icon-lock"></i>
-              </el-input>
-            </el-form-item>
-            <el-form-item prop="captcha">
-              <el-input
-                style="width: 63%"
-                placeholder="请输入验证码"
-                v-model.trim="form.captcha"
-                @keyup.enter.native="onPrecheck"
-                autocomplete="off"
+      <!-- 第一步:账号密码 + 图形验证码 -->
+      <el-form v-show="step === 1" class="login-form" :model="form" :rules="rules" ref="loginForm" @submit.native.prevent>
+        <el-form-item prop="username">
+          <el-input v-model.trim="form.username" placeholder="请输入用户名" @keyup.enter.native="onPrecheck" autocomplete="off">
+            <i slot="prefix" class="el-input__icon el-icon-user"></i>
+          </el-input>
+        </el-form-item>
+        <el-form-item prop="password">
+          <el-input placeholder="请输入密码" v-model.trim="form.password" show-password autocomplete="off" @keyup.enter.native="onPrecheck">
+            <i slot="prefix" class="el-input__icon el-icon-lock"></i>
+          </el-input>
+        </el-form-item>
+        <el-form-item prop="captcha">
+          <div class="captcha-row">
+            <el-input
+              class="captcha-input"
+              placeholder="请输入验证码"
+              v-model.trim="form.captcha"
+              @keyup.enter.native="onPrecheck"
+              autocomplete="off"
+            >
+              <i slot="prefix" class="el-input__icon el-icon-key"></i>
+            </el-input>
+            <div class="login-code">
+              <el-image
+                v-loading="captchaLoading"
+                @load="captchaLoading = false"
+                :src="`${captchaSrc + form.randomCode}`"
+                @click="refreshCaptcha"
+                fit="fill"
               >
-                <i slot="prefix" class="el-input__icon el-icon-key"></i>
-              </el-input>
-              <div class="login-code">
-                <el-image v-loading="captchaLoading" @load="captchaLoading=false" :src="`${captchaSrc + form.randomCode}`" @click="getCaptcha" style="cursor: pointer" fit="fill">
-                  <div class="el-image__error" slot="error">验证码</div>
-                </el-image>
-              </div>
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" style="width: 100%" @click="onPrecheck" :loading="loginLoading">登录</el-button>
-            </el-form-item>
-          </el-form>
+                <div class="el-image__error" slot="error">验证码</div>
+              </el-image>
+            </div>
+          </div>
+        </el-form-item>
+        <el-form-item class="login-actions">
+          <el-button class="login-btn" type="primary" @click="onPrecheck" :loading="loginLoading">登录</el-button>
+        </el-form-item>
+      </el-form>
 
-          <!-- 第二步:Google Authenticator 动态验证码（账密校验通过后才出现） -->
-          <el-form v-show="step === 2" :model="mfaForm" :rules="mfaRules" ref="mfaForm" @submit.native.prevent>
-            <p class="mfa-hint">账号 <b>{{ form.username }}</b> 已通过验证，请输入 Google Authenticator 中的 6 位动态验证码。</p>
-            <el-form-item prop="mfaCode">
-              <el-input v-model.trim="mfaForm.mfaCode" maxlength="6" placeholder="请输入 6 位动态验证码" @keyup.enter.native="onVerifyMfa" autocomplete="off">
-                <i slot="prefix" class="el-input__icon el-icon-mobile-phone"></i>
-              </el-input>
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" style="width: 100%" @click="onVerifyMfa" :loading="loginLoading">登录</el-button>
-            </el-form-item>
-            <el-form-item>
-              <el-button type="text" @click="backToStep1">返回上一步</el-button>
-            </el-form-item>
-          </el-form>
+      <!-- 第二步:Google Authenticator 动态验证码（账密校验通过后才出现） -->
+      <el-form v-show="step === 2" class="login-form" :model="mfaForm" :rules="mfaRules" ref="mfaForm" @submit.native.prevent>
+        <p class="mfa-hint">账号 <b>{{ form.username }}</b> 已通过验证，请输入 Google&nbsp;Authenticator 中的 6 位动态验证码。</p>
+        <el-form-item prop="mfaCode">
+          <el-input ref="mfaCodeInput" v-model.trim="mfaForm.mfaCode" maxlength="6" placeholder="请输入 6 位动态验证码" @keyup.enter.native="onVerifyMfa" autocomplete="off">
+            <i slot="prefix" class="el-input__icon el-icon-mobile-phone"></i>
+          </el-input>
+        </el-form-item>
+        <el-form-item class="login-actions">
+          <el-button class="login-btn" type="primary" @click="onVerifyMfa" :loading="loginLoading">登录</el-button>
+        </el-form-item>
+        <div class="login-back">
+          <el-button type="text" @click="backToStep1">返回上一步</el-button>
         </div>
-      </el-card>
-    </el-main>
-  </el-container>
+      </el-form>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -102,10 +108,10 @@ export default {
     }
   },
   mounted() {
-    this.getCaptcha()
+    this.refreshCaptcha()
   },
   methods: {
-    getCaptcha() {
+    refreshCaptcha() {
       this.captchaLoading = true
       this.form.randomCode = this.guid()
     },
@@ -131,6 +137,9 @@ export default {
               // 需要动态码:进入第二步
               this.step = 2
               this.loginLoading = false
+              this.$nextTick(() => {
+                this.$refs.mfaCodeInput.focus()
+              })
             } else {
               // 未开启 MFA:凭票据直接完成登录
               this.authorize()
@@ -138,7 +147,7 @@ export default {
           })
           .catch(() => {
             this.loginLoading = false
-            this.getCaptcha()
+            this.refreshCaptcha()
           })
       })
     },
@@ -173,51 +182,165 @@ export default {
       this.ticket = ''
       this.mfaForm.mfaCode = null
       this.loginLoading = false
-      this.getCaptcha()
+      this.refreshCaptcha()
     }
   }
 }
 </script>
 
 <style lang="scss" scoped>
-.el-container {
+@import '../assets/styles/tokens.scss';
+
+.login {
+  position: relative;
   display: flex;
-  justify-content: center;
   align-items: center;
-  height: 100%;
-  background-image: url('../assets/images/login-bg.jpg');
-  background-size: cover;
+  justify-content: center;
+  min-height: 100vh;
+  padding: $space-5;
+  background: #1b1b1f url('../assets/images/login-bg.png') center / cover no-repeat;
+
+  // 轻微压暗背景,让白卡与柔和阴影更聚焦
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.45));
+    pointer-events: none;
+  }
 }
 
-.box-card {
-  background-color: white;
-  max-width: 440px;
-  min-height: 368.25px;
-  border-radius: 0%;
-  margin: auto;
+.login-card {
+  position: relative;
+  z-index: 1;
+  width: 400px;
+  max-width: 100%;
+  padding: $space-8 $space-8 $space-6;
+  background: $bg-base;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+  animation: login-rise 0.5s $ease-out both;
+}
 
-  .box-card-body {
-    padding: 24px;
+@keyframes login-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-header {
+  margin-bottom: $space-6;
+  text-align: center;
+}
+
+.login-title {
+  margin: $space-3 0 0;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: $label;
+}
+
+.login-subtitle {
+  margin: $space-2 0 0;
+  font-size: 14px;
+  color: $label-secondary;
+}
+
+.login-form {
+  ::v-deep .el-form-item {
+    margin-bottom: $space-5;
+  }
+
+  ::v-deep .el-input__inner {
+    height: 44px;
+    line-height: 44px;
+    border-radius: $radius-sm;
+
+    &:focus {
+      box-shadow: 0 0 0 3px rgba($color-primary, 0.12);
+    }
+  }
+
+  ::v-deep .el-input__icon {
+    line-height: 44px;
+    color: $label-secondary;
+  }
+}
+
+.captcha-row {
+  display: flex;
+  gap: $space-3;
+}
+
+.captcha-input {
+  flex: 1;
 }
 
 .login-code {
-  width: 33%;
-  height: 54px;
-  float: right;
-  .el-image{
-    width: 100%;
-  }
-  img {
+  flex: 0 0 auto;
+
+  ::v-deep .el-image {
+    display: block;
+    width: 120px;
+    height: 44px;
+    overflow: hidden;
     cursor: pointer;
-    vertical-align: middle;
+    border: 1px solid $separator;
+    border-radius: $radius-sm;
+  }
+
+  ::v-deep .el-image__error {
+    width: 120px;
+    height: 44px;
+    line-height: 44px;
+    font-size: 13px;
   }
 }
 
+.login-actions {
+  margin-bottom: $space-3;
+}
+
+.login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 44px;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  border-radius: $radius-sm;
+}
+
+.login-back {
+  text-align: center;
+}
+
 .mfa-hint {
-  color: #909399;
+  margin: 0 0 $space-5;
+  padding: $space-3 $space-4;
   font-size: 13px;
   line-height: 1.6;
-  margin: 0 0 16px;
+  color: $label-secondary;
+  background: $fill-quaternary;
+  border-radius: $radius-md;
+
+  b {
+    color: $label;
+    font-weight: 600;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: $space-6 $space-5;
+  }
 }
 </style>

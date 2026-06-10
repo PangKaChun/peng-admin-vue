@@ -16,7 +16,7 @@ let setWatermarkContent = (content, content2) => {
   getCanvas.font = '12px Vedana'
   getCanvas.fillStyle = 'rgba(200, 200, 200, 0.30)'
   getCanvas.textAlign = 'center'
-  getCanvas.textBaseline = 'Middle'
+  getCanvas.textBaseline = 'middle'
   getCanvas.fillText(content, cans.width / 4, cans.height / 2)
   getCanvas.fillText(content2, cans.width / 4, (cans.height / 2) + 20)
 

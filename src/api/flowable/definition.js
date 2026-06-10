@@ -53,20 +53,3 @@ export function delDefinition(deploymentId) {
     method: 'delete'
   })
 }
-
-// 发起流程实例
-export function startProcess(data) {
-  return request({
-    url: flowableAPI + '/flowable/instance/start',
-    method: 'post',
-    data: data
-  })
-}
-
-// 查询可指定的办理人员列表
-export function listCandidateUsers() {
-  return request({
-    url: flowableAPI + '/flowable/instance/userList',
-    method: 'get'
-  })
-}

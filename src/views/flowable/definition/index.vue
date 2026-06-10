@@ -52,7 +52,6 @@
           <template slot-scope="scope">
             <el-button size="mini" type="text" icon="el-icon-edit-outline" @click="handleEdit(scope.row)" v-hasPermi="['flowable:definition:save']">设计</el-button>
             <el-button size="mini" type="text" icon="el-icon-view" @click="handleView(scope.row)" v-hasPermi="['flowable:definition:query']">流程图</el-button>
-            <el-button size="mini" type="text" icon="el-icon-video-play" :disabled="scope.row.suspended" @click="handleStart(scope.row)" v-hasPermi="['flowable:instance:start']">发起</el-button>
             <el-button size="mini" type="text" :icon="scope.row.suspended ? 'el-icon-open' : 'el-icon-turn-off'" @click="handleState(scope.row)" v-hasPermi="['flowable:definition:edit']">{{ scope.row.suspended ? '激活' : '挂起' }}</el-button>
             <el-button size="mini" type="text" icon="el-icon-delete" @click="handleDelete(scope.row)" v-hasPermi="['flowable:definition:del']">删除</el-button>
           </template>
@@ -112,45 +111,11 @@
         <el-button @click="importOpen = false">取 消</el-button>
       </div>
     </el-dialog>
-
-    <!-- 发起流程 -->
-    <el-dialog title="发起流程" :visible.sync="startOpen" width="500px" append-to-body>
-      <el-form :model="startForm" label-width="90px" size="small">
-        <el-form-item label="流程名称">
-          <span>{{ currentStartRow && currentStartRow.name }}</span>
-        </el-form-item>
-        <el-form-item label="业务标识">
-          <el-input v-model="startForm.businessKey" placeholder="可选，便于按业务键追溯流程实例" clearable />
-        </el-form-item>
-        <el-form-item label="办理人">
-          <el-select
-            v-model="startForm.assigneeIds"
-            multiple
-            filterable
-            clearable
-            placeholder="可选，作为流程变量 candidateUsers 传入"
-            style="width: 100%"
-          >
-            <el-option
-              v-for="u in candidateUsers"
-              :key="u.userId"
-              :label="u.nickName ? (u.nickName + '（' + u.username + '）') : u.username"
-              :value="u.userId"
-            />
-          </el-select>
-          <div class="el-upload__tip">需流程的用户任务以 ${candidateUsers} / ${assignee} 引用方可自动指派</div>
-        </el-form-item>
-      </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button type="primary" @click="submitStart">确 定</el-button>
-        <el-button @click="startOpen = false">取 消</el-button>
-      </div>
-    </el-dialog>
   </el-container>
 </template>
 
 <script>
-import { listDefinition, importFile, readXml, saveModel, changeState, delDefinition, startProcess, listCandidateUsers } from '@/api/flowable/definition'
+import { listDefinition, importFile, readXml, saveModel, changeState, delDefinition } from '@/api/flowable/definition'
 import BpmnDesigner from '@/components/BpmnDesigner'
 import BpmnViewer from '@/components/BpmnViewer'
 
@@ -174,11 +139,6 @@ export default {
       importOpen: false,
       importForm: { name: undefined, category: undefined, file: null },
       fileList: [],
-      // 发起流程
-      startOpen: false,
-      startForm: { definitionId: undefined, businessKey: undefined, assigneeIds: [] },
-      candidateUsers: [],
-      currentStartRow: null,
       // 查询参数
       queryParams: {
         pageNum: 1,
@@ -311,41 +271,6 @@ export default {
           this.getList()
         })
         .catch(() => {})
-    },
-    /** 打开发起流程对话框 */
-    handleStart(row) {
-      if (row.suspended) {
-        this.$modal.msgError('流程已挂起，无法发起')
-        return
-      }
-      this.currentStartRow = row
-      this.startForm = { definitionId: row.id, businessKey: undefined, assigneeIds: [] }
-      this.candidateUsers = []
-      listCandidateUsers().then(list => {
-        this.candidateUsers = Array.isArray(list) ? list : []
-      })
-      this.startOpen = true
-    },
-    /** 提交发起流程 */
-    submitStart() {
-      const variables = {}
-      const assigneeIds = this.startForm.assigneeIds || []
-      if (assigneeIds.length > 0) {
-        variables.candidateUsers = assigneeIds
-        // 仅选一人时同时给出 assignee，兼容流程以 ${assignee} 直接指派
-        if (assigneeIds.length === 1) {
-          variables.assignee = assigneeIds[0]
-        }
-      }
-      const payload = {
-        definitionId: this.startForm.definitionId,
-        businessKey: this.startForm.businessKey || undefined,
-        variables: Object.keys(variables).length > 0 ? variables : undefined
-      }
-      startProcess(payload).then(instanceId => {
-        this.$modal.msgSuccess('发起成功，实例ID：' + instanceId)
-        this.startOpen = false
-      })
     }
   }
 }

@@ -1,0 +1,41 @@
+// ===== 强调色 & 语义色（Apple System Colors）=====
+$color-primary:        #094194; // System Blue
+$color-primary-hover:  #1976D2; // 主色亮一档（hover）
+$color-primary-active: #082E6C; // 主色暗一档（active）
+$color-success:        #388E3C; // System Green
+$color-warning:        #FF9500; // System Orange
+$color-danger:         #D32F2F; // System Red
+$color-info:           #33333399; // System Gray
+
+// ===== 中性色 =====
+$bg-base:           #FFFFFF; // 主背景
+$bg-grouped:        #F2F2F7; // 分组背景（拟替换各处 #f2f2f2 / #f8f8f9）
+$fill-quaternary:   #F5F5F7; // 极浅填充（表头等）
+$separator:         #DCDCE0; // 统一分隔线（卡片 / 分割线 / 表格外框）
+$separator-light:   #E8E8ED; // 更浅的分隔线（表格内框等）
+$label:             #1D1D1F; // 主文字
+$label-secondary:   #6E6E73; // 次要文字
+
+// ===== 圆角(随控件尺寸分级)=====
+$radius-xs: 4px;  // 小控件:checkbox / tag
+$radius-sm: 6px;  // 按钮 / 输入框
+$radius-md: 8px;  // 卡片 / 浮层
+$radius-lg: 14px; // 弹窗 / 大卡片
+
+// ===== 间距(4 / 8pt 栅格)=====
+$space-1: 4px;
+$space-2: 8px;
+$space-3: 12px;
+$space-4: 16px;
+$space-5: 20px;
+$space-6: 24px;
+$space-8: 32px;
+
+// ===== 阴影（柔和、低透明度）=====
+$shadow-card:    0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.08);
+$shadow-popover: 0 6px 24px rgba(0, 0, 0, 0.12);
+
+// ===== 动效 =====
+$ease-out:      cubic-bezier(0.25, 0.46, 0.45, 0.94); // 减速:入场 / 展开
+$ease-in-out:   cubic-bezier(0.4, 0, 0.2, 1);         // 对称:移动 / 折叠
+$duration-base: 0.3s;

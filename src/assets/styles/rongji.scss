@@ -1,55 +1,57 @@
+@import './tokens.scss';
+
  /**
  * 通用css样式布局处理
  */
 
   /** 基础通用 **/
 .pt5 {
-	padding-top: 5px;
+	padding-top: $space-1;
 }
 .pr5 {
-	padding-right: 5px;
+	padding-right: $space-1;
 }
 .pb5 {
-	padding-bottom: 5px;
+	padding-bottom: $space-1;
 }
 .mt5 {
-	margin-top: 5px;
+	margin-top: $space-1;
 }
 .mr5 {
-	margin-right: 5px;
+	margin-right: $space-1;
 }
 .mb5 {
-	margin-bottom: 5px;
+	margin-bottom: $space-1;
 }
 .mb8 {
-	margin-bottom: 8px;
+	margin-bottom: $space-2;
 }
 .ml5 {
-	margin-left: 5px;
+	margin-left: $space-1;
 }
 .mt10 {
-	margin-top: 10px;
+	margin-top: $space-3;
 }
 .mr10 {
-	margin-right: 10px;
+	margin-right: $space-3;
 }
 .mb10 {
-	margin-bottom: 10px;
+	margin-bottom: $space-3;
 }
 .ml10 {
-	margin-left: 10px;
+	margin-left: $space-3;
 }
 .mt20 {
-	margin-top: 20px;
+	margin-top: $space-5;
 }
 .mr20 {
-	margin-right: 20px;
+	margin-right: $space-5;
 }
 .mb20 {
-	margin-bottom: 20px;
+	margin-bottom: $space-5;
 }
 .ml20 {
-	margin-left: 20px;
+	margin-left: $space-5;
 }
 
 .el-dialog:not(.is-fullscreen) {
@@ -67,8 +69,8 @@
 	.el-table__header-wrapper, .el-table__fixed-header-wrapper {
 		th {
 			word-break: break-word;
-			background-color: #f8f8f9;
-			color: #515a6e;
+			background-color: $fill-quaternary;
+			color: $label-secondary;
 			height: 40px;
 			font-size: 13px;
 		}
@@ -83,25 +85,25 @@
 /** 表单布局 **/
 .form-header {
     font-size:15px;
-	color:#6379bb;
-	border-bottom:1px solid #ddd;
-	margin:8px 10px 25px 10px;
-	padding-bottom:5px
+	color: $label-secondary;
+	border-bottom: 1px solid $separator;
+	margin: $space-2 $space-3 $space-6 $space-3;
+	padding-bottom: $space-1
 }
 
 /** 表格布局 **/
 .pagination-container {
 	position: relative;
 	height: 25px;
-	margin-bottom: 10px;
-	margin-top: 15px;
-	padding: 10px 20px !important;
+	margin-bottom: $space-3;
+	margin-top: $space-4;
+	padding: $space-3 $space-5 !important;
 }
 
 /* tree border */
 .tree-border {
     margin-top: 5px;
-    border: 1px solid #e5e6e7;
+    border: 1px solid $separator;
     background: #FFFFFF none;
     border-radius:4px;
 }
@@ -129,7 +131,7 @@
 /** 表格更多操作下拉样式 */
 .el-table .el-dropdown-link {
 	cursor: pointer;
-	color: #0063b1;
+	color: $color-primary;
 	margin-left: 5px;
 }
 
@@ -155,8 +157,8 @@
 }
 
 .list-group-item {
-	border-bottom: 1px solid #e7eaec;
-	border-top: 1px solid #e7eaec;
+	border-bottom: 1px solid $separator;
+	border-top: 1px solid $separator;
 	margin-bottom: -1px;
 	padding: 11px 0px;
 	font-size: 13px;
@@ -167,18 +169,18 @@
 }
 
 .el-card__header {
-	padding: 14px 15px 7px;
+	padding: $space-4 $space-4 $space-2;
 	min-height: 40px;
 }
 
 .el-card__body {
-	padding: 15px 20px 20px 20px;
+	padding: $space-4 $space-5 $space-5 $space-5;
 }
 
 .card-box {
-	padding-right: 15px;
-	padding-left: 15px;
-	margin-bottom: 10px;
+	padding-right: $space-4;
+	padding-left: $space-4;
+	margin-bottom: $space-3;
 }
 
 /* button color */
@@ -202,27 +204,72 @@
   color: #FFFFFF;
 }
 
-.el-dialog{
-	.el-dialog__header{
-		background-color: #0063b1;
+.el-dialog {
+	border-radius: $radius-lg;
 
-		.el-dialog__title{
-			color: #FFFFFF;
-		}
+	&.is-fullscreen {
+		border-radius: 0;
+	}
 
-		.el-dialog__close{
-			color: #FFFFFF;
+	.el-dialog__header {
+		padding: 16px 20px 14px;
+		text-align: center;
+		border-bottom: 1px solid $separator;
+
+		.el-dialog__title {
+			color: $label;
+			font-size: 16px;
+			font-weight: 600;
 		}
 	}
-  .el-dialog__body{
-    padding: 10px 20px;
-  }
+
+	.el-dialog__body {
+		padding: 16px 20px;
+	}
 }
 
 
 /** 操作栏样式 */
 .button-bar{
-	background-color: #f2f2f2;
-	padding: 0 0 10px 15px;
+	background-color: $bg-grouped;
+	padding: 0 0 $space-3 $space-4;
 	margin: 0 !important;
+}
+
+
+/* —— 毛玻璃浮层 —— */
+
+// 下拉 / 选择器 / 气泡 / 日期面板:半透明 + 背景虚化
+// .el-dropdown-menu,
+// .el-select-dropdown,
+// .el-popover,
+// .el-picker-panel,
+// .el-cascader__dropdown,
+// .el-autocomplete-suggestion {
+// 	background-color: rgba(255, 255, 255, 0.72);
+// 	-webkit-backdrop-filter: saturate(180%) blur(20px);
+// 	backdrop-filter: saturate(180%) blur(20px);
+// 	border: 1px solid rgba(0, 0, 0, 0.06);
+// 	border-radius: $radius-md;
+// 	box-shadow: $shadow-popover;
+// }
+
+// Apple 风浮层不带箭头,隐藏 popper 箭头更干净
+.el-dropdown-menu .popper__arrow,
+.el-select-dropdown .popper__arrow,
+.el-popover .popper__arrow {
+	display: none;
+}
+
+// 模态遮罩:变暗的同时虚化背景(弹窗 / 抽屉共用的磨砂底)
+// .v-modal {
+// 	-webkit-backdrop-filter: saturate(120%) blur(6px);
+// 	backdrop-filter: saturate(120%) blur(6px);
+// }
+
+/* —— Checkbox 勾选标记加粗 —— */
+.el-checkbox__inner::after {
+	top: .5px;
+	border-right-width: 2px;
+	border-bottom-width: 2px;
 }

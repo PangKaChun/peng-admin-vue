@@ -15,7 +15,9 @@
 import { TextFieldEntry, isTextFieldEntryEdited, CheckboxEntry, isCheckboxEntryEdited } from '@bpmn-io/properties-panel'
 import { useService } from 'bpmn-js-properties-panel'
 import { jsx } from '@bpmn-io/properties-panel/preact/jsx-runtime'
+import { useState, useEffect, useMemo, useRef } from '@bpmn-io/properties-panel/preact/hooks'
 import { is, getBusinessObject } from 'bpmn-js/lib/util/ModelUtil'
+import { readField, setField, setApprover, setApproverValue, VALUE_APPROVER_TYPES } from './approver'
 
 // 低于默认 Provider 的 DEFAULT_PRIORITY(1000)，保证 Flowable 分组追加在「常规 / 文档」之后
 const LOW_PRIORITY = 500
@@ -92,6 +94,206 @@ function flowableCheckbox(property, label, description) {
       setValue: setValue
     })
   }
+}
+
+// ===== 用户任务「审批人」配置：approverType / approverValue / assignmentMode + 审批策略 approvalStrategy =====
+// 数据落到 extensionElements 下的 flowable:field 与 flowable:property，读写见 ./approver
+
+// 审批人类型单选项（落到 flowable:field name="approverType"）
+const APPROVER_TYPES = [
+  { value: 'USER', label: '指定用户' },
+  { value: 'ROLES', label: '候选角色' },
+  { value: 'DEPTS', label: '候选部门' },
+  { value: 'INITIATOR', label: '发起人' },
+  { value: 'INITIATOR_MANAGER', label: '发起人直属领导' },
+  { value: 'INITIATOR_DEPT_LEADER', label: '发起人部门负责人' },
+  { value: 'EXPRESSION', label: '自定义表达式' }
+]
+
+// 取值型审批人各自对应的选择弹窗（经 eventBus 触发外层 Vue 弹窗，写回 approverValue）
+const VALUE_PICKERS = {
+  USER: { event: 'flowable.userSelect', multiple: true, icon: 'user', title: '选择用户', description: '点击右侧选择用户，多个以英文逗号分隔' },
+  ROLES: { event: 'flowable.roleSelect', multiple: true, icon: 'peoples', title: '选择角色', description: '点击右侧选择角色，多个以英文逗号分隔' },
+  DEPTS: { event: 'flowable.deptSelect', multiple: true, icon: 'tree', title: '选择部门', description: '点击右侧选择部门，多个以英文逗号分隔' },
+  EXPRESSION: { event: 'flowable.expressionSelect', multiple: false, icon: 'code', title: '选择表达式', description: '输入或选择表达式，如 ${approver}' }
+}
+
+// 审批策略单选项（落到 flowable:property name="approvalStrategy"）
+const APPROVAL_STRATEGIES = [
+  { value: 'ANYONE', label: '任意一人审批' },
+  { value: 'ALL', label: '所有人审批' }
+]
+
+// 通用单选组渲染（preact）：label + 一列 radio
+function renderRadioGroup(entryId, label, name, options, current, onSelect) {
+  return jsx('div', {
+    class: 'bio-properties-panel-entry flowable-radio-entry',
+    'data-entry-id': entryId,
+    children: [
+      jsx('label', { class: 'bio-properties-panel-label', children: label }),
+      jsx('div', {
+        class: 'flowable-radio-group',
+        children: options.map(function (opt) {
+          return jsx('label', {
+            class: 'flowable-radio',
+            children: [
+              jsx('input', {
+                type: 'radio',
+                name: name,
+                checked: current === opt.value,
+                onChange: function () { onSelect(opt.value) }
+              }),
+              jsx('span', { children: opt.label })
+            ]
+          })
+        })
+      })
+    ]
+  })
+}
+
+/**
+ * 审批人类型单选（approverType）
+ * 切换类型时清空 approverValue，并按类型重算 assignmentMode（见 approver.setApprover）。
+ */
+function ApproverType(props) {
+  const element = props.element
+  const modeling = useService('modeling')
+  const bpmnFactory = useService('bpmnFactory')
+  const current = readField(getBusinessObject(element), 'approverType')
+  const onSelect = function (type) {
+    setApprover(modeling, bpmnFactory, element, type, '')
+  }
+  return renderRadioGroup(props.id, '审批人类型', 'flowable-approver-type', APPROVER_TYPES, current, onSelect)
+}
+
+/**
+ * 审批人取值（approverValue）：仅取值型审批人（USER/ROLES/DEPTS/EXPRESSION）渲染。
+ * 文本框可手输，右侧按钮经 eventBus 打开对应选择弹窗；写回经 approver.setApproverValue。
+ * 输入用本地 state 受控，避免 debounce 提交期间被模型回填导致光标跳动。
+ */
+function ApproverValue(props) {
+  const element = props.element
+  const id = props.id
+  const modeling = useService('modeling')
+  const bpmnFactory = useService('bpmnFactory')
+  const eventBus = useService('eventBus')
+  const debounce = useService('debounceInput')
+
+  const bo = getBusinessObject(element)
+  const type = readField(bo, 'approverType')
+  const value = readField(bo, 'approverValue')
+
+  const elementRef = useRef(element)
+  const [localValue, setLocalValue] = useState(value)
+  const displayValue = elementRef.current === element ? localValue : value
+
+  // 切换选中节点：更新引用并以新节点的值重置输入框
+  useEffect(function () {
+    elementRef.current = element
+    setLocalValue(value)
+  }, [element])
+  // 同一节点下，外部（如选人弹窗 / 切换审批人类型）写回时同步到输入框
+  useEffect(function () {
+    if (value !== localValue) {
+      setLocalValue(value)
+    }
+  }, [value])
+
+  const commitNow = function (val) {
+    setApproverValue(modeling, bpmnFactory, element, val ? val.trim() : undefined)
+  }
+  const debouncedCommit = useMemo(function () {
+    return debounce(commitNow)
+  }, [element])
+
+  const onInput = function (e) {
+    setLocalValue(e.target.value)
+    debouncedCommit(e.target.value)
+  }
+  const onBlur = function (e) {
+    const trimmed = e.target.value.trim()
+    if (debouncedCommit.cancel) {
+      debouncedCommit.cancel()
+    }
+    setLocalValue(trimmed)
+    commitNow(trimmed)
+  }
+
+  const picker = VALUE_PICKERS[type]
+  // 非取值型（发起人系）或未选类型：不渲染取值编辑器（hooks 已在前面无条件调用）
+  if (!picker) {
+    return null
+  }
+
+  const openPicker = function () {
+    eventBus.fire(picker.event, {
+      payload: { element: element, target: 'approverValue', multiple: picker.multiple, current: value }
+    })
+  }
+  const inputId = 'bio-properties-panel-' + id
+
+  return jsx('div', {
+    class: 'bio-properties-panel-entry',
+    'data-entry-id': id,
+    children: [
+      jsx('div', {
+        class: 'bio-properties-panel-textfield',
+        children: [
+          jsx('label', { for: inputId, class: 'bio-properties-panel-label', children: '审批人' }),
+          jsx('div', {
+            class: 'flowable-user-input-row',
+            children: [
+              jsx('input', {
+                id: inputId,
+                type: 'text',
+                name: id,
+                spellCheck: 'false',
+                autoComplete: 'off',
+                class: 'bio-properties-panel-input',
+                value: displayValue,
+                onInput: onInput,
+                onBlur: onBlur
+              }),
+              jsx('button', {
+                type: 'button',
+                class: 'flowable-user-dots',
+                title: picker.title,
+                onClick: openPicker,
+                // 复用 @/components/SvgIcon 的雪碧图（main.js 已全局注入 #icon-* 符号）
+                children: jsx('svg', {
+                  class: 'svg-icon',
+                  'aria-hidden': 'true',
+                  children: jsx('use', { 'xlink:href': '#icon-' + picker.icon })
+                })
+              })
+            ]
+          })
+        ]
+      }),
+      jsx('div', { class: 'bio-properties-panel-description', children: picker.description })
+    ]
+  })
+}
+
+/**
+ * 审批策略单选（approvalStrategy）：仅多审批人（取值型）场景渲染；单人来源无需策略。
+ */
+function ApprovalStrategy(props) {
+  const element = props.element
+  const modeling = useService('modeling')
+  const bpmnFactory = useService('bpmnFactory')
+  const bo = getBusinessObject(element)
+  const type = readField(bo, 'approverType')
+  const current = readField(bo, 'approvalStrategy')
+  const onSelect = function (val) {
+    setField(modeling, bpmnFactory, element, 'approvalStrategy', val)
+  }
+  // 仅取值型审批人需要审批策略
+  if (VALUE_APPROVER_TYPES.indexOf(type) === -1) {
+    return null
+  }
+  return renderRadioGroup(props.id, '审批策略', 'flowable-approval-strategy', APPROVAL_STRATEGIES, current, onSelect)
 }
 
 /**
@@ -172,9 +374,6 @@ function ConditionExpression(props) {
 }
 
 // 各字段对应的入口组件：模块加载时一次性创建，保持引用稳定，避免每次渲染重建导致重挂载
-const Assignee = flowableTextField('flowable:assignee', '办理人 (assignee)', '指定唯一办理人，支持表达式如 ${assignee}')
-const CandidateUsers = flowableTextField('flowable:candidateUsers', '候选办理人 (candidateUsers)', '多个以英文逗号分隔，支持表达式')
-const CandidateGroups = flowableTextField('flowable:candidateGroups', '候选组 (candidateGroups)', '多个以英文逗号分隔，对应角色 / 用户组')
 const UserTaskFormKey = flowableTextField('flowable:formKey', '表单标识 (formKey)', '绑定外部表单的 key')
 const DueDate = flowableTextField('flowable:dueDate', '到期时间 (dueDate)', 'ISO8601 时间或表达式')
 
@@ -197,15 +396,15 @@ const ExclusiveFlag = flowableCheckbox('flowable:exclusive', '互斥 (exclusive)
 const MiCollection = multiInstanceTextField('flowable:collection', '集合 (collection)', '多实例遍历的集合变量或表达式')
 const MiElementVariable = multiInstanceTextField('flowable:elementVariable', '元素变量 (elementVariable)', '每个实例接收的当前元素变量名')
 
-/** 用户任务分组 */
+/** 用户任务分组：审批人设置（类型 + 取值）、审批策略、表单与到期 */
 function createUserTaskGroup() {
   return {
     id: 'flowable-userTask',
     label: 'Flowable 用户任务',
     entries: [
-      { id: 'flowable-assignee', component: Assignee, isEdited: isTextFieldEntryEdited },
-      { id: 'flowable-candidateUsers', component: CandidateUsers, isEdited: isTextFieldEntryEdited },
-      { id: 'flowable-candidateGroups', component: CandidateGroups, isEdited: isTextFieldEntryEdited },
+      { id: 'flowable-approverType', component: ApproverType, isEdited: function () { return false } },
+      { id: 'flowable-approverValue', component: ApproverValue, isEdited: isTextFieldEntryEdited },
+      { id: 'flowable-approvalStrategy', component: ApprovalStrategy, isEdited: function () { return false } },
       { id: 'flowable-formKey', component: UserTaskFormKey, isEdited: isTextFieldEntryEdited },
       { id: 'flowable-dueDate', component: DueDate, isEdited: isTextFieldEntryEdited }
     ]
