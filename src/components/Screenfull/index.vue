@@ -1,6 +1,6 @@
 <template>
   <div @click="click">
-    <svg-icon :icon-class="isFullscreen?'exit-fullscreen':'fullscreen'" />
+    <fluent-icon :name="isFullscreen ? 'full_screen_minimize' : 'full_screen_maximize'" />
   </div>
 </template>
 
@@ -44,14 +44,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.screenfull-svg {
-  display: inline-block;
-  cursor: pointer;
-  fill: #5a5e66;
-  width: 20px;
-  height: 20px;
-  vertical-align: 10px;
-}
-</style>

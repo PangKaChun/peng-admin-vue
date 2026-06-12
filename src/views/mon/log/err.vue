@@ -59,11 +59,11 @@
         </el-table-column>
         <el-table-column label="方法名称" align="center" key="method" prop="method" v-if="columns[2].visible" :show-overflow-tooltip="true" />
         <el-table-column label="请求方式" align="center" key="requestMethod" prop="requestMethod" v-if="columns[3].visible" />
-        <el-table-column label="耗时" align="center" width="100" key="time" prop="time" v-if="columns[4].visible">
+        <el-table-column label="耗时" align="center" width="100" key="costTime" prop="costTime" v-if="columns[4].visible">
           <template slot-scope="scope">
-            <el-tag v-if="scope.row.time <= 300">{{ scope.row.time }}ms</el-tag>
-            <el-tag v-else-if="scope.row.time <= 1000" type="warning">{{ scope.row.time }}ms</el-tag>
-            <el-tag v-else type="danger">{{ scope.row.time }}ms</el-tag>
+            <el-tag v-if="scope.row.costTime <= 300">{{ scope.row.costTime }}ms</el-tag>
+            <el-tag v-else-if="scope.row.costTime <= 1000" type="warning">{{ scope.row.costTime }}ms</el-tag>
+            <el-tag v-else type="danger">{{ scope.row.costTime }}ms</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作人员" align="center" key="username" prop="username" v-if="columns[5].visible" />
@@ -134,7 +134,7 @@ export default {
       queryParams: {
         pageNum: 1,
         pageSize: 10,
-        status: 1
+        status: '1'
       },
       // 列信息
       columns: [

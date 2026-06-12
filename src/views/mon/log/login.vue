@@ -1,9 +1,9 @@
 <template>
   <el-container>
     <el-header>
-      <el-form inline label-position="right" class="query-form" size="small">
-        <el-form-item prop="title">
-          <el-input v-model="queryParams.title" placeholder="请输入你要搜索的内容" clearable style="width: 240px" @keyup.enter.native="handleQuery" />
+      <el-form ref="queryForm" :model="queryParams" inline label-position="right" class="query-form" size="small">
+        <el-form-item prop="username">
+          <el-input v-model="queryParams.username" placeholder="请输入登录名" clearable style="width: 240px" @keyup.enter.native="handleQuery" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
@@ -66,7 +66,8 @@ export default {
       // 查询参数
       queryParams: {
         pageNum: 1,
-        pageSize: 10
+        pageSize: 10,
+        username: undefined
       },
       // 列信息
       columns: [
@@ -108,7 +109,7 @@ export default {
     },
     // 多选框选中数据
     handleSelectionChange(selection) {
-      this.ids = selection.map(item => item.dictId)
+      this.ids = selection.map(item => item.loginId)
       this.single = selection.length != 1
       this.multiple = !selection.length
     },

@@ -60,7 +60,8 @@
       overflow: hidden;
     }
 
-    .svg-icon {
+    .svg-icon,
+    .fluent-icon {
       margin-right: 16px;
     }
 
@@ -147,7 +148,8 @@
                   0 0 0 0,
                   0 0 0 0;
 
-      .svg-icon {
+      .svg-icon,
+      .fluent-icon {
         color: $base-menu-accent;
       }
     }
@@ -169,7 +171,8 @@
       .el-tooltip {
         padding: 0 !important;
 
-        .svg-icon {
+        .svg-icon,
+        .fluent-icon {
           margin-left: 20px;
         }
       }
@@ -181,7 +184,8 @@
       &>.el-submenu__title {
         padding: 0 !important;
 
-        .svg-icon {
+        .svg-icon,
+        .fluent-icon {
           margin-left: 20px;
         }
 
@@ -241,7 +245,8 @@
 // when menu collapsed
 .el-menu--vertical {
   &>.el-menu {
-    .svg-icon {
+    .svg-icon,
+    .fluent-icon {
       margin-right: 16px;
     }
   }

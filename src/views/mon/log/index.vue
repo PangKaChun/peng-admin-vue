@@ -22,49 +22,51 @@
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="50" align="center" />
-        <el-table-column label="系统模块" align="center" key="title" prop="title" v-if="columns[0].visible" :show-overflow-tooltip="true" />
+        <el-table-column label="来源服务" align="center" key="serviceName" prop="serviceName" v-if="columns[0].visible" :show-overflow-tooltip="true" />
+        <el-table-column label="系统模块" align="center" key="title" prop="title" v-if="columns[1].visible" :show-overflow-tooltip="true" />
         <el-table-column label="操作类型" align="center" prop="bizType">
           <template slot-scope="scope">
             <dict-tag :options="dict.type.sys_oper_type" :value="scope.row.bizType" />
           </template>
         </el-table-column>
-        <el-table-column label="方法名称" align="center" key="method" prop="method" v-if="columns[2].visible" :show-overflow-tooltip="true" />
-        <el-table-column label="请求方式" align="center" key="requestMethod" prop="requestMethod" v-if="columns[3].visible" />
-        <el-table-column label="耗时" align="center" width="100" key="time" prop="time" v-if="columns[4].visible">
+        <el-table-column label="方法名称" align="center" key="method" prop="method" v-if="columns[3].visible" :show-overflow-tooltip="true" />
+        <el-table-column label="请求方式" align="center" key="requestMethod" prop="requestMethod" v-if="columns[4].visible" />
+        <el-table-column label="耗时" align="center" width="100" key="costTime" prop="costTime" v-if="columns[5].visible">
           <template slot-scope="scope">
-            <el-tag v-if="scope.row.time <= 300">{{ scope.row.time }}ms</el-tag>
-            <el-tag v-else-if="scope.row.time <= 1000" type="warning">{{ scope.row.time }}ms</el-tag>
-            <el-tag v-else type="danger">{{ scope.row.time }}ms</el-tag>
+            <el-tag v-if="scope.row.costTime <= 300">{{ scope.row.costTime }}ms</el-tag>
+            <el-tag v-else-if="scope.row.costTime <= 1000" type="warning">{{ scope.row.costTime }}ms</el-tag>
+            <el-tag v-else type="danger">{{ scope.row.costTime }}ms</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作人员" align="center" key="username" prop="username" v-if="columns[5].visible" />
-        <el-table-column label="部门名称" align="center" key="deptName" prop="deptName" v-if="columns[6].visible" />
+        <el-table-column label="操作人员" align="center" key="username" prop="username" v-if="columns[6].visible" />
+        <el-table-column label="部门名称" align="center" key="deptName" prop="deptName" v-if="columns[7].visible" />
         <el-table-column
           label="请求URL"
           align="center"
           key="requestUrl"
           prop="requestUrl"
-          v-if="columns[7].visible"
+          v-if="columns[8].visible"
           :show-overflow-tooltip="true"
         />
-        <el-table-column label="浏览器" align="center" key="browser" prop="browser" v-if="columns[8].visible" :show-overflow-tooltip="true" />
-        <el-table-column label="主机地址" align="center" key="requestIp" prop="requestIp" v-if="columns[9].visible" />
-        <el-table-column label="操作地点" align="center" key="address" prop="address" v-if="columns[10].visible" />
-        <el-table-column label="请求参数" align="center" key="params" prop="params" v-if="columns[11].visible" :show-overflow-tooltip="true" />
+        <el-table-column label="浏览器" align="center" key="browser" prop="browser" v-if="columns[9].visible" :show-overflow-tooltip="true" />
+        <el-table-column label="操作系统" align="center" key="os" prop="os" v-if="columns[10].visible" :show-overflow-tooltip="true" />
+        <el-table-column label="主机地址" align="center" key="requestIp" prop="requestIp" v-if="columns[11].visible" />
+        <el-table-column label="操作地点" align="center" key="address" prop="address" v-if="columns[12].visible" />
+        <el-table-column label="请求参数" align="center" key="params" prop="params" v-if="columns[13].visible" :show-overflow-tooltip="true" />
         <el-table-column
           label="返回参数"
           align="center"
           key="jsonResult"
           prop="jsonResult"
-          v-if="columns[12].visible"
+          v-if="columns[14].visible"
           :show-overflow-tooltip="true"
         />
-        <el-table-column label="操作状态" align="center" key="status" prop="status" v-if="columns[13].visible">
+        <el-table-column label="操作状态" align="center" key="status" prop="status" v-if="columns[15].visible">
           <template slot-scope="scope">
             <dict-tag :options="dict.type.log_status" :value="scope.row.status" />
           </template>
         </el-table-column>
-        <el-table-column label="操作时间" width="150" align="center" key="createTime" prop="createTime" v-if="columns[14].visible" />
+        <el-table-column label="操作时间" width="150" align="center" key="createTime" prop="createTime" v-if="columns[16].visible" />
       </el-table>
     </el-main>
     <el-footer>
@@ -98,25 +100,27 @@ export default {
       queryParams: {
         pageNum: 1,
         pageSize: 10,
-        status: 0
+        status: '0'
       },
       // 列信息
       columns: [
-        { key: 1, label: `标题`, visible: true },
-        { key: 2, label: `业务类型`, visible: true },
-        { key: 3, label: `方法名称`, visible: false },
-        { key: 4, label: `请求方式`, visible: true },
-        { key: 5, label: `耗时`, visible: true },
-        { key: 6, label: `操作人员`, visible: true },
-        { key: 7, label: `部门名称`, visible: true },
-        { key: 8, label: `请求URL`, visible: false },
-        { key: 9, label: `浏览器`, visible: true },
-        { key: 10, label: `主机地址`, visible: true },
-        { key: 11, label: `操作地点`, visible: true },
-        { key: 12, label: `请求参数`, visible: false },
-        { key: 13, label: `返回参数`, visible: false },
-        { key: 14, label: `操作状态`, visible: false },
-        { key: 15, label: `操作时间`, visible: true }
+        { key: 1, label: `来源服务`, visible: true },
+        { key: 2, label: `标题`, visible: true },
+        { key: 3, label: `业务类型`, visible: true },
+        { key: 4, label: `方法名称`, visible: false },
+        { key: 5, label: `请求方式`, visible: true },
+        { key: 6, label: `耗时`, visible: true },
+        { key: 7, label: `操作人员`, visible: true },
+        { key: 8, label: `部门名称`, visible: true },
+        { key: 9, label: `请求URL`, visible: false },
+        { key: 10, label: `浏览器`, visible: true },
+        { key: 11, label: `操作系统`, visible: true },
+        { key: 12, label: `主机地址`, visible: true },
+        { key: 13, label: `操作地点`, visible: true },
+        { key: 14, label: `请求参数`, visible: false },
+        { key: 15, label: `返回参数`, visible: false },
+        { key: 16, label: `操作状态`, visible: false },
+        { key: 17, label: `操作时间`, visible: true }
       ],
       // 字典表格数据
       logList: [],

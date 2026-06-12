@@ -19,6 +19,7 @@
   ],
   "dependencies": {
     "@bpmn-io/properties-panel": "^3.0.0",
+    "@fluentui/svg-icons": "^1.1.329",
     "@riophae/vue-treeselect": "^0.4.0",
     "axios": "^1.16.1",
     "bpmn-js": "^18.16.1",

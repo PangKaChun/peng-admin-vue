@@ -28,6 +28,9 @@ import DictData from "@/components/DictData";
 // 左侧工具栏
 import RightTool from "@/components/RightTool";
 
+// Fluent UI 图标组件
+import FluentIcon from "@/components/FluentIcon";
+
 import {
   parseTime,
   resetForm,
@@ -63,23 +66,13 @@ Vue.prototype.formatDuration = formatDuration;
 Vue.component("DictTag", DictTag);
 Vue.component("Pagination", Pagination);
 Vue.component("RightTool", RightTool);
+Vue.component("FluentIcon", FluentIcon);
 
 Vue.use(directive);
 Vue.use(plugins);
 
 // ElementUI默认配置
 ElementUI.Dialog.props.closeOnClickModal.default = false
-const render=ElementUI.Input.render;
-ElementUI.Input.render = function () {
-  // textarea 不做限制
-  if (this.$options.propsData.type === "textarea") {
-    this.$attrs.maxlength || (this.$attrs.maxlength = 300);
-    return render.apply(this, arguments);
-  }
-   //设置组件默认原生属性（attr）
-  this.$attrs.maxlength || (this.$attrs.maxlength = 50); // 如果没有单独设置maxlength，就使用默认的配置（50）
-  return render.apply(this, arguments);
-};
 Vue.use(ElementUI, { size: "small" });
 DictData.install();
 

@@ -67,8 +67,15 @@
                 <el-popover placement="bottom-start" width="460" trigger="click" @show="$refs['iconSelect'].reset()">
                   <IconSelect ref="iconSelect" @selected="(name)=>form.menuIcon = name" />
                   <el-input slot="reference" v-model="form.menuIcon" placeholder="点击选择图标" readonly>
+                    <fluent-icon
+                      v-if="form.menuIcon && form.menuIcon.startsWith('fluent:')"
+                      slot="prefix"
+                      :name="form.menuIcon.slice(7)"
+                      class="el-input__icon"
+                      style="height: 32px;width: 16px;"
+                    />
                     <svg-icon
-                      v-if="form.menuIcon"
+                      v-else-if="form.menuIcon"
                       slot="prefix"
                       :icon-class="form.menuIcon"
                       class="el-input__icon"

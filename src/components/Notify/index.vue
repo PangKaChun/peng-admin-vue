@@ -1,7 +1,7 @@
 <template>
   <div>
     <el-badge :value="0" class="item">
-      <svg-icon icon-class="remind" style="color: rgb(6,30,89)"/>
+      <fluent-icon name="alert" style="color: #061e59" />
     </el-badge>
   </div>
 </template>
