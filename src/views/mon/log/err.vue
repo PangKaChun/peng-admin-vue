@@ -1,9 +1,9 @@
 <template>
   <el-container>
     <el-header>
-      <el-form inline label-position="right" class="query-form" size="small">
+      <el-form ref="queryForm" :model="queryParams" inline label-position="right" class="query-form" size="small">
         <el-form-item prop="title">
-          <el-input v-model="queryParams.title" placeholder="请输入你要搜索的内容" clearable style="width: 240px" @keyup.enter.native="handleQuery" />
+          <el-input v-model="queryParams.title" placeholder="请输入系统模块" clearable style="width: 240px" @keyup.enter.native="handleQuery" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
@@ -44,56 +44,56 @@
                   </el-form-item>
                 </el-form>
               </el-tab-pane>
-              <el-tab-pane label="异常信息" name="second" style="height:391px;overflow-y: auto;">
-                <!-- <div>{{ scope.row.errorMsg }}</div> -->
+              <el-tab-pane label="异常信息" name="second" class="error-msg-pane">
                 <pre><code v-html="highlightedCode(scope.row.errorMsg,'java')"></code></pre>
               </el-tab-pane>
             </el-tabs>
           </template>
         </el-table-column>
-        <el-table-column label="系统模块" align="center" key="title" prop="title" v-if="columns[0].visible" :show-overflow-tooltip="true" />
-        <el-table-column label="操作类型" align="center" prop="bizType">
+        <el-table-column label="来源服务" align="center" key="serviceName" prop="serviceName" v-if="columns[0].visible" :show-overflow-tooltip="true" />
+        <el-table-column label="系统模块" align="center" key="title" prop="title" v-if="columns[1].visible" :show-overflow-tooltip="true" />
+        <el-table-column label="操作类型" align="center" key="bizType" prop="bizType" v-if="columns[2].visible">
           <template slot-scope="scope">
             <dict-tag :options="dict.type.sys_oper_type" :value="scope.row.bizType" />
           </template>
         </el-table-column>
-        <el-table-column label="方法名称" align="center" key="method" prop="method" v-if="columns[2].visible" :show-overflow-tooltip="true" />
-        <el-table-column label="请求方式" align="center" key="requestMethod" prop="requestMethod" v-if="columns[3].visible" />
-        <el-table-column label="耗时" align="center" width="100" key="costTime" prop="costTime" v-if="columns[4].visible">
+        <el-table-column label="方法名称" align="center" key="method" prop="method" v-if="columns[3].visible" :show-overflow-tooltip="true" />
+        <el-table-column label="请求方式" align="center" key="requestMethod" prop="requestMethod" v-if="columns[4].visible" />
+        <el-table-column label="耗时" align="center" width="100" key="costTime" prop="costTime" v-if="columns[5].visible">
           <template slot-scope="scope">
             <el-tag v-if="scope.row.costTime <= 300">{{ scope.row.costTime }}ms</el-tag>
             <el-tag v-else-if="scope.row.costTime <= 1000" type="warning">{{ scope.row.costTime }}ms</el-tag>
             <el-tag v-else type="danger">{{ scope.row.costTime }}ms</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作人员" align="center" key="username" prop="username" v-if="columns[5].visible" />
-        <el-table-column label="部门名称" align="center" key="deptName" prop="deptName" v-if="columns[6].visible" />
+        <el-table-column label="操作人员" align="center" key="username" prop="username" v-if="columns[6].visible" />
+        <el-table-column label="部门名称" align="center" key="deptName" prop="deptName" v-if="columns[7].visible" />
         <el-table-column
           label="请求URL"
           align="center"
           key="requestUrl"
           prop="requestUrl"
-          v-if="columns[7].visible"
+          v-if="columns[8].visible"
           :show-overflow-tooltip="true"
         />
-        <el-table-column label="浏览器" align="center" key="browser" prop="browser" v-if="columns[8].visible" :show-overflow-tooltip="true" />
-        <el-table-column label="主机地址" align="center" key="requestIp" prop="requestIp" v-if="columns[9].visible" />
-        <el-table-column label="操作地点" align="center" key="address" prop="address" v-if="columns[10].visible" />
-        <el-table-column label="请求参数" align="center" key="params" prop="params" v-if="columns[11].visible" :show-overflow-tooltip="true" />
+        <el-table-column label="浏览器" align="center" key="browser" prop="browser" v-if="columns[9].visible" :show-overflow-tooltip="true" />
+        <el-table-column label="主机地址" align="center" key="requestIp" prop="requestIp" v-if="columns[10].visible" />
+        <el-table-column label="操作地点" align="center" key="address" prop="address" v-if="columns[11].visible" />
+        <el-table-column label="请求参数" align="center" key="params" prop="params" v-if="columns[12].visible" :show-overflow-tooltip="true" />
         <el-table-column
           label="返回参数"
           align="center"
           key="jsonResult"
           prop="jsonResult"
-          v-if="columns[12].visible"
+          v-if="columns[13].visible"
           :show-overflow-tooltip="true"
         />
-        <el-table-column label="操作状态" align="center" key="status" prop="status" v-if="columns[13].visible">
+        <el-table-column label="操作状态" align="center" key="status" prop="status" v-if="columns[14].visible">
           <template slot-scope="scope">
             <dict-tag :options="dict.type.log_status" :value="scope.row.status" />
           </template>
         </el-table-column>
-        <el-table-column label="操作时间" width="150" align="center" key="createTime" prop="createTime" v-if="columns[14].visible" />
+        <el-table-column label="操作时间" width="150" align="center" key="createTime" prop="createTime" v-if="columns[15].visible" />
       </el-table>
     </el-main>
     <el-footer>
@@ -128,33 +128,33 @@ export default {
       single: true,
       // 非多个禁用
       multiple: true,
-      // 日期范围
-      dateRange: [],
-      // 查询参数
+      // 查询参数（status 固定为失败,只查异常日志）
       queryParams: {
         pageNum: 1,
         pageSize: 10,
+        title: undefined,
         status: '1'
       },
       // 列信息
       columns: [
-        { key: 1, label: `标题`, visible: true },
-        { key: 2, label: `业务类型`, visible: true },
-        { key: 3, label: `方法名称`, visible: false },
-        { key: 4, label: `请求方式`, visible: true },
-        { key: 5, label: `耗时`, visible: true },
-        { key: 6, label: `操作人员`, visible: true },
-        { key: 7, label: `部门名称`, visible: true },
-        { key: 8, label: `请求URL`, visible: false },
-        { key: 9, label: `浏览器`, visible: false },
-        { key: 10, label: `主机地址`, visible: true },
-        { key: 11, label: `操作地点`, visible: true },
-        { key: 12, label: `请求参数`, visible: false },
-        { key: 13, label: `返回参数`, visible: false },
-        { key: 14, label: `操作状态`, visible: true },
-        { key: 15, label: `操作时间`, visible: true }
+        { key: 1, label: `来源服务`, visible: true },
+        { key: 2, label: `系统模块`, visible: true },
+        { key: 3, label: `操作类型`, visible: true },
+        { key: 4, label: `方法名称`, visible: false },
+        { key: 5, label: `请求方式`, visible: true },
+        { key: 6, label: `耗时`, visible: true },
+        { key: 7, label: `操作人员`, visible: true },
+        { key: 8, label: `部门名称`, visible: true },
+        { key: 9, label: `请求URL`, visible: false },
+        { key: 10, label: `浏览器`, visible: false },
+        { key: 11, label: `主机地址`, visible: true },
+        { key: 12, label: `操作地点`, visible: true },
+        { key: 13, label: `请求参数`, visible: false },
+        { key: 14, label: `返回参数`, visible: false },
+        { key: 15, label: `操作状态`, visible: true },
+        { key: 16, label: `操作时间`, visible: true }
       ],
-      // 字典表格数据
+      // 日志表格数据
       logList: [],
       // 总条数
       total: 0,
@@ -166,24 +166,24 @@ export default {
     this.getList()
   },
   methods: {
-    /** 查询字典列表 */
+    /** 查询异常日志列表 */
     getList() {
       this.loading = true
-      listLog(this.addDateRange(this.queryParams, this.dateRange)).then(response => {
+      listLog(this.queryParams).then(response => {
         this.logList = response.records
         this.total = response.total
+      }).finally(() => {
         this.loading = false
       })
     },
     /** 重置按钮操作 */
     resetQuery() {
-      this.dateRange = []
       this.resetForm('queryForm')
       this.handleQuery()
     },
     // 多选框选中数据
     handleSelectionChange(selection) {
-      this.ids = selection.map(item => item.dictId)
+      this.ids = selection.map(item => item.logId)
       this.single = selection.length != 1
       this.multiple = !selection.length
     },
@@ -192,11 +192,12 @@ export default {
       this.queryParams.pageNum = 1
       this.getList()
     },
-    /** 高亮显示 */
+    /** 高亮显示（空内容直接返回占位,避免 hljs 对 null 抛错导致展开行渲染失败） */
     highlightedCode(code, language) {
-      const result = hljs.highlight(code, { language: language })
-      console.log(result)
-      return result.value || '&nbsp;'
+      if (!code) {
+        return '&nbsp;'
+      }
+      return hljs.highlight(code, { language: language }).value || '&nbsp;'
     }
   }
 }
@@ -232,6 +233,21 @@ export default {
     margin-right: 0;
     margin-bottom: 0;
     width: 100%;
+  }
+}
+
+// 异常堆栈面板：限高滚动,堆栈短时不留大片空白
+.error-msg-pane {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+// 请求参数 / 异常堆栈长行换行,避免展开行横向溢出
+pre {
+  margin: 0;
+  code {
+    white-space: pre-wrap;
+    word-break: break-all;
   }
 }
 </style>

@@ -183,9 +183,10 @@ const user = {
                 ? require("@/assets/images/preview.png")
                 : process.env.VUE_APP_BASE_API + user.avatar;
             if (roles && roles.length > 0) {
-              // 验证返回的roles是否是一个非空数组
               commit("SET_ROLES", roles);
               commit("SET_PERMISSIONS", permissions);
+            } else {
+              commit("SET_ROLES", ["ROLE_DEFAULT"]);
             }
             commit("SET_USER_INFO", Object.assign(user, casUser));
             commit("SET_NAME", user.username);
