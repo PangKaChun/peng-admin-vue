@@ -24,8 +24,7 @@
     left: 0;
     z-index: 1001;
     overflow: hidden;
-    -webkit-box-shadow: 2px 0 8px rgba(0, 21, 41, .12);
-    box-shadow: 2px 0 8px rgba(0, 21, 41, .12);
+    border-right: 1px solid $separator;
 
     // reset element-ui css
     .horizontal-collapse-transition {
@@ -54,7 +53,7 @@
       display: none;
     }
 
-    a {
+    .el-menu a {
       display: inline-block;
       width: 100%;
       overflow: hidden;
@@ -62,96 +61,98 @@
 
     .svg-icon,
     .fluent-icon {
-      margin-right: 16px;
+      margin-right: 12px;
+      font-size: 16px;
+    }
+
+    .fluent-icon {
+      transform: translateX(-2px);
     }
 
     .el-menu {
       border: none;
       height: 100%;
       width: 100% !important;
+      padding: $space-2;
+      background-color: transparent !important;
+      box-sizing: border-box;
     }
 
-    .el-menu-item, .el-submenu__title {
+    .el-menu .el-menu {
+      padding: 0;
+      height: auto;
+    }
+
+    .el-submenu__title .el-submenu__icon-arrow {
+      right: 12px;
+    }
+
+    .el-menu-item,
+    .el-submenu__title {
       overflow: hidden !important;
       text-overflow: ellipsis !important;
       white-space: nowrap !important;
-    }
-
-    // menu hover
-    .submenu-title-noDropdown,
-    .el-submenu__title {
-      &:hover {
-        background-color: $base-sub-menu-hover !important;
-      }
-    }
-
-    // === 顶层目录 (el-submenu__title) 显式应用 GitHub 暗色，避免被默认样式覆盖成白底 ===
-    & .theme-dark .el-submenu__title {
-      background-color: $base-menu-background !important;
+      height: 40px !important;
+      line-height: 40px !important;
+      margin: 2px 0;
+      border-radius: $radius-sm;
+      font-size: 14px;
+      background-color: transparent !important;
       color: $base-menu-color !important;
+      transition: background-color .15s $ease-out, color .15s $ease-out;
 
-      i {
+      i,
+      .svg-icon,
+      .fluent-icon {
         color: $base-menu-color !important;
+        transition: color .15s $ease-out;
       }
 
       &:hover {
         background-color: $base-sub-menu-hover !important;
         color: $base-menu-color-active !important;
 
-        i {
+        i,
+        .svg-icon,
+        .fluent-icon {
           color: $base-menu-color-active !important;
         }
       }
     }
 
-    & .theme-dark .submenu-title-noDropdown.is-active {
+    .submenu-title-noDropdown.is-active,
+    .el-menu-item.is-active,
+    .el-submenu .el-menu-item.is-active {
       background-color: $base-menu-active-background !important;
-      color: $base-menu-color-active !important;
-      box-shadow: inset 2px 0 0 0 $base-menu-accent;
-    }
+      color: $base-menu-accent !important;
+      font-weight: 600;
 
-    // 当目录下某个子菜单被选中时，目录自身会被加 is-active
-    & .theme-dark .el-submenu.is-active > .el-submenu__title {
-      background-color: $base-menu-background !important;
-      color: $base-menu-color-active !important;
-
-      i {
-        color: $base-menu-color-active !important;
-      }
-    }
-
-    & .nest-menu .el-submenu>.el-submenu__title,
-    & .el-submenu .el-menu-item {
-      min-width: $base-sidebar-width !important;
-
-      &:hover {
-        background-color: rgba(0, 0, 0, 0.06) !important;
-      }
-    }
-
-    & .theme-dark .nest-menu .el-submenu>.el-submenu__title,
-    & .theme-dark .el-submenu .el-menu-item:not(.is-active) {
-      background-color: $base-sub-menu-background !important;
-      color: $base-menu-color !important;
-
-      &:hover {
-        background-color: $base-sub-menu-hover !important;
-        color: $base-menu-color-active !important;
-      }
-    }
-
-    & .theme-dark .el-submenu .is-active {
-      background-color: $base-menu-active-background !important;
-      color: $base-menu-color-active !important;
-      box-shadow: 0 0 0 0,
-                  inset 2px 0px 0px 0px $base-menu-accent,
-                  0 0 0 0,
-                  0 0 0 0;
-
+      i,
       .svg-icon,
       .fluent-icon {
-        color: $base-menu-accent;
+        color: $base-menu-accent !important;
       }
+
+      &:hover {
+        background-color: $base-menu-active-background !important;
+      }
+    }
+
+    // 目录下有选中子项时，目录本身仅加深文字色，不整条高亮（避免与子项高亮重复）
+    .el-submenu.is-active > .el-submenu__title {
+      color: $base-menu-color-active !important;
+
+      i,
+      .svg-icon,
+      .fluent-icon {
+        color: $base-menu-color-active !important;
+      }
+    }
+
+    // 仅约束宽度，背景色/hover 交给上面通用规则处理（避免同specificity规则打架，被source order反悔覆盖选中态）
+    .nest-menu .el-submenu > .el-submenu__title,
+    .el-submenu .el-menu-item {
+      min-width: calc(#{$base-sidebar-width} - #{$space-4}) !important;
     }
   }
 
@@ -164,6 +165,8 @@
       // margin-left: 54px;
     }
 
+    // 折叠后菜单项宽 = 54px 侧栏 - 16px 菜单内边距 = 38px，
+    // 图标 16px 要居中即 margin-left (38-16)/2 = 11px（旧值 20px 是菜单无内边距时代的居中值）
     .submenu-title-noDropdown {
       padding: 0 !important;
       position: relative;
@@ -173,7 +176,8 @@
 
         .svg-icon,
         .fluent-icon {
-          margin-left: 20px;
+          margin-left: 11px;
+          margin-right: 0;
         }
       }
     }
@@ -186,9 +190,13 @@
 
         .svg-icon,
         .fluent-icon {
-          margin-left: 20px;
+          margin-left: 11px;
+          margin-right: 0;
         }
 
+        .fluent-icon {
+          transform: translateX(-2px);
+        }
       }
     }
 
@@ -247,15 +255,14 @@
   &>.el-menu {
     .svg-icon,
     .fluent-icon {
-      margin-right: 16px;
+      margin-right: 12px;
     }
   }
 
   .nest-menu .el-submenu>.el-submenu__title,
   .el-menu-item {
     &:hover {
-      // you can use $subMenuHover
-      background-color: rgba(0, 0, 0, 0.06) !important;
+      background-color: rgba(0, 0, 0, 0.045) !important;
     }
   }
 
@@ -279,19 +286,31 @@
   }
 }
 
-// 侧边栏折叠后，鼠标悬停弹出的子菜单（popper append 到 body，需单独适配 GitHub 暗色）
+// 侧边栏折叠后，鼠标悬停弹出的子菜单（popper append 到 body）：浅色磨砂卡片，与 tokens 的卡片/浮层风格一致
 .el-menu--vertical.el-menu--popup-container,
 .el-menu--vertical > .el-menu--popup {
-  background-color: rgba($base-menu-background, 0.82) !important;
+  background-color: rgba($base-menu-background, 0.9) !important;
+  border: 1px solid $separator;
+  border-radius: $radius-md;
+  box-shadow: $shadow-popover;
+  padding: $space-2;
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   backdrop-filter: saturate(180%) blur(20px);
 
+  // 弹层挂在 body 下，#app 作用域的胶囊样式够不到，这里单独补一份同款
   .el-menu-item,
   .el-submenu__title {
+    height: 40px;
+    line-height: 40px;
+    margin: 2px 0;
+    font-size: 14px;
     background-color: transparent !important;
+    border-radius: $radius-sm;
     color: $base-menu-color !important;
 
-    i {
+    i,
+    .svg-icon,
+    .fluent-icon {
       color: $base-menu-color !important;
     }
 
@@ -299,15 +318,23 @@
       background-color: $base-sub-menu-hover !important;
       color: $base-menu-color-active !important;
 
-      i {
+      i,
+      .svg-icon,
+      .fluent-icon {
         color: $base-menu-color-active !important;
       }
     }
   }
 
   .el-menu-item.is-active {
-    color: $base-menu-color-active !important;
+    color: $base-menu-accent !important;
     background-color: $base-menu-active-background !important;
-    box-shadow: inset 2px 0 0 0 $base-menu-accent;
+    font-weight: 600;
+
+    i,
+    .svg-icon,
+    .fluent-icon {
+      color: $base-menu-accent !important;
+    }
   }
 }

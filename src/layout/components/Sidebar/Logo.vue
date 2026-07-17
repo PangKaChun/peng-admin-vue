@@ -4,32 +4,20 @@
     :class="{'collapse':collapse}"
     :style="{ backgroundColor: sideTheme === 'theme-dark' ? variables.menuBackground : variables.menuLightBackground }"
   >
-    <transition name="sidebarLogoFade">
-      <router-link v-if="collapse" key="collapse" class="sidebar-logo-link" to="/">
-        <!-- <img v-if="logo" :src="logo" class="sidebar-logo" />
-        <h1
-          v-else
+    <router-link class="sidebar-logo-link" to="/">
+      <span class="sidebar-logo-badge">P</span>
+      <transition name="sidebarLogoFade">
+        <span
+          v-if="!collapse"
           class="sidebar-title"
           :style="{ color: sideTheme === 'theme-dark' ? variables.logoTitleColor : variables.logoLightTitleColor }"
-        >{{ title }}</h1> -->
-        <h1
-          class="sidebar-title"
-          :style="{ color: sideTheme === 'theme-dark' ? variables.logoTitleColor : variables.logoLightTitleColor }"
-        >PENG</h1>
-      </router-link>
-      <router-link v-else key="expand" class="sidebar-logo-link" to="/">
-        <!-- <img v-if="logo" :src="logo" class="sidebar-logo" /> -->
-        <h1
-          class="sidebar-title"
-          :style="{ color: sideTheme === 'theme-dark' ? variables.logoTitleColor : variables.logoLightTitleColor }"
-        >{{ title }}</h1>
-      </router-link>
-    </transition>
+        >{{ title }}</span>
+      </transition>
+    </router-link>
   </div>
 </template>
 
 <script>
-// import logoImg from '@/assets/logo/logo.png'
 import variables from '@/assets/styles/variables.scss'
 
 export default {
@@ -50,16 +38,17 @@ export default {
   },
   data() {
     return {
-      title: 'PENG ADMIN',
-      // logo: logoImg
+      title: 'PENG ADMIN'
     }
   }
 }
 </script>
 
 <style lang="scss" scoped>
+@import '@/assets/styles/tokens.scss';
+
 .sidebarLogoFade-enter-active {
-  transition: opacity 1.5s;
+  transition: opacity .2s;
 }
 
 .sidebarLogoFade-enter,
@@ -72,37 +61,46 @@ export default {
   width: 100%;
   height: 50px;
   line-height: 50px;
-  background: #0d1117;
-  border-bottom: 1px solid #21262d;
-  text-align: center;
+  border-bottom: 1px solid $separator;
   overflow: hidden;
 
   & .sidebar-logo-link {
     height: 100%;
     width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 $space-4;
+    box-sizing: border-box;
 
-    & .sidebar-logo {
-      width: 32px;
-      height: 32px;
-      vertical-align: middle;
-      margin-right: 12px;
+    & .sidebar-logo-badge {
+      flex: none;
+      width: 26px;
+      height: 26px;
+      line-height: 26px;
+      border-radius: $radius-sm;
+      background: $color-primary;
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      text-align: center;
     }
 
     & .sidebar-title {
       display: inline-block;
-      margin: 0;
-      color: #fff;
+      margin: 0 0 0 $space-3;
       font-weight: 600;
-      line-height: 50px;
+      line-height: 20px;
       font-size: 14px;
-      font-family: Avenir, Helvetica Neue, Arial, Helvetica, sans-serif;
-      vertical-align: middle;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
 
   &.collapse {
-    .sidebar-logo {
-      margin-right: 0px;
+    .sidebar-logo-link {
+      padding: 0;
+      justify-content: center;
     }
   }
 }

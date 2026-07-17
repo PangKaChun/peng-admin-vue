@@ -6,6 +6,8 @@ function resolve(dir) {
 }
 
 const CompressionPlugin = require("compression-webpack-plugin");
+// @vue/cli-service 自带依赖,用于随构建发布 pdf.js 的 CJK 字型映射与标准字体
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 const name = process.env.VUE_APP_TITLE || "PENG ADMIN"; // 网页标题
 
@@ -60,7 +62,7 @@ module.exports = {
           ["^" + process.env.VUE_APP_BASE_API]: "",
         },
         headers: {
-          'X-Forwarded-For': '223.73.33.184'
+          'X-Forwarded-For': '113.90.49.179'
         },
       },
     },
@@ -90,8 +92,16 @@ module.exports = {
         config: [__filename],
       },
     },
-    plugins: isProd
-      ? [
+    plugins: [
+      // pdf.js 运行时按需加载的 CJK 字型映射与标准字体(中文 PDF 渲染必需),发布为静态资源
+      new CopyWebpackPlugin({
+        patterns: [
+          { from: "node_modules/pdfjs-dist/cmaps", to: "static/pdf-assets/cmaps" },
+          { from: "node_modules/pdfjs-dist/standard_fonts", to: "static/pdf-assets/standard_fonts" },
+        ],
+      }),
+      ...(isProd
+        ? [
           // gzip 压缩
           new CompressionPlugin({
             test: /\.(js|css|html|svg)?$/i,
@@ -109,7 +119,8 @@ module.exports = {
             minRatio: 0.8,
           }),
         ]
-      : [],
+        : []),
+    ],
   },
   chainWebpack(config) {
     // 只删 prefetch；preload 保留，避免拖慢首屏 LCP
@@ -117,7 +128,11 @@ module.exports = {
     config.plugins.delete("prefetch");
 
     // set svg-sprite-loader
-    config.module.rule("svg").exclude.add(resolve("src/assets/icons")).end();
+    config.module
+      .rule("svg")
+      .exclude.add(resolve("src/assets/icons"))
+      .add(resolve("node_modules/@fluentui/svg-icons"))
+      .end();
     config.module
       .rule("icons")
       .test(/\.svg$/)
@@ -129,6 +144,23 @@ module.exports = {
         symbolId: "icon-[name]",
       })
       .end();
+
+    // Fluent UI 图标（@fluentui/svg-icons）：以源码字符串方式引入，由 FluentIcon 组件内联渲染
+    config.module
+      .rule("fluent-icons")
+      .test(/\.svg$/)
+      .include.add(resolve("node_modules/@fluentui/svg-icons"))
+      .end()
+      .set("type", "asset/source");
+
+    // pdf.js worker：发布为独立静态资源(import 得到 URL)，浏览器以真 Worker 线程加载，避免主线程解析 PDF 卡 UI
+    config.module
+      .rule("pdf-worker")
+      .test(/pdf\.worker(\.min)?\.js$/)
+      .include.add(resolve("node_modules/pdfjs-dist"))
+      .end()
+      .set("type", "asset/resource")
+      .set("generator", { filename: "static/js/[name].[contenthash:8][ext]" });
 
     config.when(process.env.NODE_ENV !== "development", (config) => {
       config.optimization.splitChunks({

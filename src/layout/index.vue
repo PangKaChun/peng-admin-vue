@@ -149,7 +149,7 @@ export default {
 }
 
 .el-aside {
-  background-color: #0d1117;
+  background-color: #F2F2F7;
   width: 205px !important;
   overflow-x: hidden;
 }

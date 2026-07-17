@@ -6,18 +6,29 @@
       @scroll="handleScroll"
     >
       <router-link
-        v-for="tag in visitedViews"
+        v-for="(tag, index) in visitedViews"
         ref="tag"
         :key="tag.path"
         :class="isActive(tag) ? 'active' : ''"
         :to="{ path: tag.path, query: tag.query, fullPath: tag.fullPath }"
         tag="span"
         class="tags-view-item"
-        :style="activeStyle(tag)"
         @click.middle.native="!isAffix(tag) ? closeSelectedTag(tag) : ''"
         @contextmenu.prevent.native="openMenu(tag, $event)"
       >
-        {{ tag.title }}
+        <!-- 相邻标签间的分隔线：首个与活动标签不渲染 -->
+        <span v-if="index !== 0 && !isActive(tag)" class="tags-view-item__divider" />
+        <!-- 背景层：圆角矩形 + 左右 SVG 弧脚  -->
+        <span class="tags-view-item__background">
+          <span class="tags-view-item__background-content" />
+          <svg class="tags-view-item__background-before" width="7" height="7" aria-hidden="true">
+            <path d="M 0 7 A 7 7 0 0 0 7 0 L 7 7 Z" />
+          </svg>
+          <svg class="tags-view-item__background-after" width="7" height="7" aria-hidden="true">
+            <path d="M 0 0 A 7 7 0 0 0 7 7 L 0 7 Z" />
+          </svg>
+        </span>
+        <span class="tags-view-item__main">{{ tag.title }}</span>
         <span
           v-if="!isAffix(tag)"
           class="el-icon-close"
@@ -74,9 +85,6 @@ export default {
     routes() {
       return this.$store.state.permission.routes;
     },
-    theme() {
-      return this.$store.state.settings.theme;
-    },
   },
   watch: {
     $route() {
@@ -98,13 +106,6 @@ export default {
   methods: {
     isActive(route) {
       return route.path === this.$route.path;
-    },
-    activeStyle(tag) {
-      if (!this.isActive(tag)) return {};
-      return {
-        "background-color": this.theme,
-        "border-color": this.theme,
-      };
     },
     isAffix(tag) {
       return tag.meta && tag.meta.affix;
@@ -270,95 +271,254 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import "../../../assets/styles/tokens.scss";
+
+$tabs-gap: 7px;                              // 基准间隙：分隔线偏移 / 顶部圆角 / 弧脚尺寸
+$tabs-overlap: 12px;                         // 相邻标签重叠量
+$tabs-active-bg: rgba($color-primary, 0.15); // 活动标签：主题色 15% 蒙层
+$tabs-hover-bg: $bg-grouped;                 // 悬停浮块
+
+$motion-fast: .16s;
+
 .tags-view-container {
-  height: 34px;
   width: 100%;
-  background: #fff;
-  // border-bottom: 1px solid #d8dce5;
-  // box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.12), 0 0 3px 0 rgba(0, 0, 0, 0.04);
+  height: 38px;
+  background: $bg-base;
+  border-bottom: 1px solid $separator-light;
+  box-sizing: border-box;
+  overflow: hidden;
+
   .tags-view-wrapper {
+    white-space: nowrap;
+    height: 100%;
+
     .tags-view-item {
-      display: inline-block;
       position: relative;
-      cursor: pointer;
-      height: 26px;
-      line-height: 26px;
-      border: 1px solid #d8dce5;
-      color: #495060;
-      background: #fff;
-      padding: 0 8px;
-      font-size: 12px;
-      margin-left: 5px;
+      z-index: 1;
+      display: inline-flex;
+      align-items: center;
+
+      height: 33px; // 37(容器内高，扣除底边框) - 4(顶部留白)
       margin-top: 4px;
-      border-radius: 4px;
+      margin-right: -$tabs-overlap;
+
+      color: rgba(0, 0, 0, 0.72);
+      font-size: 12px;
+
+      cursor: pointer;
+      user-select: none;
+
+      transition: color $motion-fast $ease-out;
+
       &:first-of-type {
-        margin-left: 15px;
+        margin-left: 4px; // 给首个标签左弧脚的 1px 外溢留位
       }
+
       &:last-of-type {
-        margin-right: 15px;
+        margin-right: 0;
       }
+
+      /* 分隔线（模板 v-if 控制：首个与活动标签不渲染） */
+      .tags-view-item__divider {
+        position: absolute;
+        top: 50%;
+        left: $tabs-gap;
+        z-index: 1;
+        width: 1px;
+        height: 16px;
+        background: $separator;
+        transform: translateY(-50%);
+        transition: opacity $motion-fast;
+      }
+
+      /* 背景层：激活时是「顶部圆角矩形 + 两侧弧脚」的 Chrome 标签形；
+         悬停时收底 2px、左右内缩 2px、四角全圆，同一元素平滑形变 */
+      .tags-view-item__background {
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        padding: 0 ($tabs-gap - 1px);
+        box-sizing: border-box;
+        transition: padding $motion-fast $ease-out;
+
+        .tags-view-item__background-content {
+          display: block;
+          height: 100%;
+          border-radius: $tabs-gap $tabs-gap 0 0;
+          transition:
+            background-color $motion-fast $ease-out,
+            margin $motion-fast $ease-out,
+            border-radius $motion-fast $ease-out;
+        }
+
+        svg {
+          position: absolute;
+          bottom: 0;
+          fill: transparent;
+          transition: fill $motion-fast $ease-out;
+        }
+
+        .tags-view-item__background-before {
+          left: -1px;
+        }
+
+        .tags-view-item__background-after {
+          right: -1px;
+        }
+      }
+
+      /* 主体文字：压在背景层之上 */
+      .tags-view-item__main {
+        position: relative;
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        height: 100%;
+        margin: 0 ($tabs-gap * 2);
+        padding: 0 18px 0 2px;
+        overflow: hidden;
+        white-space: nowrap;
+      }
+
+      /* -----------------------------
+       * hover（非活动）：背景形变为悬浮圆角块
+       * ----------------------------- */
+
+      &:hover:not(.active) {
+        color: $label;
+
+        .tags-view-item__divider {
+          opacity: 0;
+        }
+
+        .tags-view-item__background {
+          padding-bottom: 2px;
+
+          .tags-view-item__background-content {
+            margin: 0 2px;
+            border-radius: 6px;
+            background-color: $tabs-hover-bg;
+          }
+        }
+      }
+
+      /* 悬停/活动标签右邻的分隔线同步隐藏 */
+      &:hover:not(.active) + .tags-view-item .tags-view-item__divider,
+      &.active + .tags-view-item .tags-view-item__divider {
+        opacity: 0;
+      }
+
+      /* -----------------------------
+       * active：主题色蒙层卡片 + 弧脚填色
+       * ----------------------------- */
+
       &.active {
-        background-color: #42b983;
-        color: #fff;
-        border-color: #42b983;
-        // &::before {
-        //   content: "";
-        //   background: #fff;
-        //   display: inline-block;
-        //   width: 8px;
-        //   height: 8px;
-        //   border-radius: 50%;
-        //   position: relative;
-        //   margin-right: 2px;
-        // }
+        z-index: 2;
+        color: $color-primary;
+
+        .tags-view-item__background {
+          .tags-view-item__background-content {
+            background-color: $tabs-active-bg;
+          }
+
+          svg {
+            fill: $tabs-active-bg;
+          }
+        }
       }
     }
   }
+
+ /* -----------------------------
+   * Context Menu
+   * ----------------------------- */
   .contextmenu {
-    margin: 0;
-    background: #fff;
-    z-index: 3000;
     position: absolute;
-    list-style-type: none;
-    padding: 5px 0;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 400;
-    color: #333;
-    box-shadow: 2px 2px 3px 0 rgba(0, 0, 0, 0.3);
+    z-index: 100;
+    margin: 0;
+    padding: 6px;
+    min-width: 150px;
+    list-style: none;
+    background: #fff;
+    border: 1px solid $separator-light;
+    border-radius: $radius-md;
+    box-shadow: $shadow-popover;
+    font-size: 13px;
+    color: $label;
+
+    animation: menuFadeIn .16s ease;
+
     li {
-      margin: 0;
-      padding: 7px 16px;
+      display: flex;
+      align-items: center;
+      height: 32px;
+      padding: 0 12px;
+      border-radius: $radius-xs;
       cursor: pointer;
+      white-space: nowrap;
+      transition:
+        background-color $motion-fast,
+        color $motion-fast;
+
       &:hover {
-        background: #eee;
+        background: $bg-grouped;
+      }
+
+      i {
+        width: 16px;
+        margin-right: 8px;
+        text-align: center;
       }
     }
+  }
+}
+
+/* -----------------------------
+ * Animation
+ * ----------------------------- */
+
+@keyframes menuFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 </style>
 
 <style lang="scss">
-//reset element css of el-icon-close
+// 关闭按钮
 .tags-view-wrapper {
   .tags-view-item {
     .el-icon-close {
+      position: absolute;
+      top: 50%;
+      right: 14px;
+      z-index: 3;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       width: 16px;
       height: 16px;
-      vertical-align: 2px;
       border-radius: 50%;
-      text-align: center;
-      transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
-      transform-origin: 100% 50%;
+      transform: translateY(-50%);
+      transition: background-color .16s ease;
+
       &:before {
-        font-weight: bold;
-        transform: scale(0.8);
         display: inline-block;
-        vertical-align: -2px;
+        transform: scale(.9);
       }
+
       &:hover {
-        background-color: #b4bccc;
-        color: #fff;
+        background: rgba(0, 0, 0, .10);
+      }
+
+      &:active {
+        background: rgba(0, 0, 0, .16);
       }
     }
   }

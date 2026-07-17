@@ -121,7 +121,7 @@
         :total="total"
         :page.sync="queryParams.pageNum"
         :limit.sync="queryParams.pageSize"
-        :pager-count="3"
+        :pager-count="5"
         @pagination="getList"
       />
     </el-footer>

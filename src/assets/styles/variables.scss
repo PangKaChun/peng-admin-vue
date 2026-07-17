@@ -1,3 +1,5 @@
+@import '@/assets/styles/tokens.scss';
+
 // base color
 $blue:#324157;
 $light-blue:#3A71A8;
@@ -8,38 +10,23 @@ $tiffany: #4AB7BD;
 $yellow:#FEC171;
 $panGreen: #30B08F;
 
-// 默认菜单主题风格 - GitHub dark
-$base-menu-color:#e6edf3;
-$base-menu-color-active:#ffffff;
-$base-menu-background:#0d1117;
-$base-logo-title-color: #f0f6fc;
+// 默认菜单主题风格 - Copilot 风格浅色侧边栏
+$base-menu-color: $label-secondary;
+$base-menu-color-active: $label;
+$base-menu-background: $bg-grouped;
+$base-logo-title-color: $label;
 
-$base-menu-light-color:rgba(0,0,0,.70);
-$base-menu-light-background:#ffffff;
-$base-logo-light-title-color: #001529;
+$base-menu-light-color: $label-secondary;
+$base-menu-light-background: $bg-base;
+$base-logo-light-title-color: $label;
 
-// 子菜单与主菜单同色，依靠缩进 + 高亮区分层级（GitHub 风格）
-$base-sub-menu-background:#0d1117;
-$base-sub-menu-hover:#21262d;
+// 子菜单与主菜单同背景，不再用色块区分层级，靠缩进 + 圆角高亮
+$base-sub-menu-background: $bg-grouped;
+$base-sub-menu-hover: rgba(0, 0, 0, 0.045);
 
-// GitHub dark accent
-$base-menu-active-background:#21262d;
-$base-menu-accent:#1976D2;
-
-// 自定义暗色菜单风格
-/**
-$base-menu-color:hsla(0,0%,100%,.65);
-$base-menu-color-active:#fff;
-$base-menu-background:#001529;
-$base-logo-title-color: #ffffff;
-
-$base-menu-light-color:rgba(0,0,0,.70);
-$base-menu-light-background:#ffffff;
-$base-logo-light-title-color: #001529;
-
-$base-sub-menu-background:#000c17;
-$base-sub-menu-hover:#001528;
-*/
+// 选中态：低透明度主题色圆角胶囊（非色块 / 非左侧强调条）
+$base-menu-active-background: rgba($color-primary, 0.1);
+$base-menu-accent: $color-primary;
 
 $base-sidebar-width: 200px;
 

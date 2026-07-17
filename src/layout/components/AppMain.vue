@@ -24,13 +24,9 @@ export default {
 
 <style lang="scss" scoped>
 .app-main {
-  /* 50= navbar  50  */
-  /* 33= copyright  33  */
-  /* 34= tagsView  34  */
-  // height: calc(100vh - 50px - 33px - 34px);
-  // max-height: calc(100vh - 50px - 33px - 34px);
-  height: calc(100vh - 50px - 34px);
-  max-height: calc(100vh - 50px - 34px);
+  /* 50 = navbar，38 = tagsView */
+  height: calc(100vh - 50px - 38px);
+  max-height: calc(100vh - 50px - 38px);
   width: 100%;
   position: relative;
   overflow: hidden;
@@ -42,12 +38,12 @@ export default {
 
 .hasTagsView {
   .app-main {
-    /* 84 = navbar + tags-view = 50 + 34 */
-    min-height: calc(100vh - 84px);
+    /* 88 = navbar + tags-view = 50 + 38 */
+    min-height: calc(100vh - 88px);
   }
 
   .fixed-header+.app-main {
-    padding-top: 84px;
+    padding-top: 88px;
   }
 }
 </style>
