@@ -379,7 +379,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$primary: #409eff;
+@import '@/assets/styles/tokens.scss';
 
 .chunk-upload {
   // 拖拽上传区:撑满容器宽度
@@ -407,16 +407,16 @@ $primary: #409eff;
       color: #606266;
 
       em {
-        color: $primary;
+        color: $color-primary;
         font-style: normal;
       }
     }
     &:hover {
-      border-color: $primary;
-      background-color: #f4f9ff;
+      border-color: $color-primary;
+      background-color: rgba($color-primary, 0.05);
 
       .el-icon-upload {
-        color: $primary;
+        color: $color-primary;
       }
     }
   }
@@ -445,7 +445,7 @@ $primary: #409eff;
     flex-shrink: 0;
     margin-right: 10px;
     font-size: 26px;
-    color: $primary;
+    color: $color-primary;
   }
   .file-info {
     flex: 1;
@@ -476,7 +476,7 @@ $primary: #409eff;
       color: #909399;
     }
     &--uploading {
-      color: $primary;
+      color: $color-primary;
     }
     &--paused {
       color: #e6a23c;

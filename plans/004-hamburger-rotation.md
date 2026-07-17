@@ -1,6 +1,6 @@
 # 004 — Hamburger 折叠图标旋转加过渡
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 859ddce
 - **Severity**: MEDIUM
 - **Category**: 动效质量(Physicality & origin / Cohesion)

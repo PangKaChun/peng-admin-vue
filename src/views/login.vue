@@ -220,6 +220,11 @@ export default {
   border-radius: $radius-lg;
   box-shadow: $shadow-card;
   animation: login-rise 0.5s $ease-out both;
+
+  // 减弱动效:去位移,保留淡入
+  @media (prefers-reduced-motion: reduce) {
+    animation: login-fade 0.3s $ease-out both;
+  }
 }
 
 @keyframes login-rise {
@@ -231,6 +236,11 @@ export default {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes login-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .login-header {

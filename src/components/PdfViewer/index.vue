@@ -353,6 +353,7 @@ export default {
 </script>
 
 <style lang="scss">
+@import '@/assets/styles/tokens.scss';
 /* 对话框挂 body(append-to-body) */
 .pdf-viewer-dialog {
   .el-dialog__body {
@@ -373,7 +374,7 @@ export default {
     cursor: pointer;
 
     &:hover {
-      color: #409eff;
+      color: $color-primary;
     }
   }
 

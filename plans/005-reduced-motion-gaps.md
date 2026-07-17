@@ -1,6 +1,6 @@
 # 005 — 补齐 reduced-motion 覆盖缺口(登录卡 / 右键菜单 / 移动端抽屉)
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 859ddce(依赖工作区未提交的 motion.scss)
 - **Severity**: MEDIUM
 - **Category**: 可访问性(Accessibility)

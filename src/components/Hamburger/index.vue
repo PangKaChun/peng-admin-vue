@@ -36,6 +36,7 @@ export default {
   vertical-align: middle;
   width: 20px;
   height: 20px;
+  transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1); /* = tokens.scss 的 $ease-out */
 }
 
 .hamburger.is-active {

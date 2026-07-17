@@ -1,6 +1,6 @@
 # 002 — OSS 缩略图配色改用语义 token
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 859ddce(依赖工作区未提交的 tokens.scss 动效层改造)
 - **Severity**: HIGH
 - **Category**: 一致性(Cohesion & tokens)

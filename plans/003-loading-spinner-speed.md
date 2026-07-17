@@ -1,6 +1,6 @@
 # 003 — 提速全局 loading 转圈,提升感知性能
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 859ddce(依赖工作区未提交的 motion.scss)
 - **Severity**: MEDIUM
 - **Category**: 感知性能(Easing & duration)

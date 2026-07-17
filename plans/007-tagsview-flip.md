@@ -1,6 +1,6 @@
 # 007 — TagsView 标签增删的 FLIP 动效
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 859ddce(依赖工作区未提交的 tokens.scss 强曲线)
 - **Severity**: 机会项(Missed opportunity)
 - **Category**: 动效质量(Interruptibility / Missed opportunities)

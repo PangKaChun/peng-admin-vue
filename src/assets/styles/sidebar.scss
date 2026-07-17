@@ -2,8 +2,6 @@
 
   .main-container {
     min-height: 100%;
-    transition: margin-left .28s $ease-in-out;
-    // margin-left: $base-sidebar-width;
     position: relative;
   }
 
@@ -229,6 +227,11 @@
       position: fixed;
       transition: transform .28s $ease-in-out;
       width: $base-sidebar-width !important;
+
+      // 减弱动效:抽屉必须移动才有意义,reduce 下改为瞬时定位
+      @media (prefers-reduced-motion: reduce) {
+        transition: none;
+      }
     }
 
     &.hideSidebar {

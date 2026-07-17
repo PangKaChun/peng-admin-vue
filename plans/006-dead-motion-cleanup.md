@@ -1,6 +1,6 @@
 # 006 — 清理死动效规则与死按钮样式
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 859ddce
 - **Severity**: LOW
 - **Category**: 一致性·清理(Cohesion & tokens)

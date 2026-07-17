@@ -1,6 +1,6 @@
 # 001 — 清除三个组件里硬编码的 Element 默认蓝 #409eff
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 859ddce(依赖工作区未提交的 tokens.scss 动效层改造)
 - **Severity**: HIGH
 - **Category**: 一致性(Cohesion & tokens)

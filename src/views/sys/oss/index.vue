@@ -404,6 +404,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import '@/assets/styles/tokens.scss';
 .el-container {
   height: 100%;
 }
@@ -453,52 +454,52 @@ export default {
   width: 100%;
   height: 100%;
   font-size: 14px;
-  color: #c0c4cc;
+  color: $label-tertiary;
 }
 .oss-thumb--video {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #303133;
+  background: $label;
   color: #fff;
   font-size: 16px;
   transition: background-color 0.2s ease;
 
   &:hover {
-    background: #606266;
+    background: mix(#fff, $label, 15%);
   }
 }
 .oss-thumb--pdf {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fef0f0;
-  color: #f56c6c;
+  background: rgba($color-danger, 0.08);
+  color: $color-danger;
   font-size: 16px;
   transition: background-color 0.2s ease;
 
   &:hover {
-    background: #fde2e2;
+    background: rgba($color-danger, 0.14);
   }
 }
 .oss-thumb--excel {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f0f9eb;
-  color: #67c23a;
+  background: rgba($color-success, 0.08);
+  color: $color-success;
   font-size: 16px;
   transition: background-color 0.2s ease;
 
   &:hover {
-    background: #e7f6db;
+    background: rgba($color-success, 0.14);
   }
 }
 .oss-thumb__icon {
   font-size: 18px;
-  color: #c0c4cc;
+  color: $label-tertiary;
 }
 .hls-tip--fail {
-  color: #f56c6c;
+  color: $color-danger;
 }
 </style>

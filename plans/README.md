@@ -8,13 +8,13 @@
 
 | # | 计划 | 严重度 | 类别 | 状态 |
 | --- | --- | --- | --- | --- |
-| 001 | [清除硬编码 Element 蓝 #409eff](001-brand-blue-tokens.md) | HIGH | 一致性 | TODO |
-| 002 | [OSS 缩略图语义 token](002-oss-semantic-colors.md) | HIGH | 一致性 | TODO |
-| 003 | [Loading 转速 2s → 1.2s](003-loading-spinner-speed.md) | MEDIUM | 感知性能 | TODO |
-| 004 | [Hamburger 旋转过渡](004-hamburger-rotation.md) | MEDIUM | 动效质量 | TODO |
-| 005 | [reduced-motion 补漏 ×3](005-reduced-motion-gaps.md) | MEDIUM | 可访问性 | TODO |
-| 006 | [死动效/死样式清理](006-dead-motion-cleanup.md) | LOW | 清理 | TODO |
-| 007 | [TagsView 标签增删 FLIP](007-tagsview-flip.md) | 机会项 | 动效质量 | TODO |
+| 001 | [清除硬编码 Element 蓝 #409eff](001-brand-blue-tokens.md) | HIGH | 一致性 | DONE |
+| 002 | [OSS 缩略图语义 token](002-oss-semantic-colors.md) | HIGH | 一致性 | DONE |
+| 003 | [Loading 转速 2s → 1.2s](003-loading-spinner-speed.md) | MEDIUM | 感知性能 | DONE |
+| 004 | [Hamburger 旋转过渡](004-hamburger-rotation.md) | MEDIUM | 动效质量 | DONE |
+| 005 | [reduced-motion 补漏 ×3](005-reduced-motion-gaps.md) | MEDIUM | 可访问性 | DONE |
+| 006 | [死动效/死样式清理](006-dead-motion-cleanup.md) | LOW | 清理 | DONE |
+| 007 | [TagsView 标签增删 FLIP](007-tagsview-flip.md) | 机会项 | 动效质量 | DONE |
 
 ## 推荐执行顺序
 

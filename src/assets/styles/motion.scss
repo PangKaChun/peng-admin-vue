@@ -83,6 +83,11 @@
   transform: scaleY(0.96) translateY(4px);
 }
 
+/* —— Loading 转速:2s/圈 → 1.2s/圈,同样耗时感知更快 —— */
+.el-loading-spinner .circular {
+  animation-duration: 1.2s;
+}
+
 /* —— 减弱动效:保留透明度过渡帮助理解,去掉位移 / 缩放 —— */
 @media (prefers-reduced-motion: reduce) {
   .fade-transform-enter,

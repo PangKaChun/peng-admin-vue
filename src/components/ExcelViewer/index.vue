@@ -197,6 +197,7 @@ export default {
 </script>
 
 <style lang="scss">
+@import '@/assets/styles/tokens.scss';
 /* 对话框挂 body(append-to-body) */
 .excel-viewer-dialog {
   .el-dialog__body {
@@ -217,7 +218,7 @@ export default {
     cursor: pointer;
 
     &:hover {
-      color: #409eff;
+      color: $color-primary;
     }
   }
 
@@ -331,8 +332,8 @@ export default {
   }
 
   .excel-grid tbody tr:hover .excel-grid__rownum {
-    background: #e6eefb;
-    color: #409eff;
+    background: rgba($color-primary, 0.08);
+    color: $color-primary;
   }
 
   .excel-viewer__error {

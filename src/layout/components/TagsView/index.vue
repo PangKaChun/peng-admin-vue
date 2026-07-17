@@ -5,6 +5,8 @@
       class="tags-view-wrapper"
       @scroll="handleScroll"
     >
+      <!-- FLIP:新增标签淡入,关闭后右侧标签平滑补位;离场瞬删(绝对定位会破坏重叠式布局) -->
+      <transition-group name="tags-flip" tag="span" class="tags-view-flip">
       <router-link
         v-for="(tag, index) in visitedViews"
         ref="tag"
@@ -35,6 +37,7 @@
           @click.prevent.stop="closeSelectedTag(tag)"
         />
       </router-link>
+      </transition-group>
     </scroll-pane>
     <ul
       v-show="visible"
@@ -292,6 +295,13 @@ $motion-fast: .16s;
     white-space: nowrap;
     height: 100%;
 
+    /* transition-group 渲染的容器:保持内联流 */
+    .tags-view-flip {
+      display: inline-block;
+      white-space: nowrap;
+      height: 100%;
+    }
+
     .tags-view-item {
       position: relative;
       z-index: 1;
@@ -449,6 +459,11 @@ $motion-fast: .16s;
     transform-origin: top left; // 菜单定位在光标处,从触发点长出而非从中心
     animation: menuFadeIn .16s $ease-out;
 
+    // 减弱动效:去位移缩放,保留淡入
+    @media (prefers-reduced-motion: reduce) {
+      animation: menuFadeReduced .12s $ease-out;
+    }
+
     li {
       display: flex;
       align-items: center;
@@ -487,6 +502,38 @@ $motion-fast: .16s;
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes menuFadeReduced {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* -----------------------------
+ * 标签增删 FLIP
+ * ----------------------------- */
+
+.tags-flip-enter-active {
+  transition: opacity 0.15s $ease-out, transform 0.15s $ease-out;
+}
+
+.tags-flip-enter {
+  opacity: 0;
+  transform: scale(0.97);
+}
+
+.tags-flip-move {
+  transition: transform 0.2s $ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tags-flip-enter {
+    transform: none;
+  }
+
+  .tags-flip-move {
+    transition: none;
   }
 }
 </style>
