@@ -3,7 +3,7 @@
 /* fade */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.3s $ease-out;
+  transition: opacity $duration-base $ease-out;
 }
 
 .fade-enter,
@@ -11,36 +11,41 @@
   opacity: 0;
 }
 
-/* fade-transform */
-.fade-transform-leave-active,
+/* fade-transform:路由切换(out-in,总时长 = 出场 + 入场)
+   出场快、入场稳;位移收小,页面内容不该"飞" */
 .fade-transform-enter-active {
-  transition: opacity 0.35s $ease-out, transform 0.35s $ease-out;
+  transition: opacity $duration-slow $ease-out, transform $duration-slow $ease-out;
+}
+
+.fade-transform-leave-active {
+  transition: opacity $duration-fast $ease-out, transform $duration-fast $ease-out;
 }
 
 .fade-transform-enter {
   opacity: 0;
-  transform: translateX(-30px);
+  transform: translateX(-12px);
 }
 
 .fade-transform-leave-to {
   opacity: 0;
-  transform: translateX(30px);
+  transform: translateX(12px);
 }
 
 /* breadcrumb transition */
 .breadcrumb-enter-active,
 .breadcrumb-leave-active {
-  transition: all 0.35s $ease-out;
+  transition: opacity $duration-slow $ease-out, transform $duration-slow $ease-out;
 }
 
 .breadcrumb-enter,
 .breadcrumb-leave-active {
   opacity: 0;
-  transform: translateX(20px);
+  transform: translateX(12px);
 }
 
 .breadcrumb-move {
-  transition: transform 0.35s $ease-out;
+  // 在屏移位(FLIP move)用对称曲线,而非入出场的减速曲线
+  transition: transform $duration-slow $ease-in-out;
 }
 
 .breadcrumb-leave-active {

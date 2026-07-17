@@ -446,7 +446,8 @@ $motion-fast: .16s;
     font-size: 13px;
     color: $label;
 
-    animation: menuFadeIn .16s ease;
+    transform-origin: top left; // 菜单定位在光标处,从触发点长出而非从中心
+    animation: menuFadeIn .16s $ease-out;
 
     li {
       display: flex;

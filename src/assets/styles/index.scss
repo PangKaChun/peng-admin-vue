@@ -4,6 +4,7 @@
 @import './transition.scss';
 @import './modern-normalize.css';
 @import './sidebar.scss';
+@import './motion.scss'; // 交互动效层,需在 transition.scss 之后加载
 
 html,
 body,
@@ -47,7 +48,7 @@ div:focus {
 
 // 页面主容器
 .app-container {
-  padding: 20px;
+  padding: $space-5;
 }
 
 .el-container.app-container {

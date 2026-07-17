@@ -36,6 +36,10 @@ $shadow-card:    0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.08);
 $shadow-popover: 0 6px 24px rgba(0, 0, 0, 0.12);
 
 // ===== 动效 =====
-$ease-out:      cubic-bezier(0.25, 0.46, 0.45, 0.94); // 减速:入场 / 展开
-$ease-in-out:   cubic-bezier(0.4, 0, 0.2, 1);         // 对称:移动 / 折叠
-$duration-base: 0.3s;
+// 曲线:内置 ease-* 太弱,统一用更有力度的自定义曲线(hover 色彩过渡直接用内置 ease 即可)
+$ease-out:      cubic-bezier(0.23, 1, 0.32, 1);   // 强减速:入场 / 展开,起步快、收尾稳
+$ease-in-out:   cubic-bezier(0.77, 0, 0.175, 1);  // 强对称:在屏元素移动 / 折叠
+// 时长:UI 动效不超过 300ms;出场恒快于入场
+$duration-fast: 0.15s; // 出场 / hover / 按压反馈
+$duration-base: 0.2s;  // 下拉、浮层入场
+$duration-slow: 0.25s; // 弹窗、路由切换入场

@@ -1,0 +1,107 @@
+// ===== 全局交互动效(覆盖 Element UI 默认动画)=====
+// 原则:只动 transform / opacity;出场快于入场;UI 动效不超过 300ms。
+// 依赖 main.js 中 element-variables.scss 先于 index.scss 加载,同权重下靠源顺序覆盖。
+
+/* —— 按钮按压反馈:按下轻微缩小,界面在"听"你的操作 —— */
+.el-button {
+  transition:
+    transform 0.16s $ease-out,
+    background-color $duration-fast ease,
+    border-color $duration-fast ease,
+    color $duration-fast ease,
+    box-shadow $duration-fast ease;
+
+  &:not(.is-disabled):active {
+    transform: scale(0.97);
+  }
+}
+
+/* —— 弹窗:轻缩放 + 上浮入场(modal 保持中心 origin),出场快速淡出 ——
+   覆盖 Element 的 dialog-fade keyframes(不可中断),改用可中断的 transition */
+.dialog-fade-enter-active {
+  animation: none;
+  transition: opacity $duration-slow $ease-out;
+
+  .el-dialog {
+    transition: transform $duration-slow $ease-out;
+  }
+}
+
+.dialog-fade-leave-active {
+  animation: none;
+  transition: opacity $duration-fast $ease-out;
+
+  .el-dialog {
+    transition: transform $duration-fast $ease-out;
+  }
+}
+
+.dialog-fade-enter,
+.dialog-fade-leave-to {
+  opacity: 0;
+
+  .el-dialog {
+    transform: scale(0.96) translateY(8px);
+  }
+}
+
+/* —— 下拉 / 选择器 / 日期面板:去掉 scaleY(0) 压扁式入场 ——
+   现实中没有东西从零展开;改为轻缩放 + 4px 位移,并加快时长(300ms → 200/150ms) */
+.el-zoom-in-top-enter-active,
+.el-zoom-in-top-leave-active,
+.el-zoom-in-bottom-enter-active,
+.el-zoom-in-bottom-leave-active {
+  transition: transform $duration-base $ease-out, opacity $duration-base $ease-out;
+}
+
+.el-zoom-in-top-leave-active,
+.el-zoom-in-bottom-leave-active {
+  transition-duration: $duration-fast;
+}
+
+.el-zoom-in-top-enter,
+.el-zoom-in-top-leave-active {
+  opacity: 0;
+  transform: scaleY(0.96) translateY(-4px);
+}
+
+.el-zoom-in-bottom-enter,
+.el-zoom-in-bottom-leave-active {
+  opacity: 0;
+  transform: scaleY(0.96) translateY(4px);
+}
+
+/* 面板向上翻转展开时(x-placement=top*),origin 与位移方向要跟着翻:
+   从触发器处长出 = origin 底部、自下方 4px 滑入 */
+.el-popper[x-placement^='top'].el-zoom-in-top-enter-active,
+.el-popper[x-placement^='top'].el-zoom-in-top-leave-active {
+  transform-origin: center bottom;
+}
+
+.el-popper[x-placement^='top'].el-zoom-in-top-enter,
+.el-popper[x-placement^='top'].el-zoom-in-top-leave-active {
+  transform: scaleY(0.96) translateY(4px);
+}
+
+/* —— 减弱动效:保留透明度过渡帮助理解,去掉位移 / 缩放 —— */
+@media (prefers-reduced-motion: reduce) {
+  .fade-transform-enter,
+  .fade-transform-leave-to,
+  .breadcrumb-enter,
+  .breadcrumb-leave-active,
+  .el-zoom-in-top-enter,
+  .el-zoom-in-top-leave-active,
+  .el-zoom-in-bottom-enter,
+  .el-zoom-in-bottom-leave-active {
+    transform: none;
+  }
+
+  .dialog-fade-enter .el-dialog,
+  .dialog-fade-leave-to .el-dialog {
+    transform: none;
+  }
+
+  .el-button:not(.is-disabled):active {
+    transform: none;
+  }
+}

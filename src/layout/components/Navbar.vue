@@ -76,7 +76,7 @@ export default {
     line-height: 46px;
     height: 100%;
     cursor: pointer;
-    transition: background 0.3s;
+    transition: background-color 0.15s ease;
     -webkit-tap-highlight-color: transparent;
 
     &:hover {
@@ -96,7 +96,7 @@ export default {
 
       &.hover-effect {
         cursor: pointer;
-        transition: background 0.3s;
+        transition: background-color 0.15s ease;
 
         &:hover {
           background: rgba(0, 0, 0, 0.065);
@@ -113,7 +113,7 @@ export default {
 
       &.hover-effect {
         cursor: pointer;
-        transition: background 0.3s;
+        transition: background-color 0.15s ease;
 
         &:hover {
           background: rgba(0, 0, 0, 0.065);
