@@ -94,10 +94,14 @@ module.exports = {
     },
     plugins: [
       // pdf.js 运行时按需加载的 CJK 字型映射与标准字体(中文 PDF 渲染必需),发布为静态资源
+      // libarchive.js 的 Worker 与 WASM(rar/7z 预览用):Worker 以 new URL('libarchive.wasm', import.meta.url)
+      // 就近取 wasm,故两者须落在同一目录;整包按原样发布,不经 webpack 处理
       new CopyWebpackPlugin({
         patterns: [
           { from: "node_modules/pdfjs-dist/cmaps", to: "static/pdf-assets/cmaps" },
           { from: "node_modules/pdfjs-dist/standard_fonts", to: "static/pdf-assets/standard_fonts" },
+          { from: "node_modules/libarchive.js/dist/worker-bundle.js", to: "static/libarchive/worker-bundle.js" },
+          { from: "node_modules/libarchive.js/dist/libarchive.wasm", to: "static/libarchive/libarchive.wasm" },
         ],
       }),
       ...(isProd

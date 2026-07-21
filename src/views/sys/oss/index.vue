@@ -100,6 +100,30 @@
             >
               <i class="el-icon-s-grid" />
             </div>
+            <div
+              v-else-if="isWord(scope.row)"
+              class="oss-thumb oss-thumb--word"
+              title="预览"
+              @click="handlePreviewWord(scope.row)"
+            >
+              <i class="el-icon-document" />
+            </div>
+            <div
+              v-else-if="isArchive(scope.row)"
+              class="oss-thumb oss-thumb--archive"
+              title="预览"
+              @click="handlePreviewArchive(scope.row)"
+            >
+              <i class="el-icon-folder-opened" />
+            </div>
+            <div
+              v-else-if="isMarkdown(scope.row)"
+              class="oss-thumb oss-thumb--md"
+              title="预览"
+              @click="handlePreviewMarkdown(scope.row)"
+            >
+              <i class="el-icon-tickets" />
+            </div>
             <i v-else class="oss-thumb__icon" :class="fileTypeIcon(scope.row.fileType)" />
           </template>
         </el-table-column>
@@ -193,6 +217,15 @@
 
     <!-- Excel 预览对话框(SheetJS) -->
     <excel-viewer ref="excelViewer" />
+
+    <!-- Word 预览对话框(docx-preview) -->
+    <word-viewer ref="wordViewer" />
+
+    <!-- 压缩包预览对话框(zip/rar/7z:jszip + libarchive.js + el-tree) -->
+    <archive-viewer ref="archiveViewer" />
+
+    <!-- Markdown 预览对话框(marked + DOMPurify + highlight.js) -->
+    <markdown-viewer ref="markdownViewer" />
   </el-container>
 </template>
 
@@ -201,13 +234,17 @@ import { listOss, downloadOssUrl, delOss, changeOssPublic, publicOssUrl, preview
 import { formatFileSize } from '@/utils/file'
 import FileUpload from '@/components/FileUpload'
 import VideoPlayer from '@/components/VideoPlayer'
-// PDF 预览走 pdf.js(含 worker/cmaps 资源),Excel 预览走 SheetJS,均异步加载避免拖累首屏
+// PDF 预览走 pdf.js(含 worker/cmaps 资源),Excel 预览走 SheetJS,Word 预览走 docx-preview,
+// 压缩包(zip/rar/7z)预览走 jszip + libarchive.js,Markdown 预览走 marked,均异步加载避免拖累首屏
 const PdfViewer = () => import('@/components/PdfViewer')
 const ExcelViewer = () => import('@/components/ExcelViewer')
+const WordViewer = () => import('@/components/WordViewer')
+const ArchiveViewer = () => import('@/components/ArchiveViewer')
+const MarkdownViewer = () => import('@/components/MarkdownViewer')
 
 export default {
   name: 'Oss',
-  components: { FileUpload, VideoPlayer, PdfViewer, ExcelViewer },
+  components: { FileUpload, VideoPlayer, PdfViewer, ExcelViewer, WordViewer, ArchiveViewer, MarkdownViewer },
   data() {
     return {
       // 遮罩层
@@ -311,6 +348,50 @@ export default {
     /** 预览 Excel(SheetJS 对话框:多 Sheet/合并单元格) */
     handlePreviewExcel(row) {
       this.$refs.excelViewer.open(this.previewUrl(row), row.originalName)
+    },
+    /** 是否 Word 文件(docx-preview 仅支持 .docx,.doc 打开后由查看器提示降级) */
+    isWord(row) {
+      const ext = (row.fileExtension || '').toLowerCase()
+      const mime = row.fileMimeType || ''
+      return ['doc', 'docx'].includes(ext)
+        || mime.includes('wordprocessingml')
+        || mime === 'application/msword'
+    },
+    /** 预览 Word(docx-preview 对话框:还原页面版式) */
+    handlePreviewWord(row) {
+      this.$refs.wordViewer.open(this.previewUrl(row), row.originalName)
+    },
+    /** 压缩格式判定:zip 走 jszip,rar/7z 走 libarchive.js;其余(tar/gz 等)不支持返回 null */
+    archiveFormat(row) {
+      const ext = (row.fileExtension || '').toLowerCase()
+      const mime = row.fileMimeType || ''
+      if (ext === 'zip' || mime === 'application/zip' || mime === 'application/x-zip-compressed') {
+        return 'zip'
+      }
+      if (ext === 'rar' || mime === 'application/vnd.rar' || mime === 'application/x-rar-compressed') {
+        return 'rar'
+      }
+      if (ext === '7z' || mime === 'application/x-7z-compressed') {
+        return '7z'
+      }
+      return null
+    },
+    /** 是否可预览的压缩包(zip/rar/7z) */
+    isArchive(row) {
+      return this.archiveFormat(row) !== null
+    },
+    /** 预览压缩包(el-tree 展示目录结构) */
+    handlePreviewArchive(row) {
+      this.$refs.archiveViewer.open(this.previewUrl(row), row.originalName, this.archiveFormat(row))
+    },
+    /** 是否 Markdown 文件 */
+    isMarkdown(row) {
+      const ext = (row.fileExtension || '').toLowerCase()
+      return ['md', 'markdown'].includes(ext) || row.fileMimeType === 'text/markdown'
+    },
+    /** 预览 Markdown(marked 渲染 + 代码高亮) */
+    handlePreviewMarkdown(row) {
+      this.$refs.markdownViewer.open(this.previewUrl(row), row.originalName)
     },
     /** 播放视频(HLS):公开/私有共用同一地址,公开文件不携带令牌(带无效令牌反而会被 401) */
     handlePlay(row) {
@@ -493,6 +574,45 @@ export default {
 
   &:hover {
     background: rgba($color-success, 0.14);
+  }
+}
+.oss-thumb--word {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba($color-primary, 0.08);
+  color: $color-primary;
+  font-size: 16px;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: rgba($color-primary, 0.14);
+  }
+}
+.oss-thumb--archive {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba($color-warning, 0.10);
+  color: $color-warning;
+  font-size: 16px;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: rgba($color-warning, 0.18);
+  }
+}
+.oss-thumb--md {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba($label, 0.06);
+  color: $label-secondary;
+  font-size: 16px;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: rgba($label, 0.12);
   }
 }
 .oss-thumb__icon {
