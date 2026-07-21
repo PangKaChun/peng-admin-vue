@@ -444,7 +444,7 @@ $motion-fast: .16s;
    * ----------------------------- */
   .contextmenu {
     position: absolute;
-    z-index: 100;
+    z-index: 2001;
     margin: 0;
     padding: 6px;
     min-width: 150px;

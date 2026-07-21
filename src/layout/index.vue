@@ -194,7 +194,7 @@ export default {
   cursor: ew-resize;
   background-color: transparent;
   user-select: none;
-  z-index: 2000;
+  z-index: 2001;
   touch-action: none;
 
   // 默认不显示高亮线 —— sidebar 自身的边框/背景已经把两侧分开
