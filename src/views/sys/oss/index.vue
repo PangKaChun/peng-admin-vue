@@ -163,14 +163,7 @@
         </el-table-column>
         <el-table-column label="操作" align="center" width="260" class-name="small-padding fixed-width">
           <template slot-scope="scope">
-            <el-button
-              v-if="canPlay(scope.row)"
-              size="mini"
-              type="text"
-              icon="el-icon-video-play"
-              @click="handlePlay(scope.row)"
-            >播放</el-button>
-            <span v-else-if="scope.row.fileType === 'video' && scope.row.hlsStatus === 1" class="hls-tip">转码中</span>
+            <span v-if="scope.row.fileType === 'video' && scope.row.hlsStatus === 1" class="hls-tip">转码中</span>
             <span v-else-if="scope.row.fileType === 'video' && scope.row.hlsStatus === 3" class="hls-tip hls-tip--fail">转码失败</span>
             <el-button
               v-if="scope.row.fileType === 'video' && scope.row.hlsStatus === 3"

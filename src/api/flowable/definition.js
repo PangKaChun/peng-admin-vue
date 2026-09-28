@@ -49,7 +49,7 @@ export function changeState(definitionId, suspended) {
 // 删除流程部署
 export function delDefinition(deploymentId) {
   return request({
-    url: flowableAPI + '/flowable/definition/' + deploymentId,
-    method: 'delete'
+    url: flowableAPI + '/flowable/definition/delete/' + deploymentId,
+    method: 'post'
   })
 }

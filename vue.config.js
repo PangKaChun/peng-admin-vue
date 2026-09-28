@@ -15,6 +15,9 @@ const port = process.env.port || process.env.npm_config_port || 80; // 端口
 
 const isProd = process.env.NODE_ENV === "production";
 
+// 预压缩范围;wasm 为 libarchive.js 的 rar/7z 解码器(约 1MB,brotli 后约 40%)
+const compressTest = /\.(js|css|html|svg|wasm)$/i;
+
 // vue.config.js 配置说明
 //官方vue.config.js 参考文档 https://cli.vuejs.org/zh/config/
 module.exports = {
@@ -35,7 +38,7 @@ module.exports = {
     : ['lezer-feel'],
   // 部署生产环境和开发环境下的URL。
   // 默认情况下，Vue CLI 会假设你的应用是被部署在一个域名的根路径上
-  publicPath: process.env.NODE_ENV === "production" ? "/" : "/",
+  publicPath: isProd ? "/" : "/",
   // 在npm run build 或 yarn build 时 ，生成文件的目录名称（要和baseUrl的生产环境路径一致）（默认dist）
   outputDir: "dist",
   // 用于放置生成的静态资源 (js、css、img、fonts) 的；（项目打包之后，静态资源会放在这个文件夹下）
@@ -89,9 +92,14 @@ module.exports = {
     cache: {
       type: "filesystem",
       buildDependencies: {
-        config: [__filename],
+        // browserslist(在 package.json 中)与 babel 配置决定转译结果,二者变更时缓存必须整体失效
+        config: [__filename, resolve("package.json"), resolve("babel.config.js")],
       },
     },
+    // vue-loader 15 总会导入样式块的默认导出,而生产环境样式被抽离为无导出模块,每个 .vue 都会报一条无害警告
+    ignoreWarnings: [/export 'default' \(imported as 'style\d+'\) was not found/],
+    // 体积已由 Vue CLI 构建摘要逐项列出;固定 244KB 阈值必被 echarts / 图标包触发,只会制造常驻警告
+    performance: { hints: false },
     plugins: [
       // pdf.js 运行时按需加载的 CJK 字型映射与标准字体(中文 PDF 渲染必需),发布为静态资源
       // libarchive.js 的 Worker 与 WASM(rar/7z 预览用):Worker 以 new URL('libarchive.wasm', import.meta.url)
@@ -108,7 +116,7 @@ module.exports = {
         ? [
           // gzip 压缩
           new CompressionPlugin({
-            test: /\.(js|css|html|svg)?$/i,
+            test: compressTest,
             filename: "[path][base].gz",
             algorithm: "gzip",
             threshold: 10240, // 仅压缩大于 10KB 的文件
@@ -116,7 +124,7 @@ module.exports = {
           }),
           // brotli 压缩，压缩率比 gzip 更高，现代浏览器和 nginx/cdn 普遍支持
           new CompressionPlugin({
-            test: /\.(js|css|html|svg)?$/i,
+            test: compressTest,
             filename: "[path][base].br",
             algorithm: "brotliCompress",
             threshold: 10240,
@@ -166,7 +174,7 @@ module.exports = {
       .set("type", "asset/resource")
       .set("generator", { filename: "static/js/[name].[contenthash:8][ext]" });
 
-    config.when(process.env.NODE_ENV !== "development", (config) => {
+    config.when(isProd, (config) => {
       config.optimization.splitChunks({
         chunks: "all",
         cacheGroups: {
@@ -181,6 +189,17 @@ module.exports = {
             priority: 20, // the weight needs to be larger than libs and app or it will be packaged into libs or app
             test: /[\\/]node_modules[\\/]_?element-ui(.*)/, // in order to adapt to cnpm
           },
+          // 首屏最大的两个依赖单独成包:图标注册表增删或其它依赖升级时,不连带 1MB 级的 echarts / 图标包缓存失效
+          echarts: {
+            name: "chunk-echarts",
+            priority: 20,
+            test: /[\\/]node_modules[\\/](echarts|zrender)[\\/]/,
+          },
+          fluentIcons: {
+            name: "chunk-fluent-icons",
+            priority: 20,
+            test: /[\\/]node_modules[\\/]@fluentui[\\/]svg-icons[\\/]/,
+          },
           commons: {
             name: "chunk-commons",
             test: resolve("src/components"), // can customize your rules
@@ -192,15 +211,17 @@ module.exports = {
       });
       config.optimization.runtimeChunk("single");
 
-      // 生产构建去除 console / debugger，减小包体
+      // 生产构建去除调试输出与 debugger，减小包体
       config.optimization.minimizer("terser").tap((args) => {
         const opts = args[0] || {};
+        // pdf.js 与 libarchive 的 worker 是上游已压缩产物(合计约 1.1MB),再压一遍只耗时
+        opts.exclude = /pdf\.worker|worker-bundle/;
         opts.terserOptions = opts.terserOptions || {};
         opts.terserOptions.compress = {
           ...(opts.terserOptions.compress || {}),
-          drop_console: true,
+          // 保留 warn / error:Vue 经 console.error 上报组件异常,全删会让线上报错无迹可查
+          drop_console: ["log", "info", "debug"],
           drop_debugger: true,
-          pure_funcs: ["console.log"],
         };
         return args;
       });

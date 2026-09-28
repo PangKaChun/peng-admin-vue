@@ -1,5 +1,5 @@
 <template>
-  <!-- Word 预览对话框(docx-preview:还原 .docx 页面版式) -->
+  <!-- Word 预览对话框 -->
   <el-dialog
     :visible.sync="visible"
     :fullscreen="maximized"
@@ -9,7 +9,7 @@
     custom-class="word-viewer-dialog"
     @closed="cleanup"
   >
-    <!-- 自定义标题栏:标题 + 最大化/还原按钮(双击标题栏也可切换) -->
+    <!-- 自定义标题栏 -->
     <div slot="title" class="word-viewer__header" @dblclick="toggleMaximize">
       <span class="el-dialog__title">{{ title }}</span>
       <button
@@ -24,7 +24,6 @@
 
     <div v-loading="loading" class="word-viewer__body">
       <div v-if="errorMsg" class="word-viewer__error">{{ errorMsg }}</div>
-      <!-- docx-preview 渲染宿主:文档内容与样式都注入此容器,便于关闭时整体清理 -->
       <div v-show="!errorMsg" ref="container" class="word-viewer__container" />
     </div>
   </el-dialog>
@@ -65,7 +64,7 @@ export default {
     async load(url) {
       this.errorMsg = ''
       this.loading = true
-      // 加载令牌:对话框关闭后丢弃迟到结果,避免渲染到已清理的容器
+      // 加载令牌
       const token = {}
       this._loadToken = token
       try {
@@ -96,7 +95,7 @@ export default {
         }
       } catch (e) {
         if (this._loadToken === token) {
-          // docx-preview 仅支持 OOXML(.docx),老版本二进制 .doc 会在此失败
+          // docx-preview 仅支持 OOXML(.docx)
           console.error('Word 加载失败', e)
           this.errorMsg = 'Word 预览失败，可能是老版本 .doc 格式，请下载后查看'
         }
@@ -110,7 +109,7 @@ export default {
     toggleMaximize() {
       this.maximized = !this.maximized
     },
-    /** 关闭后清理:丢弃在途加载、清空渲染宿主、复位状态 */
+    /** 关闭后清理 */
     cleanup() {
       this._loadToken = null
       this.loading = false
@@ -160,8 +159,6 @@ export default {
     min-height: 100%;
   }
 
-  /* docx-preview 默认给 .docx-wrapper 铺 gray(#808080)灰底,与对话框深色遮罩层同色系易混;
-     覆盖成更浅的画布色,页面本身的白底与阴影保留(靠双类选择器压过库内单类样式) */
   .word-viewer__body .docx-wrapper {
     background: #f5f7fa;
   }
@@ -175,7 +172,7 @@ export default {
     color: #909399;
   }
 
-  /* 最大化:对话框纵向弹性布局,预览区吃满剩余高度 */
+  /* 最大化 */
   &.is-fullscreen {
     display: flex;
     flex-direction: column;

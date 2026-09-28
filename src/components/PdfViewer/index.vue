@@ -1,5 +1,5 @@
 <template>
-  <!-- PDF 预览对话框(pdf.js:缩放/翻页/文本搜索) -->
+  <!-- PDF 预览对话框 -->
   <el-dialog
     :visible.sync="visible"
     :fullscreen="maximized"
@@ -9,7 +9,7 @@
     custom-class="pdf-viewer-dialog"
     @closed="cleanup"
   >
-    <!-- 自定义标题栏:标题 + 最大化/还原按钮(双击标题栏也可切换) -->
+    <!-- 自定义标题栏 -->
     <div slot="title" class="pdf-viewer__header" @dblclick="toggleMaximize">
       <span class="el-dialog__title">{{ title }}</span>
       <button
@@ -61,7 +61,7 @@
     </div>
 
     <div v-loading="loading" class="pdf-viewer__body">
-      <!-- pdf.js 要求滚动容器绝对定位;内层 .pdfViewer 由 PDFViewer 接管渲染页面 -->
+      <!-- pdf.js 要求滚动容器绝对定位 -->
       <div ref="container" class="pdf-viewer__container">
         <div class="pdfViewer" />
       </div>
@@ -78,7 +78,7 @@ import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.js'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
 
-// CJK 字型映射与标准字体资源(由 vue.config.js CopyWebpackPlugin 随构建发布,中文 PDF 渲染必需)
+// CJK 字型映射与标准字体资源
 const PDF_ASSETS_BASE = process.env.BASE_URL + 'static/pdf-assets/'
 
 // 缩放步进与上下限
@@ -135,7 +135,7 @@ export default {
       // 等对话框体渲染出容器后再初始化 viewer
       this.$nextTick(() => this.load(url))
     },
-    /** 初始化 pdf.js viewer(仅首次,后续复用同一实例) */
+    /** 初始化 pdf.js viewer */
     initViewer() {
       if (this._viewer) {
         return
@@ -196,7 +196,6 @@ export default {
         this.pageNumber = 1
         this.pageInput = '1'
       } catch (e) {
-        // cleanup 触发的取消不算错误
         if (this._loadingTask === task) {
           this.errorMsg = 'PDF 加载失败，请尝试下载后查看'
           console.error('PDF 加载失败', e)
@@ -207,7 +206,7 @@ export default {
         }
       }
     },
-    /** 关闭后清理:取消加载、卸载文档、复位状态 */
+    /** 关闭后清理 */
     cleanup() {
       if (this._loadingTask) {
         this._loadingTask.destroy()
@@ -270,7 +269,7 @@ export default {
         this._viewer.currentScaleValue = 'page-width'
       }
     },
-    /** 最大化/还原:容器尺寸变化后让 pdf.js 重新计算布局 */
+    /** 最大化/还原 */
     toggleMaximize() {
       this.maximized = !this.maximized
       this.$nextTick(() => {
@@ -286,7 +285,7 @@ export default {
         viewer.update()
       })
     },
-    /** 搜索:新词发起搜索,同词回车等价"下一个" */
+    /** 搜索 */
     search() {
       const query = this.searchText
       if (!query) {

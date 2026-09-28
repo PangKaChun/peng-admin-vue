@@ -1,5 +1,5 @@
 <template>
-  <!-- Markdown 预览对话框(marked 解析 + DOMPurify 消毒 + highlight.js 代码高亮) -->
+  <!-- Markdown 预览对话框 -->
   <el-dialog
     :visible.sync="visible"
     :fullscreen="maximized"
@@ -9,7 +9,7 @@
     custom-class="md-viewer-dialog"
     @closed="cleanup"
   >
-    <!-- 自定义标题栏:标题 + 最大化/还原按钮(双击标题栏也可切换) -->
+    <!-- 自定义标题栏 -->
     <div slot="title" class="md-viewer__header" @dblclick="toggleMaximize">
       <span class="el-dialog__title">{{ title }}</span>
       <button
@@ -35,7 +35,7 @@ import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import hljs from 'highlight.js/lib/core'
 import 'highlight.js/styles/github.css'
-// 按需注册常用语言,避免整包 highlight.js 拖大 chunk
+// 按需注册常用语言
 import javascript from 'highlight.js/lib/languages/javascript'
 import typescript from 'highlight.js/lib/languages/typescript'
 import java from 'highlight.js/lib/languages/java'
@@ -69,10 +69,8 @@ hljs.registerLanguage('go', go)
 hljs.registerLanguage('yaml', yaml)
 hljs.registerLanguage('ini', ini)
 hljs.registerLanguage('plaintext', plaintext)
-// 未标注语言的代码块不做自动猜测(易误判),交给 plaintext;含未转义 HTML 的告警也一并关闭
 hljs.configure({ ignoreUnescapedHTML: true })
 
-// 专用 DOMPurify 实例:钩子只影响本组件,不污染全局单例
 const purifier = DOMPurify(window)
 // 外链统一新窗口打开并断开 opener,避免预览内点击把整个管理端导航走
 purifier.addHook('afterSanitizeAttributes', node => {
@@ -81,7 +79,7 @@ purifier.addHook('afterSanitizeAttributes', node => {
     node.setAttribute('rel', 'noopener noreferrer')
   }
 })
-// 禁掉 style 标签与内联样式:上传的 md 不可信,防止注入全局 CSS 或 fixed 覆盖层遮挡管理端
+// 禁掉 style 标签与内联样式:防止注入全局 CSS 或 fixed 覆盖层遮挡管理端
 const SANITIZE_OPTIONS = { FORBID_TAGS: ['style'], FORBID_ATTR: ['style'] }
 
 export default {
@@ -116,7 +114,6 @@ export default {
     async load(url) {
       this.resetState()
       this.loading = true
-      // 加载令牌:对话框关闭后丢弃迟到结果
       const token = {}
       this._loadToken = token
       try {
@@ -130,7 +127,7 @@ export default {
         }
         const rawHtml = marked.parse(text, { gfm: true })
         this.contentHtml = purifier.sanitize(rawHtml, SANITIZE_OPTIONS)
-        // DOM 落地后对代码块做高亮(marked 已给 fenced code 标注 language-xxx)
+        // DOM 落地后对代码块做高亮
         this.$nextTick(() => this.highlightCode())
       } catch (e) {
         if (this._loadToken === token) {
@@ -157,7 +154,7 @@ export default {
     toggleMaximize() {
       this.maximized = !this.maximized
     },
-    /** 关闭后清理:丢弃在途加载、复位状态 */
+    /** 关闭后清理 */
     cleanup() {
       this._loadToken = null
       this.resetState()
@@ -220,7 +217,7 @@ export default {
     color: #909399;
   }
 
-  /* 最大化:对话框纵向弹性布局,预览区吃满剩余高度 */
+  /* 最大化 */
   &.is-fullscreen {
     display: flex;
     flex-direction: column;
@@ -240,7 +237,7 @@ export default {
   }
 }
 
-/* GitHub 风格排版(作用于消毒后的渲染区) */
+/* GitHub 风格排版 */
 .md-body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   font-size: 15px;
@@ -360,7 +357,7 @@ export default {
     background: #d8dee4;
   }
 
-  /* GFM 任务列表:去掉列表圆点 */
+  /* GFM 任务列表 */
   li:has(> input[type="checkbox"]) {
     list-style: none;
     margin-left: -18px;

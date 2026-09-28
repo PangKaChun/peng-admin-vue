@@ -1,5 +1,5 @@
 <template>
-  <!-- 压缩包预览对话框:zip 走 jszip,rar/7z 走 libarchive.js(WASM),统一用 el-tree 展示目录结构 -->
+  <!-- 压缩包预览对话框 -->
   <el-dialog
     :visible.sync="visible"
     :fullscreen="maximized"
@@ -70,7 +70,6 @@
 import JSZip from 'jszip'
 import { formatFileSize } from '@/utils/file'
 
-// libarchive.js 的 Worker/WASM 已由 vue.config.js 发布到该目录(rar/7z 预览用)
 const LIBARCHIVE_WORKER_URL = process.env.BASE_URL + 'static/libarchive/worker-bundle.js'
 // Archive.init 为全局一次性配置,标记避免重复设置
 let libarchiveInited = false
@@ -261,7 +260,7 @@ export default {
       // 顶层文件夹默认展开一层,便于概览
       this.expandedKeys = root.children.filter(n => n.dir).map(n => n.id)
     },
-    /** 递归排序:文件夹在前,同类按名称(数字感知)升序 */
+    /** 递归排序 */
     sortNodes(nodes) {
       nodes.sort((a, b) => {
         if (a.dir !== b.dir) {
@@ -293,7 +292,7 @@ export default {
       }
       return map[ext] || 'el-icon-document'
     },
-    /** el-tree 过滤:命中当前节点名(命中子节点时 el-tree 会自动保留父级) */
+    /** el-tree 过滤 */
     filterNode(value, data) {
       if (!value) {
         return true
@@ -315,7 +314,7 @@ export default {
     toggleMaximize() {
       this.maximized = !this.maximized
     },
-    /** 关闭后清理:丢弃在途加载、终止可能仍在运行的 Worker、复位状态 */
+    /** 关闭后清理 */
     cleanup() {
       this._loadToken = null
       if (this._archive) {

@@ -73,7 +73,11 @@ Backend-driven enums are loaded lazily via the `dicts` component option. [src/ut
 
 ### Build pipeline
 
-[vue.config.js](vue.config.js) splits chunks into `chunk-libs` / `chunk-elementUI` / `chunk-commons`, drops `console`/`debugger` in production via Terser, emits `.gz` + `.br` for assets > 10KB, and uses webpack 5 filesystem cache (`cache.type = 'filesystem'`) — expect a slow first build, fast subsequent ones. SVGs under `src/assets/icons/svg/` are auto-registered as `<svg-icon icon-class="name"/>` via svg-sprite-loader; other SVGs go through the default loader.
+[vue.config.js](vue.config.js) splits chunks into `chunk-libs` / `chunk-elementUI` / `chunk-echarts` / `chunk-fluent-icons` / `chunk-commons`, drops `console.log/info/debug` and `debugger` in production via Terser (keeps `warn`/`error` — Vue reports component errors through `console.error`), emits `.gz` + `.br` for assets > 10KB (including the libarchive `.wasm`), and uses webpack 5 filesystem cache (`cache.type = 'filesystem'`, invalidated when `vue.config.js`, `package.json` or `babel.config.js` changes) — expect a slow first build, fast subsequent ones.
+
+The `browserslist` in package.json is an explicit ES2018 floor (Chrome 63 / Edge 79 / Firefox 60 / Safari 11.1), matching the syntax that untranspiled `node_modules` code in the initial bundle already requires. Every target supports ES modules, so Vue CLI does a single modern build; adding a non-ESM target (e.g. IE 11) would bring back the modern + legacy double build without making the app work in that browser.
+
+SCSS values exported to JS via `:export` must live in a `*.module.scss` file (e.g. `src/assets/styles/variables.module.scss`). Vue CLI 5's css-loader only processes `:export` for CSS modules, so importing a plain `.scss` file into JS yields `undefined` in production builds. SVGs under `src/assets/icons/svg/` are auto-registered as `<svg-icon icon-class="name"/>` via svg-sprite-loader; other SVGs go through the default loader.
 
 Webpack `prefetch` plugin is deleted (preload is kept) to avoid hurting first-paint LCP.
 
