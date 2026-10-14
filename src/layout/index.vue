@@ -1,6 +1,8 @@
 <template>
   <el-container :class="classObj" class="app-wrapper" :style="{ '--current-color': theme }">
-    <div v-if="device === 'mobile' && sidebar.opened" class="drawer-bg" @click="handleClickOutside" />
+    <transition name="fade">
+      <div v-if="device === 'mobile' && sidebar.opened" class="drawer-bg" @click="handleClickOutside" />
+    </transition>
     <sidebar v-if="!sidebar.hide" class="sidebar-container" :style="`width:${sidebar.opened?resize:54}px !important`" />
     <div
       v-show="device !== 'mobile'"
@@ -132,6 +134,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import '@/assets/styles/tokens.scss';
+
 .el-container {
   height: 100%;
 }
@@ -143,15 +147,9 @@ export default {
 
 .el-header {
   height: 50px !important;
-  background-color: #fff;
+  background-color: $bg-base;
   padding: 0;
-  border-bottom: 1px solid #DCDCE0;
-}
-
-.el-aside {
-  background-color: #F2F2F7;
-  width: 205px !important;
-  overflow-x: hidden;
+  border-bottom: 1px solid $separator;
 }
 
 .el-main {
@@ -159,22 +157,9 @@ export default {
   position: relative;
 }
 
-.el-footer {
-  height: 33px !important;
-
-  background: none repeat scroll 0 0 #fff;
-  border-top: 1px solid #e7eaec;
-  overflow: hidden;
-  padding: 10px 6px 0 6px;
-  height: 33px;
-  font-size: 0.7rem !important;
-  color: #7a8b9a;
-  letter-spacing: 0.8px;
-}
-
 .drawer-bg {
-  background: #000;
-  opacity: 0.3;
+  // 半透明用 rgba 而非 opacity:opacity 留给 fade 过渡(scoped 选择器优先级更高,会压住过渡类)
+  background: rgba(0, 0, 0, 0.3);
   width: 100%;
   top: 0;
   height: 100%;
@@ -203,30 +188,39 @@ export default {
     position: absolute;
     top: 0;
     left: 50%;
-    width: 0;
+    width: 4px;
     height: 100%;
-    transform: translateX(-50%);
-    background-color: var(--current-color, #007fd4);
+    transform: translateX(-50%) scaleX(0);
+    background-color: var(--current-color, $color-primary);
     transition:
-      width 0.1s ease-out 0.2s,
-      opacity 0.1s ease-out 0.2s;
+      transform 0.1s $ease-out 0.2s,
+      opacity 0.1s $ease-out 0.2s;
     opacity: 0;
     pointer-events: none;
   }
 
   // hover：延迟后浮现 4px 高亮条（VS Code sash 的标志性效果）
   &:hover::before {
-    width: 4px;
+    transform: translateX(-50%) scaleX(1);
     opacity: 1;
   }
 
   // 拖拽中：立刻高亮，无延迟
   &.is-active::before {
-    width: 4px;
+    transform: translateX(-50%) scaleX(1);
     opacity: 1;
     transition:
-      width 0.1s ease-out,
-      opacity 0.1s ease-out;
+      transform 0.1s $ease-out,
+      opacity 0.1s $ease-out;
+  }
+
+  // 减弱动效:高亮条保持全宽,只做淡入淡出
+  @media (prefers-reduced-motion: reduce) {
+    &::before,
+    &:hover::before,
+    &.is-active::before {
+      transform: translateX(-50%);
+    }
   }
 }
 </style>

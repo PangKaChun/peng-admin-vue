@@ -1,39 +1,19 @@
 <template>
-  <div
-    class="sidebar-logo-container"
-    :class="{'collapse':collapse}"
-    :style="{ backgroundColor: sideTheme === 'theme-dark' ? variables.menuBackground : variables.menuLightBackground }"
-  >
+  <div class="sidebar-logo-container" :class="{'collapse':collapse}">
     <router-link class="sidebar-logo-link" to="/">
       <span class="sidebar-logo-badge">P</span>
-      <transition name="sidebarLogoFade">
-        <span
-          v-if="!collapse"
-          class="sidebar-title"
-          :style="{ color: sideTheme === 'theme-dark' ? variables.logoTitleColor : variables.logoLightTitleColor }"
-        >{{ title }}</span>
-      </transition>
+      <span v-if="!collapse" class="sidebar-title">{{ title }}</span>
     </router-link>
   </div>
 </template>
 
 <script>
-import variables from '@/assets/styles/variables.module.scss'
-
 export default {
   name: 'SidebarLogo',
   props: {
     collapse: {
       type: Boolean,
       required: true
-    }
-  },
-  computed: {
-    variables() {
-      return variables
-    },
-    sideTheme() {
-      return this.$store.state.settings.sideTheme
     }
   },
   data() {
@@ -46,15 +26,6 @@ export default {
 
 <style lang="scss" scoped>
 @import '@/assets/styles/tokens.scss';
-
-.sidebarLogoFade-enter-active {
-  transition: opacity .2s;
-}
-
-.sidebarLogoFade-enter,
-.sidebarLogoFade-leave-to {
-  opacity: 0;
-}
 
 .sidebar-logo-container {
   position: relative;
@@ -88,6 +59,7 @@ export default {
     & .sidebar-title {
       display: inline-block;
       margin: 0 0 0 $space-3;
+      color: $label;
       font-weight: 600;
       line-height: 20px;
       font-size: 14px;

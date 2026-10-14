@@ -83,6 +83,15 @@
   transform: scaleY(0.96) translateY(4px);
 }
 
+/* —— 手风琴(侧栏子菜单 / el-collapse):300ms 内置曲线 → 200ms 强对称曲线 ——
+   高度由 Element 的 JS 驱动,只能缩短时长、减少 reflow 帧数 */
+.collapse-transition {
+  transition:
+    height $duration-base $ease-in-out,
+    padding-top $duration-base $ease-in-out,
+    padding-bottom $duration-base $ease-in-out;
+}
+
 /* —— Loading 转速:2s/圈 → 1.2s/圈,同样耗时感知更快 —— */
 .el-loading-spinner .circular {
   animation-duration: 1.2s;
@@ -90,10 +99,6 @@
 
 /* —— 减弱动效:保留透明度过渡帮助理解,去掉位移 / 缩放 —— */
 @media (prefers-reduced-motion: reduce) {
-  .fade-transform-enter,
-  .fade-transform-leave-to,
-  .breadcrumb-enter,
-  .breadcrumb-leave-active,
   .el-zoom-in-top-enter,
   .el-zoom-in-top-leave-active,
   .el-zoom-in-bottom-enter,
@@ -108,5 +113,9 @@
 
   .el-button:not(.is-disabled):active {
     transform: none;
+  }
+
+  .collapse-transition {
+    transition: none;
   }
 }

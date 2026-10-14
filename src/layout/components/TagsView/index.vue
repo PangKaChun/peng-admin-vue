@@ -449,7 +449,7 @@ $motion-fast: .16s;
     padding: 6px;
     min-width: 150px;
     list-style: none;
-    background: #fff;
+    background: $bg-base;
     border: 1px solid $separator-light;
     border-radius: $radius-md;
     box-shadow: $shadow-popover;

@@ -201,12 +201,18 @@
     .el-menu--collapse {
       .el-submenu {
         &>.el-submenu__title {
-          &>span {
+          // 只藏标题文字:FluentIcon 本身也渲染为 span,不能被一并隐藏
+          &>span:not(.fluent-icon) {
             height: 0;
             width: 0;
             overflow: hidden;
             visibility: hidden;
             display: inline-block;
+          }
+
+          // 菜单项外包了一层 div,Element 自带的折叠态隐藏箭头规则匹配不到
+          .el-submenu__icon-arrow {
+            display: none;
           }
         }
       }
@@ -225,7 +231,7 @@
 
     .sidebar-container {
       position: fixed;
-      transition: transform .28s $ease-in-out;
+      transition: transform $duration-slow $ease-drawer;
       width: $base-sidebar-width !important;
 
       // 减弱动效:抽屉必须移动才有意义,reduce 下改为瞬时定位
@@ -238,7 +244,7 @@
       .sidebar-container {
         width: 0 !important;
         pointer-events: none;
-        transition-duration: 0.3s;
+        transition-duration: $duration-base;
         transform: translate3d(-$base-sidebar-width, 0, 0);
       }
     }
@@ -265,7 +271,7 @@
   .nest-menu .el-submenu>.el-submenu__title,
   .el-menu-item {
     &:hover {
-      background-color: rgba(0, 0, 0, 0.045) !important;
+      background-color: $base-sub-menu-hover !important;
     }
   }
 

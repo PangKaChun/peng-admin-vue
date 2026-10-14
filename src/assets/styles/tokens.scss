@@ -11,6 +11,7 @@ $color-info:           #33333399; // System Gray
 $bg-base:           #FFFFFF; // 主背景
 $bg-grouped:        #F2F2F7; // 分组背景（拟替换各处 #f2f2f2 / #f8f8f9）
 $fill-quaternary:   #F5F5F7; // 极浅填充（表头等）
+$fill-hover:        rgba(0, 0, 0, 0.045); // 悬停底色（侧栏菜单项 / 顶栏按钮）
 $separator:         #DCDCE0; // 统一分隔线（卡片 / 分割线 / 表格外框）
 $separator-light:   #E8E8ED; // 更浅的分隔线（表格内框等）
 $label:             #1D1D1F; // 主文字
@@ -40,6 +41,7 @@ $shadow-popover: 0 6px 24px rgba(0, 0, 0, 0.12);
 // 曲线:内置 ease-* 太弱,统一用更有力度的自定义曲线(hover 色彩过渡直接用内置 ease 即可)
 $ease-out:      cubic-bezier(0.23, 1, 0.32, 1);   // 强减速:入场 / 展开,起步快、收尾稳
 $ease-in-out:   cubic-bezier(0.77, 0, 0.175, 1);  // 强对称:在屏元素移动 / 折叠
+$ease-drawer:   cubic-bezier(0.32, 0.72, 0, 1);  // iOS 抽屉曲线:抽屉 / 侧滑面板
 // 时长:UI 动效不超过 300ms;出场恒快于入场
 $duration-fast: 0.15s; // 出场 / hover / 按压反馈
 $duration-base: 0.2s;  // 下拉、浮层入场

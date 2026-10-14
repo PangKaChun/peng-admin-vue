@@ -4,10 +4,10 @@
 
     <div class="right-menu">
       <template v-if="device!=='mobile'">
-        <screenfull class="right-menu-item hover-effect" />
-        <notify class="notify-wrapper hover-effect" />
+        <screenfull class="right-menu-item" />
+        <notify class="right-menu-item" />
       </template>
-      <el-dropdown class="avatar-container right-menu-item hover-effect" trigger="click">
+      <el-dropdown class="avatar-container right-menu-item" trigger="click">
         <div class="avatar-wrapper">
           <img :src="avatar" class="user-avatar" />
           <span class="username">{{name}}</span>
@@ -63,86 +63,74 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import '@/assets/styles/tokens.scss';
+
 .navbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: 50px;
+  padding: 0 $space-2;
   overflow: hidden;
   position: relative;
-  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
 
-  .hamburger-container {
-    line-height: 46px;
-    height: 100%;
+  // 工具栏按钮:32px 高的圆角悬停块,与侧栏菜单项、页签的胶囊风格一致
+  .hamburger-container,
+  .right-menu-item {
+    display: flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 $space-2;
+    border-radius: $radius-sm;
+    color: rgb(6, 30, 89);
     cursor: pointer;
-    transition: background-color 0.15s ease;
+    transition:
+      background-color 0.15s ease,
+      transform 0.16s $ease-out;
     -webkit-tap-highlight-color: transparent;
 
     &:hover {
-      background: rgba(0, 0, 0, 0.065);
+      background-color: $fill-hover;
+    }
+
+    &:active {
+      transform: scale(0.97);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      &:active {
+        transform: none;
+      }
     }
   }
 
   .right-menu {
     display: flex;
     align-items: center;
+    gap: $space-1;
     height: 100%;
-    .right-menu-item {
-      height: 100%;
-      padding: 0 12px;
-      line-height: 50px;
-      color: rgb(6,30,89);
+  }
 
-      &.hover-effect {
-        cursor: pointer;
-        transition: background-color 0.15s ease;
+  .avatar-wrapper {
+    display: flex;
+    align-items: center;
 
-        &:hover {
-          background: rgba(0, 0, 0, 0.065);
-        }
-      }
+    .user-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06); // 白底头像与白色顶栏之间的细描边
     }
 
-    .notify-wrapper {
-      height: 100%;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      padding: 0 12px;
-
-      &.hover-effect {
-        cursor: pointer;
-        transition: background-color 0.15s ease;
-
-        &:hover {
-          background: rgba(0, 0, 0, 0.065);
-        }
-      }
+    .username {
+      margin-left: $space-2;
     }
 
-    .avatar-container {
-      .avatar-wrapper {
-        height: 100%;
-        display: flex;
-        align-items: center;
-        .user-avatar {
-          cursor: pointer;
-          width: 28px;
-          height: 28px;
-          border-radius: 10px;
-        }
-
-        .username {
-          padding-left: 6px;
-        }
-
-        .el-icon-caret-bottom {
-          padding-left: 6px;
-          cursor: pointer;
-          font-size: 12px;
-        }
-      }
+    .el-icon-caret-bottom {
+      margin-left: $space-1;
+      font-size: 12px;
+      color: $label-secondary;
     }
   }
 }

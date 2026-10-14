@@ -33,9 +33,16 @@ a:hover {
   text-decoration: none;
 }
 
-a:focus,
+// 鼠标点击不显示焦点框;键盘导航(:focus-visible)保留主题色焦点环
+a:focus:not(:focus-visible),
 a:active {
   outline: none;
+}
+
+a:focus-visible {
+  outline: 2px solid rgba($color-primary, 0.5);
+  outline-offset: -2px;
+  border-radius: $radius-sm;
 }
 
 div:focus {

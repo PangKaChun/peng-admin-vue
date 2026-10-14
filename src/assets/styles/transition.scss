@@ -11,43 +11,12 @@
   opacity: 0;
 }
 
-/* fade-transform:路由切换(out-in,总时长 = 出场 + 入场)
-   出场快、入场稳;位移收小,页面内容不该"飞" */
+/* fade-transform:路由切换(out-in)。导航一天几十上百次:
+   出场不做动画(out-in 立即完成),入场只用 150ms 淡入避免硬切;不做位移,页面间没有方向关系 */
 .fade-transform-enter-active {
-  transition: opacity $duration-slow $ease-out, transform $duration-slow $ease-out;
-}
-
-.fade-transform-leave-active {
-  transition: opacity $duration-fast $ease-out, transform $duration-fast $ease-out;
+  transition: opacity $duration-fast $ease-out;
 }
 
 .fade-transform-enter {
   opacity: 0;
-  transform: translateX(-12px);
-}
-
-.fade-transform-leave-to {
-  opacity: 0;
-  transform: translateX(12px);
-}
-
-/* breadcrumb transition */
-.breadcrumb-enter-active,
-.breadcrumb-leave-active {
-  transition: opacity $duration-slow $ease-out, transform $duration-slow $ease-out;
-}
-
-.breadcrumb-enter,
-.breadcrumb-leave-active {
-  opacity: 0;
-  transform: translateX(12px);
-}
-
-.breadcrumb-move {
-  // 在屏移位(FLIP move)用对称曲线,而非入出场的减速曲线
-  transition: transform $duration-slow $ease-in-out;
-}
-
-.breadcrumb-leave-active {
-  position: absolute;
 }

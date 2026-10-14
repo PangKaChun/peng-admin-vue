@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-badge :value="0" class="item">
+    <el-badge :value="unread" :hidden="!unread" class="item">
       <fluent-icon name="alert" style="color: #061e59" />
     </el-badge>
   </div>
@@ -10,7 +10,9 @@
 export default {
   name: 'Notify',
   data() {
-    return {}
+    return {
+      unread: 0
+    }
   },
   mounted() {},
   methods: {}
