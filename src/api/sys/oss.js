@@ -1,5 +1,4 @@
 import request from '@/utils/request'
-import { getToken } from '@/utils/auth'
 const fileAPI = '/api-file'
 
 // 查询文件列表
@@ -49,10 +48,14 @@ export function getMergeStatus(identifier) {
   })
 }
 
+// 文件访问地址前缀
+function fileBaseUrl() {
+  return `${location.origin}${process.env.VUE_APP_BASE_API}${fileAPI}`
+}
+
 // 下载地址
-export function downloadOssUrl(ossId, isPublic) {
-  const base = `${location.origin}${process.env.VUE_APP_BASE_API}${fileAPI}/sys/oss/files/${ossId}/download`
-  return isPublic ? base : `${base}?access_token=${encodeURIComponent(getToken())}`
+export function downloadOssUrl(ossId) {
+  return `${fileBaseUrl()}/sys/oss/files/${ossId}/download`
 }
 
 // 删除文件
@@ -80,18 +83,41 @@ export function retryHlsOss(ossId) {
   })
 }
 
-// 预览地址(私有文件带令牌)
-export function previewOssUrl(ossId, isPublic) {
-  const base = `${location.origin}${process.env.VUE_APP_BASE_API}${fileAPI}/sys/oss/files/${ossId}/preview`
-  return isPublic ? base : `${base}?access_token=${encodeURIComponent(getToken())}`
+// 换取私有文件访问短码
+export function getOssShare(ossId) {
+  return request({
+    url: fileAPI + '/sys/oss/files/' + ossId + '/share',
+    method: 'get'
+  })
 }
 
-// 公开预览地址
-export function publicOssUrl(ossId) {
-  return previewOssUrl(ossId, true)
+// 预览文件内容,经请求头携带登录态
+export function getOssPreviewBlob(ossId) {
+  return request({
+    url: fileAPI + '/sys/oss/files/' + ossId + '/preview',
+    method: 'get',
+    responseType: 'blob',
+    // 大文件预览不设超时
+    timeout: 0
+  })
+}
+
+// 预览地址
+export function previewOssUrl(ossId) {
+  return `${fileBaseUrl()}/sys/oss/files/${ossId}/preview`
 }
 
 // HLS 播放列表地址
 export function hlsPlayUrl(ossId) {
-  return `${location.origin}${process.env.VUE_APP_BASE_API}${fileAPI}/sys/oss/files/${ossId}/hls/index.m3u8`
+  return `${fileBaseUrl()}/sys/oss/files/${ossId}/hls/index.m3u8`
+}
+
+// 短码访问地址,免登录;业务后端换好的 {code} 也用它拼
+export function shareOssUrls(share) {
+  const base = `${fileBaseUrl()}/s/${share.code}`
+  return {
+    preview: base,
+    download: base + '/download',
+    hls: base + '/hls/index.m3u8'
+  }
 }

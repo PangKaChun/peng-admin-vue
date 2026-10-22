@@ -24,6 +24,8 @@ export default {
       hls: null,
       // 是否携带令牌
       withToken: true,
+      // 换取短码播放地址
+      shareUrl: null,
       // 是否正在刷新令牌
       tokenRefreshing: false,
       // 本次过期事件是否已刷新过
@@ -34,11 +36,12 @@ export default {
     this.destroyHls()
   },
   methods: {
-    /** 打开对话框并播放视频(HLS) */
+    /** 打开对话框并播放视频(HLS),options.shareUrl 供原生 HLS 换短码地址 */
     play(url, title, options) {
       this.playUrl = url
       this.title = title || ''
       this.withToken = !(options && options.withToken === false)
+      this.shareUrl = (options && options.shareUrl) || null
       this.visible = true
       this.$nextTick(() => this.initHls())
     },
@@ -70,8 +73,16 @@ export default {
         hls.attachMedia(video)
         this.hls = hls
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        // Safari 原生 HLS(无法注入请求头,令牌过期无法自动刷新,私有视频建议用 hls.js 环境)
-        video.src = this.playUrl
+        // Safari 原生 HLS 带不了请求头,私有视频临时换短码地址,播放超过有效期会中断
+        if (this.withToken && this.shareUrl) {
+          this.shareUrl().then((url) => {
+            if (this.visible) {
+              video.src = url
+            }
+          }).catch(() => {})
+        } else {
+          video.src = this.playUrl
+        }
       } else {
         this.$modal.msgError('当前浏览器不支持 HLS 播放')
       }

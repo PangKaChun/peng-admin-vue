@@ -20,36 +20,9 @@
         v-loading="loading"
         :data="logList"
         @selection-change="handleSelectionChange"
+        @row-dblclick="handleDetail"
       >
         <el-table-column type="selection" width="50" align="center" />
-        <el-table-column type="expand">
-          <template slot-scope="scope">
-            <el-tabs value="first" type="border-card">
-              <el-tab-pane label="详细信息" name="first">
-                <el-form label-position="left" inline class="demo-table-expand">
-                  <el-form-item label="浏览器">
-                    <span>{{ scope.row.browser }}</span>
-                  </el-form-item>
-                  <el-form-item label="URL">
-                    <span>{{ scope.row.requestUrl }}</span>
-                  </el-form-item>
-                  <el-form-item label="请求参数">
-                    <pre><code v-html="highlightedCode(scope.row.params,'json')"></code></pre>
-                  </el-form-item>
-                  <el-form-item label="系统模块">
-                    <span>{{ scope.row.title }}</span>
-                  </el-form-item>
-                  <el-form-item label="方法">
-                    <span>{{ scope.row.method }}</span>
-                  </el-form-item>
-                </el-form>
-              </el-tab-pane>
-              <el-tab-pane label="异常信息" name="second" class="error-msg-pane">
-                <pre><code v-html="highlightedCode(scope.row.errorMsg,'java')"></code></pre>
-              </el-tab-pane>
-            </el-tabs>
-          </template>
-        </el-table-column>
         <el-table-column label="来源服务" align="center" key="serviceName" prop="serviceName" v-if="columns[0].visible" :show-overflow-tooltip="true" />
         <el-table-column label="系统模块" align="center" key="title" prop="title" v-if="columns[1].visible" :show-overflow-tooltip="true" />
         <el-table-column label="操作类型" align="center" key="bizType" prop="bizType" v-if="columns[2].visible">
@@ -94,7 +67,15 @@
           </template>
         </el-table-column>
         <el-table-column label="操作时间" width="150" align="center" key="createTime" prop="createTime" v-if="columns[15].visible" />
+        <el-table-column label="操作" align="center" width="80" fixed="right" class-name="small-padding fixed-width">
+          <template slot-scope="scope">
+            <el-button size="mini" type="text" icon="el-icon-view" @click="handleDetail(scope.row)">详情</el-button>
+          </template>
+        </el-table-column>
       </el-table>
+
+      <!-- 日志详情 -->
+      <log-detail :visible.sync="detailOpen" :row="detailRow" :oper-types="dict.type.sys_oper_type" :status-options="dict.type.log_status" />
     </el-main>
     <el-footer>
       <pagination
@@ -109,16 +90,11 @@
 </template>
 
 <script>
-import hljs from 'highlight.js/lib/core'
-import 'highlight.js/styles/github.css'
-import java from 'highlight.js/lib/languages/java'
-import json from 'highlight.js/lib/languages/json'
-hljs.registerLanguage('java', java)
-hljs.registerLanguage('json', json)
-
 import { listLog } from '@/api/mon/log'
+import LogDetail from './detail'
 export default {
   name: 'errLog',
+  components: { LogDetail },
   dicts: ['sys_oper_type', 'log_status'],
   data() {
     return {
@@ -159,7 +135,10 @@ export default {
       // 总条数
       total: 0,
       // 遮罩层
-      loading: false
+      loading: false,
+      // 详情弹窗
+      detailOpen: false,
+      detailRow: {}
     }
   },
   created() {
@@ -192,12 +171,10 @@ export default {
       this.queryParams.pageNum = 1
       this.getList()
     },
-    /** 高亮显示（空内容直接返回占位,避免 hljs 对 null 抛错导致展开行渲染失败） */
-    highlightedCode(code, language) {
-      if (!code) {
-        return '&nbsp;'
-      }
-      return hljs.highlight(code, { language: language }).value || '&nbsp;'
+    /** 详情按钮操作（双击行同效） */
+    handleDetail(row) {
+      this.detailRow = row
+      this.detailOpen = true
     }
   }
 }
@@ -222,32 +199,5 @@ export default {
   padding-top: 20px;
   background-color: #f2f2f2;
   padding-left: 20px;
-}
-
-.demo-table-expand {
-  ::v-deep label {
-    width: 110px;
-    color: #99a9bf;
-  }
-  .el-form-item {
-    margin-right: 0;
-    margin-bottom: 0;
-    width: 100%;
-  }
-}
-
-// 异常堆栈面板：限高滚动,堆栈短时不留大片空白
-.error-msg-pane {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-// 请求参数 / 异常堆栈长行换行,避免展开行横向溢出
-pre {
-  margin: 0;
-  code {
-    white-space: pre-wrap;
-    word-break: break-all;
-  }
 }
 </style>

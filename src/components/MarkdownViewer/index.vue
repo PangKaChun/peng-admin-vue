@@ -104,24 +104,20 @@ export default {
     this.cleanup()
   },
   methods: {
-    /** 打开对话框并加载 Markdown */
-    open(url, title) {
+    /** 打开对话框并加载 Markdown,source 为 Blob 或 Promise<Blob> */
+    open(source, title) {
       this.title = title || 'Markdown 预览'
       this.visible = true
-      this.load(url)
+      this.load(source)
     },
     /** 拉取、解析、消毒并渲染 */
-    async load(url) {
+    async load(source) {
       this.resetState()
       this.loading = true
       const token = {}
       this._loadToken = token
       try {
-        const resp = await fetch(url)
-        if (!resp.ok) {
-          throw new Error('HTTP ' + resp.status)
-        }
-        const text = await resp.text()
+        const text = await (await source).text()
         if (this._loadToken !== token) {
           return
         }

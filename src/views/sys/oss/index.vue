@@ -38,7 +38,10 @@
 
       <el-row :gutter="10" class="button-bar">
         <el-col :span="1.5">
-          <el-button type="primary" icon="el-icon-upload2" size="mini" @click="openUpload">上传</el-button>
+          <el-button type="primary" icon="el-icon-upload2" size="mini" @click="openUpload(1)">上传文件</el-button>
+        </el-col>
+        <el-col :span="1.5">
+          <el-button type="primary" icon="el-icon-upload2" size="mini" @click="openUpload(0)">上传私有文件</el-button>
         </el-col>
         <el-col :span="1.5">
           <el-button
@@ -65,13 +68,14 @@
         <el-table-column label="文件名" align="center" prop="originalName" :show-overflow-tooltip="true" />
         <el-table-column label="预览" align="center" width="80">
           <template slot-scope="scope">
+            <i v-if="!canAccess(scope.row)" class="oss-thumb__icon el-icon-lock" title="私有文件，仅上传人或管理员可查看" />
             <el-image
-              v-if="scope.row.fileType === 'image'"
+              v-else-if="scope.row.fileType === 'image' && thumbUrl(scope.row)"
               class="oss-thumb"
               fit="cover"
               lazy
-              :src="previewUrl(scope.row)"
-              :preview-src-list="[previewUrl(scope.row)]"
+              :src="thumbUrl(scope.row)"
+              :preview-src-list="[thumbUrl(scope.row)]"
             >
               <div slot="placeholder" class="oss-thumb__slot"><i class="el-icon-loading" /></div>
               <div slot="error" class="oss-thumb__slot"><i class="el-icon-picture-outline" /></div>
@@ -144,7 +148,7 @@
               v-model="scope.row.publicFlag"
               :active-value="1"
               :inactive-value="0"
-              :disabled="!$auth.hasPermi('sys:oss:edit')"
+              :disabled="!$auth.hasPermi('sys:oss:edit') || !canAccess(scope.row)"
               @change="handleChangePublic(scope.row)"
             />
           </template>
@@ -166,16 +170,37 @@
             <span v-if="scope.row.fileType === 'video' && scope.row.hlsStatus === 1" class="hls-tip">转码中</span>
             <span v-else-if="scope.row.fileType === 'video' && scope.row.hlsStatus === 3" class="hls-tip hls-tip--fail">转码失败</span>
             <el-button
-              v-if="scope.row.fileType === 'video' && scope.row.hlsStatus === 3"
               size="mini"
               type="text"
-              icon="el-icon-refresh-right"
-              @click="handleRetryHls(scope.row)"
-              v-hasPermi="['sys:oss:edit']"
-            >重试转码</el-button>
-            <el-button size="mini" type="text" icon="el-icon-download" @click="handleDownload(scope.row)">下载</el-button>
-            <el-button v-if="scope.row.publicFlag === 1" size="mini" type="text" icon="el-icon-link" @click="handleCopyLink(scope.row)">复制链接</el-button>
+              icon="el-icon-download"
+              :disabled="!canAccess(scope.row)"
+              @click="handleDownload(scope.row)"
+            >下载</el-button>
             <el-button size="mini" type="text" icon="el-icon-delete" @click="handleDelete(scope.row)" v-hasPermi="['sys:oss:del']">删除</el-button>
+            <el-dropdown size="mini" @command="(command) => handleCommand(command, scope.row)">
+              <span class="el-dropdown-link">
+                <i class="el-icon-d-arrow-right el-icon--right"></i>更多
+              </span>
+              <el-dropdown-menu slot="dropdown">
+                <template v-if="scope.row.publicFlag === 1 && canPlay(scope.row)">
+                  <el-dropdown-item command="handleCopyLink" icon="el-icon-link">复制原文件链接</el-dropdown-item>
+                  <el-dropdown-item command="handleCopyHlsLink" icon="el-icon-video-play">复制 HLS 链接</el-dropdown-item>
+                </template>
+                <el-dropdown-item v-else-if="scope.row.publicFlag === 1" command="handleCopyLink" icon="el-icon-link">复制链接</el-dropdown-item>
+                <el-dropdown-item
+                  v-else
+                  command="handleSign"
+                  icon="el-icon-key"
+                  :disabled="!canAccess(scope.row)"
+                >生成签名地址</el-dropdown-item>
+                <el-dropdown-item
+                  v-if="scope.row.fileType === 'video' && scope.row.hlsStatus === 3"
+                  command="handleRetryHls"
+                  icon="el-icon-refresh-right"
+                  v-hasPermi="['sys:oss:edit']"
+                >重试转码</el-dropdown-item>
+              </el-dropdown-menu>
+            </el-dropdown>
           </template>
         </el-table-column>
       </el-table>
@@ -192,13 +217,26 @@
 
     <!-- 上传文件对话框 -->
     <el-dialog title="上传文件" :visible.sync="uploadOpen" width="560px" append-to-body>
-      <div class="upload-public">
-        <span>是否公开：</span>
-        <el-switch v-model="uploadPublic" :active-value="1" :inactive-value="0" active-text="公开" inactive-text="私有" />
-      </div>
       <file-upload :is-public="uploadPublic" @success="handleUploadSuccess" />
       <div slot="footer" class="dialog-footer">
         <el-button @click="uploadOpen = false">关 闭</el-button>
+      </div>
+    </el-dialog>
+
+    <!-- 签名地址对话框 -->
+    <el-dialog title="生成签名地址" :visible.sync="signOpen" width="680px" append-to-body>
+      <el-alert title="链接在有效期内任何人可访问，请勿外传" type="warning" :closable="false" show-icon />
+      <el-form label-width="90px" size="small" class="sign-form">
+        <el-form-item label="文件名">{{ signInfo.name }}</el-form-item>
+        <el-form-item label="有效期至">{{ signInfo.expireTime }}</el-form-item>
+        <el-form-item v-for="item in signInfo.urls" :key="item.label" :label="item.label">
+          <el-input :value="item.url" readonly>
+            <el-button slot="append" icon="el-icon-document-copy" @click="copyText(item.url, item.label)">复制</el-button>
+          </el-input>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="signOpen = false">关 闭</el-button>
       </div>
     </el-dialog>
 
@@ -223,7 +261,9 @@
 </template>
 
 <script>
-import { listOss, downloadOssUrl, delOss, changeOssPublic, publicOssUrl, previewOssUrl, hlsPlayUrl, retryHlsOss } from '@/api/sys/oss'
+import {
+  listOss, downloadOssUrl, delOss, changeOssPublic, getOssShare, getOssPreviewBlob, previewOssUrl, hlsPlayUrl, shareOssUrls, retryHlsOss
+} from '@/api/sys/oss'
 import { formatFileSize } from '@/utils/file'
 import FileUpload from '@/components/FileUpload'
 import VideoPlayer from '@/components/VideoPlayer'
@@ -256,6 +296,12 @@ export default {
       total: 0,
       // 文件表格数据
       ossList: [],
+      // 私有图片缩略图地址
+      thumbUrls: {},
+      // 签名地址对话框
+      signOpen: false,
+      // 签名地址信息
+      signInfo: {},
       // 文件类型选项
       fileTypeOptions: [
         { value: 'image', label: '图片' },
@@ -281,6 +327,10 @@ export default {
   created() {
     this.getList()
   },
+  beforeDestroy() {
+    this._thumbToken = null
+    this.revokeThumbs()
+  },
   methods: {
     /** 查询文件列表 */
     getList() {
@@ -289,6 +339,7 @@ export default {
         this.ossList = response.records
         this.total = response.total
         this.loading = false
+        this.loadThumbs()
       }).catch(() => {
         this.loading = false
       })
@@ -309,8 +360,9 @@ export default {
       this.multiple = !selection.length
     },
     /** 打开上传对话框 */
-    openUpload() {
+    openUpload(isPublic = 0) {
       this.uploadOpen = true
+      this.uploadPublic = isPublic
     },
     /** 上传成功回调 */
     handleUploadSuccess() {
@@ -327,7 +379,7 @@ export default {
     },
     /** 预览 PDF(pdf.js 对话框:缩放/翻页/搜索) */
     handlePreviewPdf(row) {
-      this.$refs.pdfViewer.open(this.previewUrl(row), row.originalName)
+      this.$refs.pdfViewer.open(getOssPreviewBlob(row.ossId), row.originalName)
     },
     /** 是否 Excel/CSV 文件 */
     isExcel(row) {
@@ -340,7 +392,7 @@ export default {
     },
     /** 预览 Excel(SheetJS 对话框:多 Sheet/合并单元格) */
     handlePreviewExcel(row) {
-      this.$refs.excelViewer.open(this.previewUrl(row), row.originalName)
+      this.$refs.excelViewer.open(getOssPreviewBlob(row.ossId), row.originalName)
     },
     /** 是否 Word 文件(docx-preview 仅支持 .docx,.doc 打开后由查看器提示降级) */
     isWord(row) {
@@ -352,7 +404,7 @@ export default {
     },
     /** 预览 Word(docx-preview 对话框:还原页面版式) */
     handlePreviewWord(row) {
-      this.$refs.wordViewer.open(this.previewUrl(row), row.originalName)
+      this.$refs.wordViewer.open(getOssPreviewBlob(row.ossId), row.originalName)
     },
     /** 压缩格式判定:zip 走 jszip,rar/7z 走 libarchive.js;其余(tar/gz 等)不支持返回 null */
     archiveFormat(row) {
@@ -375,7 +427,7 @@ export default {
     },
     /** 预览压缩包(el-tree 展示目录结构) */
     handlePreviewArchive(row) {
-      this.$refs.archiveViewer.open(this.previewUrl(row), row.originalName, this.archiveFormat(row))
+      this.$refs.archiveViewer.open(getOssPreviewBlob(row.ossId), row.originalName, this.archiveFormat(row))
     },
     /** 是否 Markdown 文件 */
     isMarkdown(row) {
@@ -384,12 +436,14 @@ export default {
     },
     /** 预览 Markdown(marked 渲染 + 代码高亮) */
     handlePreviewMarkdown(row) {
-      this.$refs.markdownViewer.open(this.previewUrl(row), row.originalName)
+      this.$refs.markdownViewer.open(getOssPreviewBlob(row.ossId), row.originalName)
     },
-    /** 播放视频(HLS):公开/私有共用同一地址,公开文件不携带令牌(带无效令牌反而会被 401) */
+    /** 播放视频(HLS):公开文件不携带令牌(带无效令牌反而会被 401) */
     handlePlay(row) {
-      const isPublic = row.publicFlag === 1
-      this.$refs.videoPlayer.play(hlsPlayUrl(row.ossId), row.originalName, { withToken: !isPublic })
+      this.$refs.videoPlayer.play(hlsPlayUrl(row.ossId), row.originalName, {
+        withToken: row.publicFlag !== 1,
+        shareUrl: () => this.shareUrl(row, 'hls')
+      })
     },
     /** 重试 HLS 转码 */
     handleRetryHls(row) {
@@ -398,34 +452,79 @@ export default {
         this.getList()
       })
     },
-    /** 下载按钮操作:交给浏览器原生下载(流式落盘 + Range 续传),公开文件免令牌 */
+    /** 下载按钮操作:交给浏览器原生下载(流式落盘 + Range 续传),私有文件临时换短码 */
     handleDownload(row) {
-      const a = document.createElement('a')
-      a.href = downloadOssUrl(row.ossId, row.publicFlag === 1)
-      a.download = row.originalName
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
+      const href = row.publicFlag === 1 ? Promise.resolve(downloadOssUrl(row.ossId)) : this.shareUrl(row, 'download')
+      href.then(url => {
+        const a = document.createElement('a')
+        a.href = url
+        a.download = row.originalName
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+      })
     },
     /** 切换公开状态 */
     handleChangePublic(row) {
       changeOssPublic({ ossId: row.ossId, publicFlag: row.publicFlag })
         .then(() => {
           this.$modal.msgSuccess(row.publicFlag === 1 ? '已公开' : '已设为私有')
+          this.loadThumb(row)
         })
         .catch(() => {
           // 失败回滚开关状态
           row.publicFlag = row.publicFlag === 1 ? 0 : 1
         })
     },
+    /** 更多操作 */
+    handleCommand(command, row) {
+      switch (command) {
+        case 'handleCopyLink':
+          this.handleCopyLink(row)
+          break
+        case 'handleCopyHlsLink':
+          this.handleCopyHlsLink(row)
+          break
+        case 'handleSign':
+          this.handleSign(row)
+          break
+        case 'handleRetryHls':
+          this.handleRetryHls(row)
+          break
+        default:
+          break
+      }
+    },
     /** 复制公开链接 */
     handleCopyLink(row) {
-      const url = publicOssUrl(row.ossId)
-      const done = () => this.$modal.msgSuccess('链接已复制')
+      this.copyText(previewOssUrl(row.ossId), this.canPlay(row) ? '原文件链接' : '链接')
+    },
+    /** 复制公开 HLS 链接 */
+    handleCopyHlsLink(row) {
+      this.copyText(hlsPlayUrl(row.ossId), 'HLS 链接')
+    },
+    /** 生成签名地址 */
+    handleSign(row) {
+      getOssShare(row.ossId).then(share => {
+        const urls = shareOssUrls(share)
+        const list = [
+          { label: '预览地址', url: urls.preview },
+          { label: '下载地址', url: urls.download }
+        ]
+        if (this.canPlay(row)) {
+          list.push({ label: 'HLS 地址', url: urls.hls })
+        }
+        this.signInfo = { name: row.originalName, expireTime: this.parseTime(share.expires), urls: list }
+        this.signOpen = true
+      })
+    },
+    /** 复制到剪贴板 */
+    copyText(text, label = '链接') {
+      const done = () => this.$modal.msgSuccess(label + '已复制')
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(done).catch(() => this.fallbackCopy(url, done))
+        navigator.clipboard.writeText(text).then(done).catch(() => this.fallbackCopy(text, done))
       } else {
-        this.fallbackCopy(url, done)
+        this.fallbackCopy(text, done)
       }
     },
     /** 兼容性复制(非安全上下文/旧浏览器) */
@@ -457,13 +556,49 @@ export default {
         })
         .catch(() => {})
     },
-    /** 行内预览地址 */
-    previewUrl(row) {
-      return previewOssUrl(row.ossId, false)
+    /** 是否可访问 */
+    canAccess(row) {
+      // 对齐后端 isAdmin,hasRole 已涵盖 userId 为 1 时的 admin 角色
+      if (row.publicFlag === 1 || this.$auth.hasRole('SYSTEM_ADMIN')) {
+        return true
+      }
+      return !!row.userId && row.userId === this.$store.getters.userInfo.userId
     },
-    /** 非图片类型的占位图标 */
+    /** 短码地址,用于带不了请求头的私有文件访问 */
+    shareUrl(row, kind) {
+      return getOssShare(row.ossId).then(share => shareOssUrls(share)[kind])
+    },
+    /** 缩略图地址 */
+    thumbUrl(row) {
+      return row.publicFlag === 1 ? previewOssUrl(row.ossId) : this.thumbUrls[row.ossId]
+    },
+    /** 拉取私有图片缩略图 */
+    loadThumbs() {
+      this.revokeThumbs()
+      // 加载令牌
+      this._thumbToken = {}
+      this.ossList.forEach(row => this.loadThumb(row))
+    },
+    /** el-image 带不了请求头,私有图片转 blob 地址 */
+    loadThumb(row) {
+      if (row.fileType !== 'image' || row.publicFlag === 1 || !this.canAccess(row) || this.thumbUrls[row.ossId]) {
+        return
+      }
+      const token = this._thumbToken
+      getOssPreviewBlob(row.ossId).then(blob => {
+        if (this._thumbToken === token) {
+          this.$set(this.thumbUrls, row.ossId, URL.createObjectURL(blob))
+        }
+      }).catch(() => {})
+    },
+    /** 释放缩略图地址 */
+    revokeThumbs() {
+      Object.values(this.thumbUrls).forEach(url => URL.revokeObjectURL(url))
+      this.thumbUrls = {}
+    },
+    /** 占位图标 */
     fileTypeIcon(fileType) {
-      const icons = { video: 'el-icon-video-camera', document: 'el-icon-document' }
+      const icons = { image: 'el-icon-picture-outline', video: 'el-icon-video-camera', document: 'el-icon-document' }
       return icons[fileType] || 'el-icon-files'
     },
     /** 文件类型名称 */
@@ -614,5 +749,8 @@ export default {
 }
 .hls-tip--fail {
   color: $color-danger;
+}
+.sign-form {
+  margin-top: 16px;
 }
 </style>

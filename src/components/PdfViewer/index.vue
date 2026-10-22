@@ -127,13 +127,13 @@ export default {
     this.cleanup()
   },
   methods: {
-    /** 打开对话框并加载 PDF */
-    open(url, title) {
+    /** 打开对话框并加载 PDF,source 为 Blob 或 Promise<Blob> */
+    open(source, title) {
       this.title = title || 'PDF 预览'
       this.errorMsg = ''
       this.visible = true
       // 等对话框体渲染出容器后再初始化 viewer
-      this.$nextTick(() => this.load(url))
+      this.$nextTick(() => this.load(source))
     },
     /** 初始化 pdf.js viewer */
     initViewer() {
@@ -171,23 +171,30 @@ export default {
       this._viewer = viewer
     },
     /** 加载文档 */
-    async load(url) {
+    async load(source) {
       this.initViewer()
       this.resetDocState()
       this.loading = true
-      const task = pdfjsLib.getDocument({
-        url,
-        cMapUrl: PDF_ASSETS_BASE + 'cmaps/',
-        cMapPacked: true,
-        standardFontDataUrl: PDF_ASSETS_BASE + 'standard_fonts/',
-        // 禁用 eval 执行 PDF 内嵌字体程序(CVE-2024-4367 防护,文件来自用户上传不可信)
-        isEvalSupported: false
-      })
-      this._loadingTask = task
+      // 加载令牌
+      const token = {}
+      this._loadToken = token
       try {
+        const data = new Uint8Array(await (await source).arrayBuffer())
+        if (this._loadToken !== token) {
+          return
+        }
+        const task = pdfjsLib.getDocument({
+          data,
+          cMapUrl: PDF_ASSETS_BASE + 'cmaps/',
+          cMapPacked: true,
+          standardFontDataUrl: PDF_ASSETS_BASE + 'standard_fonts/',
+          // 禁用 eval 执行 PDF 内嵌字体程序(CVE-2024-4367 防护,文件来自用户上传不可信)
+          isEvalSupported: false
+        })
+        this._loadingTask = task
         const doc = await task.promise
         // 加载完成前对话框已被关闭(cleanup 已 destroy),丢弃结果
-        if (this._loadingTask !== task) {
+        if (this._loadToken !== token) {
           return
         }
         this._viewer.setDocument(doc)
@@ -196,18 +203,19 @@ export default {
         this.pageNumber = 1
         this.pageInput = '1'
       } catch (e) {
-        if (this._loadingTask === task) {
+        if (this._loadToken === token) {
           this.errorMsg = 'PDF 加载失败，请尝试下载后查看'
           console.error('PDF 加载失败', e)
         }
       } finally {
-        if (this._loadingTask === task) {
+        if (this._loadToken === token) {
           this.loading = false
         }
       }
     },
     /** 关闭后清理 */
     cleanup() {
+      this._loadToken = null
       if (this._loadingTask) {
         this._loadingTask.destroy()
         this._loadingTask = null

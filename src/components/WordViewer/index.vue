@@ -52,27 +52,23 @@ export default {
     this.cleanup()
   },
   methods: {
-    /** 打开对话框并加载 Word */
-    open(url, title) {
+    /** 打开对话框并加载 Word,source 为 Blob 或 Promise<Blob> */
+    open(source, title) {
       this.title = title || 'Word 预览'
       this.errorMsg = ''
       this.visible = true
       // 等对话框体渲染出容器后再注入文档
-      this.$nextTick(() => this.load(url))
+      this.$nextTick(() => this.load(source))
     },
     /** 拉取并渲染文档 */
-    async load(url) {
+    async load(source) {
       this.errorMsg = ''
       this.loading = true
       // 加载令牌
       const token = {}
       this._loadToken = token
       try {
-        const resp = await fetch(url)
-        if (!resp.ok) {
-          throw new Error('HTTP ' + resp.status)
-        }
-        const blob = await resp.blob()
+        const blob = await source
         if (this._loadToken !== token) {
           return
         }

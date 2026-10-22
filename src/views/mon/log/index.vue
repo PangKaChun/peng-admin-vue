@@ -1,7 +1,7 @@
 <template>
   <el-container>
     <el-header>
-      <el-form inline label-position="right" class="query-form" size="small">
+      <el-form ref="queryForm" :model="queryParams" inline label-position="right" class="query-form" size="small">
         <el-form-item prop="title">
           <el-input v-model="queryParams.title" placeholder="请输入你要搜索的内容" clearable style="width: 240px" @keyup.enter.native="handleQuery" />
         </el-form-item>
@@ -20,17 +20,18 @@
         v-loading="loading"
         :data="logList"
         @selection-change="handleSelectionChange"
+        @row-dblclick="handleDetail"
       >
         <el-table-column type="selection" width="50" align="center" />
         <el-table-column label="来源服务" align="center" key="serviceName" prop="serviceName" v-if="columns[0].visible" :show-overflow-tooltip="true" />
         <el-table-column label="系统模块" align="center" key="title" prop="title" v-if="columns[1].visible" :show-overflow-tooltip="true" />
-        <el-table-column label="操作类型" align="center" prop="bizType">
+        <el-table-column label="操作类型" align="center" key="bizType" prop="bizType" v-if="columns[2].visible">
           <template slot-scope="scope">
             <dict-tag :options="dict.type.sys_oper_type" :value="scope.row.bizType" />
           </template>
         </el-table-column>
         <el-table-column label="方法名称" align="center" key="method" prop="method" v-if="columns[3].visible" :show-overflow-tooltip="true" />
-        <el-table-column label="请求方式" align="center" key="requestMethod" prop="requestMethod" v-if="columns[4].visible" />
+        <!-- <el-table-column label="请求方式" align="center" key="requestMethod" prop="requestMethod" v-if="columns[4].visible" /> -->
         <el-table-column label="耗时" align="center" width="100" key="costTime" prop="costTime" v-if="columns[5].visible">
           <template slot-scope="scope">
             <el-tag v-if="scope.row.costTime <= 300">{{ scope.row.costTime }}ms</el-tag>
@@ -67,7 +68,15 @@
           </template>
         </el-table-column>
         <el-table-column label="操作时间" width="150" align="center" key="createTime" prop="createTime" v-if="columns[16].visible" />
+        <el-table-column label="操作" align="center" width="80" fixed="right" class-name="small-padding fixed-width">
+          <template slot-scope="scope">
+            <el-button size="mini" type="text" icon="el-icon-view" @click="handleDetail(scope.row)">详情</el-button>
+          </template>
+        </el-table-column>
       </el-table>
+
+      <!-- 日志详情 -->
+      <log-detail :visible.sync="detailOpen" :row="detailRow" :oper-types="dict.type.sys_oper_type" :status-options="dict.type.log_status" />
     </el-main>
     <el-footer>
       <pagination
@@ -83,8 +92,10 @@
 
 <script>
 import { listLog } from '@/api/mon/log'
+import LogDetail from './detail'
 export default {
   name: 'Log',
+  components: { LogDetail },
   dicts: ['sys_oper_type', 'log_status'],
   data() {
     return {
@@ -127,21 +138,30 @@ export default {
       // 总条数
       total: 0,
       // 遮罩层
-      loading: false
+      loading: false,
+      // 详情弹窗
+      detailOpen: false,
+      detailRow: {}
     }
   },
   created() {
     this.getList()
   },
   methods: {
-    /** 查询字典列表 */
+    /** 查询操作日志列表 */
     getList() {
       this.loading = true
       listLog(this.addDateRange(this.queryParams, this.dateRange)).then(response => {
         this.logList = response.records
         this.total = response.total
+      }).finally(() => {
         this.loading = false
       })
+    },
+    /** 详情按钮操作（双击行同效） */
+    handleDetail(row) {
+      this.detailRow = row
+      this.detailOpen = true
     },
     /** 重置按钮操作 */
     resetQuery() {
@@ -151,7 +171,7 @@ export default {
     },
     // 多选框选中数据
     handleSelectionChange(selection) {
-      this.ids = selection.map(item => item.dictId)
+      this.ids = selection.map(item => item.logId)
       this.single = selection.length != 1
       this.multiple = !selection.length
     },

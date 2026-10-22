@@ -77,6 +77,15 @@ async (error) => {
   let { message, response } = error
   message = message || ''
 
+  // blob 请求的错误体也是 Blob,转回 JSON 才能走令牌刷新与错误提示
+  if (response && response.data instanceof Blob && response.data.type.includes('json')) {
+    try {
+      response.data = JSON.parse(await response.data.text())
+    } catch (e) {
+      // 解析失败按原样处理
+    }
+  }
+
   if (response && response.data) {
     const code = response.data.code
     const originalRequest = error.config

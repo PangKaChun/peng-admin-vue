@@ -116,28 +116,24 @@ export default {
   methods: {
     /**
      * 打开对话框并加载压缩包
-     * @param url    预览地址
+     * @param source 文件内容:Blob 或 Promise<Blob>
      * @param title  文件名(标题)
      * @param format 压缩格式:zip / rar / 7z
      */
-    open(url, title, format) {
+    open(source, title, format) {
       this.title = title || '压缩包预览'
       this.visible = true
-      this.load(url, format)
+      this.load(source, format)
     },
     /** 拉取并解析压缩包目录(仅列目录,不解压条目内容,大包也秒开) */
-    async load(url, format) {
+    async load(source, format) {
       this.resetState()
       this.loading = true
       // 加载令牌:对话框关闭后丢弃迟到结果
       const token = {}
       this._loadToken = token
       try {
-        const resp = await fetch(url)
-        if (!resp.ok) {
-          throw new Error('HTTP ' + resp.status)
-        }
-        const blob = await resp.blob()
+        const blob = await source
         if (this._loadToken !== token) {
           return
         }

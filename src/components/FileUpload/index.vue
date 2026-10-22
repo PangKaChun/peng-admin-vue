@@ -13,7 +13,7 @@
       <i class="el-icon-upload"></i>
       <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
       <div class="el-upload__tip" slot="tip">
-        单文件最大 {{ maxSizeMb }}MB，分片 {{ chunkSizeMb }}MB，支持断点续传
+        单文件最大 {{ maxSizeMb }}MB，支持分片上传与断点续传
       </div>
     </el-upload>
 

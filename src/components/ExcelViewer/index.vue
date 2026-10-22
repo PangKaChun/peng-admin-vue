@@ -263,22 +263,18 @@ export default {
     this.cleanup()
   },
   methods: {
-    /** 打开对话框并加载 Excel */
-    open(url, title) {
+    /** 打开对话框并加载 Excel,source 为 Blob 或 Promise<Blob> */
+    open(source, title) {
       this.title = title || 'Excel 预览'
       this.visible = true
-      this.load(url)
+      this.load(source)
     },
     /** 拉取并解析工作簿 */
-    async load(url) {
+    async load(source) {
       this.resetState()
       this.loading = true
       try {
-        const resp = await fetch(url)
-        if (!resp.ok) {
-          throw new Error('HTTP ' + resp.status)
-        }
-        const buf = await resp.arrayBuffer()
+        const buf = await (await source).arrayBuffer()
         // cellStyles 才会解析出列宽 / 行高 / 隐藏标记与填充色
         const workbook = XLSX.read(buf, { dense: true, cellStyles: true, cellHTML: false })
         // 解析结果挂非响应式私有属性,避免 Vue 深度代理大对象
