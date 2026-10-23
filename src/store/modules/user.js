@@ -82,7 +82,7 @@ const user = {
       });
     },
 
-    // 两步登录第一步:预校验账号密码 + 图形验证码,返回 {mfaRequired, ticket}
+    // 两步登录第一步:预校验账号密码 + 图形验证码,返回 {mfaRequired, mfaBindRequired, pwdChangeRequired, ticket}
     Precheck(_ctx, userInfo) {
       return new Promise((resolve, reject) => {
         precheck((userInfo.username || "").trim(), userInfo.password, userInfo.randomCode, userInfo.captcha)

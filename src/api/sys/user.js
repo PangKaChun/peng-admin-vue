@@ -47,14 +47,30 @@ export function delUser(userId) {
 }
 
 // 用户密码重置
-export function resetUserPwd(userId, password) {
-  password = encrypt(password)
+export async function resetUserPwd(userId, password) {
+  password = await encrypt(password)
   const data = {
     userId,
     password
   }
   return request({
     url: systemAPI + '/sys/user/resetPwd',
+    method: 'post',
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    data: data
+  })
+}
+
+// 修改本人密码
+export async function updateUserPwd(oldPassword, newPassword) {
+  const data = {
+    oldPassword: await encrypt(oldPassword),
+    newPassword: await encrypt(newPassword)
+  }
+  return request({
+    url: systemAPI + '/sys/user/profile/updatePwd',
     method: 'post',
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",

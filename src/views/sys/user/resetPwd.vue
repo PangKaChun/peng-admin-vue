@@ -1,6 +1,6 @@
 <template>
   <el-dialog title="重置密码" :visible.sync="visible">
-    <div class="username">请输入"{{username}}"的新密码</div>
+    <div class="username">请输入"{{username}}"的新密码（{{ passwordRuleTip }}），重置后该用户下次登录须本人修改</div>
     <el-form ref="form" label-position="left" :model="form" :rules="rules" label-width="100px">
       <el-row>
         <el-col :xs="{ span: 24 }" :sm="{ span: 14 }" :lg="{ span: 14 }">
@@ -26,6 +26,8 @@
 
 <script>
 import { resetUserPwd } from '@/api/sys/user'
+import { getPasswordPolicy } from '@/api/login'
+import { validPassword, formatPasswordRule, DEFAULT_PASSWORD_POLICY } from '@/utils/validate'
 export default {
   name: 'resetPwd',
   props: {
@@ -40,10 +42,12 @@ export default {
   },
   data() {
     var validatePass = (rule, value, callback) => {
-      if (value === '') {
+      if (!value) {
         callback(new Error('请输入密码'))
+      } else if (!validPassword(value, this.passwordPolicy)) {
+        callback(new Error(this.passwordRuleTip))
       } else {
-        if (this.form.checkPassword !== '') {
+        if (this.form.checkPassword) {
           this.$refs.form.validateField('checkPassword')
         }
         callback()
@@ -65,12 +69,15 @@ export default {
         checkPassword: undefined
       },
       rules: {
-        password: [
-          { validator: validatePass, trigger: 'blur' },
-          { min: 6, message: '长度最少6位', trigger: 'blur' }
-        ],
+        password: [{ validator: validatePass, trigger: 'blur' }],
         checkPassword: [{ validator: validatePass2, trigger: 'change' }]
-      }
+      },
+      passwordPolicy: { ...DEFAULT_PASSWORD_POLICY }
+    }
+  },
+  computed: {
+    passwordRuleTip() {
+      return formatPasswordRule(this.passwordPolicy)
     }
   },
   methods: {
@@ -78,7 +85,7 @@ export default {
       this.$refs.form.validate(ispass => {
         if (ispass) {
           resetUserPwd(this.userId, this.form.password).then(response => {
-            this.$modal.msgSuccess('密码修改成功')
+            this.$modal.msgSuccess('密码已重置')
             this.visible = false
           })
         }
@@ -89,6 +96,11 @@ export default {
         password: undefined,
         checkPassword: undefined
       }
+      getPasswordPolicy()
+        .then(policy => {
+          this.passwordPolicy = policy
+        })
+        .catch(() => {})
     }
   }
 }

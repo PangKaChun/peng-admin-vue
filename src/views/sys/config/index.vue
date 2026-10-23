@@ -25,7 +25,7 @@
         </el-form-item>
         <el-form-item prop="configType">
           <el-select v-model="queryParams.configType" placeholder="系统内置" clearable>
-            <el-option v-for="dict in dict.type.yes_or_no" :key="dict.value" :label="dict.label" :value="dict.value" />
+            <el-option v-for="dict in dict.type.config_type" :key="dict.value" :label="dict.label" :value="dict.value" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -66,11 +66,11 @@
             size="mini"
             :disabled="multiple"
             @click="handleDelete"
-            v-hasPermi="['sys:config:remove']"
+            v-hasPermi="['sys:config:del']"
           >删除</el-button>
         </el-col>
         <el-col :span="1.5">
-          <el-button type="danger" icon="el-icon-refresh" size="mini" @click="handleRefreshCache" v-hasPermi="['sys:config:remove']">刷新缓存</el-button>
+          <el-button type="danger" icon="el-icon-refresh" size="mini" @click="handleRefreshCache" v-hasPermi="['sys:config:del']">刷新缓存</el-button>
         </el-col>
         <!-- <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar> -->
       </el-row>
@@ -91,7 +91,7 @@
         <el-table-column label="参数键值" align="center" prop="configValue" :show-overflow-tooltip="true" />
         <el-table-column label="系统内置" align="center" prop="configType">
           <template slot-scope="scope">
-            <dict-tag :options="dict.type.yes_or_no" :value="scope.row.configType" />
+            <dict-tag :options="dict.type.config_type" :value="scope.row.configType" />
           </template>
         </el-table-column>
         <el-table-column label="备注" align="center" prop="remark" :show-overflow-tooltip="true" />
@@ -103,7 +103,7 @@
         <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
           <template slot-scope="scope">
             <el-button size="mini" type="text" icon="el-icon-edit" @click="handleUpdate(scope.row)" v-hasPermi="['sys:config:edit']">修改</el-button>
-            <el-button size="mini" type="text" icon="el-icon-delete" @click="handleDelete(scope.row)" v-hasPermi="['sys:config:remove']">删除</el-button>
+            <el-button size="mini" type="text" icon="el-icon-delete" @click="handleDelete(scope.row)" v-hasPermi="['sys:config:del']">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -132,7 +132,7 @@
         </el-form-item>
         <el-form-item label="系统内置" prop="configType">
           <el-radio-group v-model="form.configType">
-            <el-radio v-for="dict in dict.type.yes_or_no" :key="dict.value" :label="dict.value">{{dict.label}}</el-radio>
+            <el-radio v-for="dict in dict.type.config_type" :key="dict.value" :label="dict.value">{{dict.label}}</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="备注" prop="remark">
@@ -152,7 +152,7 @@ import { listConfig, getConfig, delConfig, addConfig, updateConfig, refreshCache
 
 export default {
   name: 'Config',
-  dicts: ['yes_or_no'],
+  dicts: ['config_type'],
   data() {
     return {
       // 遮罩层

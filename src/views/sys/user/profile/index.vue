@@ -24,11 +24,33 @@
             @click="handleBind"
           >启用</el-button>
           <el-button
-            v-else
+            v-else-if="!status.enforced"
             type="danger"
             :loading="loading"
             @click="openDisable"
           >关闭</el-button>
+          <p v-else class="mfa-tip">当前账号的角色要求必须启用多因素认证，不能关闭。</p>
+        </el-card>
+      </el-col>
+
+      <el-col :xs="24" :sm="16" :md="12" :lg="10">
+        <el-card shadow="never">
+          <div slot="header">
+            <span>修改密码</span>
+          </div>
+          <el-form ref="pwdForm" :model="pwdForm" :rules="pwdRules" label-width="90px">
+            <el-form-item label="旧密码" prop="oldPassword">
+              <el-input v-model.trim="pwdForm.oldPassword" show-password placeholder="请输入旧密码" autocomplete="current-password" />
+            </el-form-item>
+            <el-form-item label="新密码" prop="newPassword">
+              <el-input v-model.trim="pwdForm.newPassword" show-password placeholder="请输入新密码" autocomplete="new-password" />
+            </el-form-item>
+            <el-form-item label="确认密码" prop="confirmPassword">
+              <el-input v-model.trim="pwdForm.confirmPassword" show-password placeholder="请再次输入新密码" autocomplete="new-password" />
+            </el-form-item>
+            <p class="mfa-tip">{{ passwordRuleTip }}；密码有效期 {{ passwordPolicy.expireDays }} 天，到期后登录须修改。</p>
+            <el-button type="primary" :loading="pwdLoading" @click="submitPwd">保存</el-button>
+          </el-form>
         </el-card>
       </el-col>
     </el-row>
@@ -72,12 +94,22 @@
 <script>
 import QRCode from 'qrcode'
 import { getMfaStatus, bindMfa, enableMfa, disableMfa } from '@/api/sys/mfa'
+import { updateUserPwd } from '@/api/sys/user'
+import { getPasswordPolicy } from '@/api/login'
+import { newPasswordRule, formatPasswordRule, DEFAULT_PASSWORD_POLICY } from '@/utils/validate'
 
 export default {
   name: 'Profile',
   data() {
+    const validateConfirmPassword = (rule, value, callback) => {
+      if (value !== this.pwdForm.newPassword) {
+        callback(new Error('两次输入的密码不一致'))
+      } else {
+        callback()
+      }
+    }
     return {
-      status: { enabled: false, bound: false },
+      status: { enabled: false, bound: false, enforced: false },
       loading: false,
       bindVisible: false,
       disableVisible: false,
@@ -85,16 +117,55 @@ export default {
       otpauthUri: '',
       qrDataUrl: '',
       bindCode: '',
-      disableCode: ''
+      disableCode: '',
+      pwdLoading: false,
+      pwdForm: {
+        oldPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      },
+      pwdRules: {
+        oldPassword: [{ required: true, message: '请输入旧密码', trigger: 'blur' }],
+        newPassword: [newPasswordRule(() => this.passwordPolicy)],
+        confirmPassword: [{ validator: validateConfirmPassword, trigger: 'blur' }]
+      },
+      passwordPolicy: { ...DEFAULT_PASSWORD_POLICY }
+    }
+  },
+  computed: {
+    passwordRuleTip() {
+      return formatPasswordRule(this.passwordPolicy)
     }
   },
   created() {
     this.getStatus()
+    getPasswordPolicy()
+      .then(policy => {
+        this.passwordPolicy = policy
+      })
+      .catch(() => {})
   },
   methods: {
     getStatus() {
       getMfaStatus().then(res => {
-        this.status = res.data || { enabled: false, bound: false }
+        this.status = res.data || { enabled: false, bound: false, enforced: false }
+      })
+    },
+    submitPwd() {
+      this.$refs.pwdForm.validate(valid => {
+        if (!valid) {
+          return
+        }
+        this.pwdLoading = true
+        updateUserPwd(this.pwdForm.oldPassword, this.pwdForm.newPassword)
+          .then(() => {
+            this.$modal.msgSuccess('密码已修改')
+            this.$refs.pwdForm.resetFields()
+          })
+          .catch(() => {})
+          .finally(() => {
+            this.pwdLoading = false
+          })
       })
     },
     // 生成密钥并打开绑定弹窗

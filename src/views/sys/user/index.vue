@@ -446,7 +446,7 @@ export default {
             })
           } else {
             addUser(this.form).then(response => {
-              this.$modal.msgSuccess('新增成功')
+              this.$modal.msgSuccess('新增成功，请通过「重置密码」为该用户设置初始密码')
               this.dialogFormVisible = false
               this.getList()
             })

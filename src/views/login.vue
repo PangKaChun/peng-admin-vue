@@ -62,27 +62,98 @@
           <el-button type="text" @click="backToStep1">返回上一步</el-button>
         </div>
       </el-form>
+
+      <!-- 强制绑定动态验证码 -->
+      <el-form v-show="step === 3" class="login-form" :model="mfaForm" :rules="mfaRules" ref="bindForm" @submit.native.prevent>
+        <p class="mfa-hint">账号 <b>{{ form.username }}</b> 须启用多因素认证。请用 Google&nbsp;Authenticator 扫码或手动录入密钥，再输入 6 位动态验证码。</p>
+        <div class="mfa-bind">
+          <img v-if="bind.qrDataUrl" :src="bind.qrDataUrl" class="mfa-bind__qr" alt="动态口令二维码" />
+          <p class="mfa-bind__secret">{{ bind.secret }}</p>
+        </div>
+        <el-form-item prop="mfaCode">
+          <el-input ref="bindCodeInput" v-model.trim="mfaForm.mfaCode" maxlength="6" placeholder="请输入 6 位动态验证码" @keyup.enter.native="onVerifyMfa" autocomplete="off">
+            <i slot="prefix" class="el-input__icon el-icon-mobile-phone"></i>
+          </el-input>
+        </el-form-item>
+        <el-form-item class="login-actions">
+          <el-button class="login-btn" type="primary" @click="onVerifyMfa" :loading="loginLoading">绑定并继续</el-button>
+        </el-form-item>
+        <div class="login-back">
+          <el-button type="text" @click="backToStep1">返回上一步</el-button>
+        </div>
+      </el-form>
+
+      <!-- 初始密码 / 已过期:修改密码 -->
+      <el-form v-show="step === 4" class="login-form" :model="pwdForm" :rules="pwdRules" ref="pwdForm" @submit.native.prevent>
+        <p class="mfa-hint">账号 <b>{{ form.username }}</b> 的密码为初始密码或已超过有效期，请设置新密码：{{ passwordRuleTip }}。</p>
+        <el-form-item prop="newPassword">
+          <el-input v-model.trim="pwdForm.newPassword" show-password placeholder="请输入新密码" autocomplete="new-password">
+            <i slot="prefix" class="el-input__icon el-icon-lock"></i>
+          </el-input>
+        </el-form-item>
+        <el-form-item prop="confirmPassword">
+          <el-input v-model.trim="pwdForm.confirmPassword" show-password placeholder="请再次输入新密码" autocomplete="new-password" @keyup.enter.native="onChangePwd">
+            <i slot="prefix" class="el-input__icon el-icon-lock"></i>
+          </el-input>
+        </el-form-item>
+        <el-form-item class="login-actions">
+          <el-button class="login-btn" type="primary" @click="onChangePwd" :loading="loginLoading">修改并登录</el-button>
+        </el-form-item>
+        <div class="login-back">
+          <el-button type="text" @click="backToStep1">返回上一步</el-button>
+        </div>
+      </el-form>
     </div>
   </div>
 </template>
 
 <script>
+import QRCode from 'qrcode'
+import { bindMfaForLogin, changePwdForLogin, getPasswordPolicy } from '@/api/login'
+import { newPasswordRule, formatPasswordRule, DEFAULT_PASSWORD_POLICY } from '@/utils/validate'
+
 export default {
   name: 'Login',
   data() {
+    const validateConfirmPassword = (rule, value, callback) => {
+      if (value !== this.pwdForm.newPassword) {
+        callback(new Error('两次输入的密码不一致'))
+      } else {
+        callback()
+      }
+    }
     return {
       captchaSrc: process.env.VUE_APP_BASE_API +'/captcha/' ,
       step: 1,
       ticket: '',
+      // precheck 返回的待完成步骤
+      requirements: {
+        mfaRequired: false,
+        mfaBindRequired: false,
+        pwdChangeRequired: false
+      },
       form: {
-        username: 'admin',
-        password: '123456',
+        username: '',
+        password: '',
         randomCode: this.guid(),
         captcha: null
       },
       mfaForm: {
         mfaCode: null
       },
+      bind: {
+        secret: '',
+        qrDataUrl: ''
+      },
+      pwdForm: {
+        newPassword: '',
+        confirmPassword: ''
+      },
+      pwdRules: {
+        newPassword: [newPasswordRule(() => this.passwordPolicy)],
+        confirmPassword: [{ validator: validateConfirmPassword, trigger: 'blur' }]
+      },
+      passwordPolicy: { ...DEFAULT_PASSWORD_POLICY },
       rules: {
         username: [{ required: true, message: '请输入账号', trigger: 'blur' }],
         password: [
@@ -97,6 +168,11 @@ export default {
       captchaLoading: true,
       loginLoading: false,
       redirect: undefined
+    }
+  },
+  computed: {
+    passwordRuleTip() {
+      return formatPasswordRule(this.passwordPolicy)
     }
   },
   watch: {
@@ -131,19 +207,14 @@ export default {
         this.loginLoading = true
         this.$store
           .dispatch('user/Precheck', this.form)
-          .then(({ mfaRequired, ticket }) => {
+          .then(({ mfaRequired, mfaBindRequired, pwdChangeRequired, ticket }) => {
             this.ticket = ticket
-            if (mfaRequired) {
-              // 需要动态码:进入第二步
-              this.step = 2
-              this.loginLoading = false
-              this.$nextTick(() => {
-                this.$refs.mfaCodeInput.focus()
-              })
-            } else {
-              // 未开启 MFA:凭票据直接完成登录
-              this.authorize()
+            this.requirements = {
+              mfaRequired: !!mfaRequired,
+              mfaBindRequired: !!mfaBindRequired,
+              pwdChangeRequired: !!pwdChangeRequired
             }
+            this.nextStep()
           })
           .catch(() => {
             this.loginLoading = false
@@ -151,9 +222,51 @@ export default {
           })
       })
     },
-    // 第二步:校验动态验证码后完成登录
+    // 动态码先于改密,全部完成后凭票据发码
+    nextStep() {
+      this.loginLoading = false
+      const { mfaRequired, mfaBindRequired, pwdChangeRequired } = this.requirements
+      if (mfaBindRequired) {
+        this.showBind()
+      } else if (mfaRequired) {
+        this.step = 2
+        this.$nextTick(() => {
+          this.$refs.mfaCodeInput.focus()
+        })
+      } else if (pwdChangeRequired) {
+        getPasswordPolicy()
+          .then(policy => {
+            this.passwordPolicy = policy
+          })
+          .catch(() => {})
+        this.step = 4
+      } else {
+        this.authorize()
+      }
+    },
+    showBind() {
+      this.loginLoading = true
+      bindMfaForLogin(this.ticket)
+        .then(res => {
+          this.bind.secret = res.secret
+          return QRCode.toDataURL(res.otpauthUri, { width: 180, margin: 1 })
+        })
+        .then(url => {
+          this.bind.qrDataUrl = url
+          this.step = 3
+          this.loginLoading = false
+          this.$nextTick(() => {
+            this.$refs.bindCodeInput.focus()
+          })
+        })
+        .catch(() => {
+          this.backToStep1()
+        })
+    },
+    // 校验动态验证码;强制绑定时校验通过即完成绑定
     onVerifyMfa() {
-      this.$refs.mfaForm.validate(valid => {
+      const form = this.step === 3 ? this.$refs.bindForm : this.$refs.mfaForm
+      form.validate(valid => {
         if (!valid) {
           return
         }
@@ -161,7 +274,26 @@ export default {
         this.$store
           .dispatch('user/VerifyMfa', { ticket: this.ticket, code: this.mfaForm.mfaCode })
           .then(() => {
-            this.authorize()
+            this.requirements.mfaRequired = false
+            this.requirements.mfaBindRequired = false
+            this.nextStep()
+          })
+          .catch(() => {
+            this.loginLoading = false
+          })
+      })
+    },
+    onChangePwd() {
+      this.$refs.pwdForm.validate(valid => {
+        if (!valid) {
+          return
+        }
+        this.loginLoading = true
+        changePwdForLogin(this.ticket, this.pwdForm.newPassword)
+          .then(() => {
+            this.$modal.msgSuccess('密码已修改')
+            this.requirements.pwdChangeRequired = false
+            this.nextStep()
           })
           .catch(() => {
             this.loginLoading = false
@@ -170,6 +302,7 @@ export default {
     },
     // 凭挑战票据走 PKCE 发码
     authorize() {
+      this.loginLoading = true
       this.$store
         .dispatch('user/AuthorizeWithPKCE', { ticket: this.ticket })
         .catch(() => {
@@ -180,7 +313,10 @@ export default {
     backToStep1() {
       this.step = 1
       this.ticket = ''
+      this.requirements = { mfaRequired: false, mfaBindRequired: false, pwdChangeRequired: false }
       this.mfaForm.mfaCode = null
+      this.bind = { secret: '', qrDataUrl: '' }
+      this.$refs.pwdForm.resetFields()
       this.loginLoading = false
       this.refreshCaptcha()
     }
@@ -345,6 +481,25 @@ export default {
   b {
     color: $label;
     font-weight: 600;
+  }
+}
+
+.mfa-bind {
+  margin-bottom: $space-4;
+  text-align: center;
+
+  &__qr {
+    width: 180px;
+    height: 180px;
+  }
+
+  &__secret {
+    margin: $space-2 0 0;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 13px;
+    letter-spacing: 1px;
+    word-break: break-all;
+    color: $label;
   }
 }
 

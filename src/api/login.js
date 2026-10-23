@@ -13,14 +13,33 @@ export function buildAuthorizeUrl() {
   return process.env.VUE_APP_BASE_API + authAPI + process.env.VUE_APP_OAUTH_AUTHORIZE_ENDPOINT
 }
 
-// 两步登录第一步:校验账号密码 + 图形验证码,返回 {mfaRequired, ticket}
-export function precheck(username, password, randomCode, captcha) {
-  password = encrypt(password)
+// 口令策略,返回 {minLength, maxLength, minCharTypes, expireDays}
+export function getPasswordPolicy() {
+  return request({
+    url: authAPI + "/login/password-policy",
+    method: "get",
+    headers: { isToken: false }
+  });
+}
+
+// 两步登录第一步:校验账号密码 + 图形验证码,返回 {mfaRequired, mfaBindRequired, pwdChangeRequired, ticket}
+export async function precheck(username, password, randomCode, captcha) {
+  password = await encrypt(password)
   return request({
     url: authAPI + "/login/precheck",
     method: "post",
     headers: { isToken: false },
     data: { username, password, randomCode, captcha }
+  });
+}
+
+// 强制绑定:生成动态口令密钥,返回 {secret, otpauthUri}
+export function bindMfaForLogin(ticket) {
+  return request({
+    url: authAPI + "/login/mfa/bind",
+    method: "post",
+    headers: { isToken: false },
+    data: { ticket }
   });
 }
 
@@ -34,9 +53,20 @@ export function verifyMfa(ticket, code) {
   });
 }
 
+// 初始密码 / 被重置 / 已过期:登录前修改密码
+export async function changePwdForLogin(ticket, password) {
+  password = await encrypt(password)
+  return request({
+    url: authAPI + "/login/pwd/change",
+    method: "post",
+    headers: { isToken: false },
+    data: { ticket, password }
+  });
+}
+
 //登录
-export function login(username, password, randomCode, captcha, mfaCode) {
-  password = encrypt(password)
+export async function login(username, password, randomCode, captcha, mfaCode) {
+  password = await encrypt(password)
   return request({
     auth: {
       username: process.env.VUE_APP_OAUTH_CLIENT_ID,
