@@ -4,6 +4,7 @@
 @import './transition.scss';
 @import './modern-normalize.css';
 @import './sidebar.scss';
+@import './islands.scss'; // 页面级岛屿布局
 @import './motion.scss'; // 交互动效层,需在 transition.scss 之后加载
 
 html,

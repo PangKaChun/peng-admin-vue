@@ -7,35 +7,47 @@
     class="log-detail"
     @open="handleOpen"
   >
-    <div ref="wrap" class="detail-wrap">
+    <div ref="wrap" v-loading="loading" class="detail-wrap">
       <!-- 基本信息 -->
       <section class="detail-card">
         <div class="detail-card-title"><i class="el-icon-info" />基本信息</div>
         <div class="detail-grid">
           <div class="detail-item">
             <span class="detail-label">系统模块</span>
-            <span class="detail-value">{{ display(row.title) }}</span>
+            <span class="detail-value">{{ display(log.title) }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">操作类型</span>
-            <span class="detail-value"><dict-tag :options="operTypes" :value="row.bizType" /></span>
+            <span class="detail-value"><dict-tag :options="operTypes" :value="log.bizType" /></span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">来源系统</span>
+            <span class="detail-value">{{ display(log.appCode) }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">来源服务</span>
-            <span class="detail-value">{{ display(row.serviceName) }}</span>
+            <span class="detail-value">{{ display(log.serviceName) }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">操作状态</span>
-            <span class="detail-value"><dict-tag :options="statusOptions" :value="row.status" /></span>
+            <span class="detail-value"><dict-tag :options="statusOptions" :value="log.status" /></span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">完整性</span>
+            <span class="detail-value">
+              <el-tag v-if="log.signValid === true" type="success">校验通过</el-tag>
+              <el-tag v-else-if="log.signValid === false" type="danger">校验不通过</el-tag>
+              <template v-else>-</template>
+            </span>
           </div>
           <div class="detail-item">
             <span class="detail-label">操作时间</span>
-            <span class="detail-value">{{ display(row.createTime) }}</span>
+            <span class="detail-value">{{ display(log.createTime) }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">耗时</span>
             <span class="detail-value">
-              <el-tag v-if="row.costTime != null" :type="costTagType">{{ row.costTime }}ms</el-tag>
+              <el-tag v-if="log.costTime != null" :type="costTagType">{{ log.costTime }}ms</el-tag>
               <template v-else>-</template>
             </span>
           </div>
@@ -43,7 +55,7 @@
       </section>
 
       <!-- 异常信息：异常日志最关心的内容，紧跟基本信息 -->
-      <section v-if="isError || row.errorMsg" class="detail-card is-danger">
+      <section v-if="isError || log.errorMsg" class="detail-card is-danger">
         <div class="detail-card-title">
           <i class="el-icon-warning-outline" />异常信息
           <el-button v-if="errorCode" type="text" size="mini" icon="el-icon-document-copy" class="copy-btn" @click="copyText(errorCode.text)">复制</el-button>
@@ -58,16 +70,16 @@
         <div class="detail-grid">
           <div class="detail-item">
             <span class="detail-label">操作人员</span>
-            <span class="detail-value">{{ display(row.username) }}</span>
+            <span class="detail-value">{{ display(log.username) }}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">部门名称</span>
-            <span class="detail-value">{{ display(row.deptName) }}</span>
+            <span class="detail-label">用户ID</span>
+            <span class="detail-value">{{ display(log.userId) }}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">主机地址</span>
             <span class="detail-value">
-              {{ display(row.requestIp) }}<span v-if="row.address" class="detail-sub">{{ row.address }}</span>
+              {{ display(log.requestIp) }}<span v-if="log.address" class="detail-sub">{{ log.address }}</span>
             </span>
           </div>
           <div class="detail-item">
@@ -84,12 +96,12 @@
           <div class="detail-item is-full">
             <span class="detail-label">请求URL</span>
             <span class="detail-value">
-              <span v-if="row.requestMethod" :class="['method-tag', 'is-' + String(row.requestMethod).toLowerCase()]">{{ row.requestMethod }}</span>{{ display(row.requestUrl) }}
+              <span v-if="log.requestMethod" :class="['method-tag', 'is-' + String(log.requestMethod).toLowerCase()]">{{ log.requestMethod }}</span>{{ display(log.requestUrl) }}
             </span>
           </div>
           <div class="detail-item is-full">
             <span class="detail-label">方法名称</span>
-            <span class="detail-value is-mono">{{ display(row.method) }}</span>
+            <span class="detail-value is-mono">{{ display(log.method) }}</span>
           </div>
         </div>
       </section>
@@ -118,6 +130,7 @@
 </template>
 
 <script>
+import { getLog } from '@/api/mon/log'
 import hljs from 'highlight.js/lib/core'
 import 'highlight.js/styles/github.css'
 import java from 'highlight.js/lib/languages/java'
@@ -169,6 +182,13 @@ export default {
       default: () => []
     }
   },
+  data() {
+    return {
+      // 详情接口返回
+      detail: null,
+      loading: false
+    }
+  },
   computed: {
     dialogVisible: {
       get() {
@@ -178,24 +198,28 @@ export default {
         this.$emit('update:visible', val)
       }
     },
+    // 详情回来前先用列表行
+    log() {
+      return this.detail || this.row
+    },
     isError() {
-      return this.row.status != null && String(this.row.status) !== '0'
+      return this.log.status != null && String(this.log.status) !== '0'
     },
     costTagType() {
-      const cost = this.row.costTime
+      const cost = this.log.costTime
       return cost <= 300 ? '' : cost <= 1000 ? 'warning' : 'danger'
     },
     clientText() {
-      return [this.row.browser, this.row.os].filter(Boolean).join(' / ') || '-'
+      return [this.log.browser, this.log.os].filter(Boolean).join(' / ') || '-'
     },
     paramsCode() {
-      return toCode(this.row.params, 'json')
+      return toCode(this.log.params, 'json')
     },
     resultCode() {
-      return toCode(this.row.jsonResult, 'json')
+      return toCode(this.log.jsonResult, 'json')
     },
     errorCode() {
-      return toCode(this.row.errorMsg, 'java')
+      return toCode(this.log.errorMsg, 'java')
     }
   },
   methods: {
@@ -204,6 +228,26 @@ export default {
       this.$nextTick(() => {
         if (this.$refs.wrap) {
           this.$refs.wrap.scrollTop = 0
+        }
+      })
+      this.loadDetail()
+    },
+    /** 参数、结果与堆栈只在详情接口返回 */
+    loadDetail() {
+      const logId = this.row.logId
+      this.detail = null
+      if (logId == null) {
+        return
+      }
+      this.loading = true
+      getLog(logId).then(response => {
+        // 只认当前行
+        if (this.row.logId === logId) {
+          this.detail = response
+        }
+      }).finally(() => {
+        if (this.row.logId === logId) {
+          this.loading = false
         }
       })
     },

@@ -23,17 +23,18 @@
       >
         <el-table-column type="selection" width="50" align="center" />
         <el-table-column label="登录名" align="center" key="username" prop="username" v-if="columns[0].visible" />
-        <el-table-column label="登录地址" align="center" key="ipaddr" prop="ipaddr" v-if="columns[1].visible" />
-        <el-table-column label="登录地点" align="center" key="loginLocation" prop="loginLocation" v-if="columns[2].visible" />
-        <el-table-column label="浏览器" align="center" key="browser" prop="browser" v-if="columns[3].visible" />
-        <el-table-column label="操作系统" align="center" key="os" prop="os" v-if="columns[4].visible" />
-        <el-table-column label="登录状态" align="center" key="status" prop="status" v-if="columns[5].visible">
+        <el-table-column label="类型" align="center" width="80" key="logType" prop="logType" v-if="columns[1].visible" :formatter="logTypeFormat" />
+        <el-table-column label="登录地址" align="center" key="ipaddr" prop="ipaddr" v-if="columns[2].visible" />
+        <el-table-column label="登录地点" align="center" key="loginLocation" prop="loginLocation" v-if="columns[3].visible" />
+        <el-table-column label="浏览器" align="center" key="browser" prop="browser" v-if="columns[4].visible" />
+        <el-table-column label="操作系统" align="center" key="os" prop="os" v-if="columns[5].visible" />
+        <el-table-column label="登录状态" align="center" key="status" prop="status" v-if="columns[6].visible">
           <template slot-scope="scope">
             <dict-tag :options="dict.type.log_status" :value="scope.row.status" />
           </template>
         </el-table-column>
-        <el-table-column label="操作信息" align="center" key="msg" prop="msg" v-if="columns[6].visible" />
-        <el-table-column label="登录日期" width="150" align="center" key="loginTime" prop="loginTime" v-if="columns[7].visible" />
+        <el-table-column label="操作信息" align="center" key="msg" prop="msg" v-if="columns[7].visible" />
+        <el-table-column label="登录日期" width="150" align="center" key="loginTime" prop="loginTime" v-if="columns[8].visible" />
       </el-table>
     </el-main>
     <el-footer>
@@ -50,6 +51,10 @@
 
 <script>
 import { loginLog } from '@/api/mon/log'
+
+// 日志类型
+const LOG_TYPE_LABELS = { LOGIN: '登录', LOGOUT: '登出' }
+
 export default {
   name: 'Log',
   dicts: ['log_status'],
@@ -72,13 +77,14 @@ export default {
       // 列信息
       columns: [
         { key: 0, label: `登录名`, visible: true },
-        { key: 1, label: `登录地址`, visible: true },
-        { key: 2, label: `登录地点`, visible: true },
-        { key: 3, label: `浏览器`, visible: true },
-        { key: 4, label: `操作系统`, visible: true },
-        { key: 5, label: `登录状态`, visible: true },
-        { key: 6, label: `操作信息`, visible: true },
-        { key: 7, label: `登录日期`, visible: true }
+        { key: 1, label: `类型`, visible: true },
+        { key: 2, label: `登录地址`, visible: true },
+        { key: 3, label: `登录地点`, visible: true },
+        { key: 4, label: `浏览器`, visible: true },
+        { key: 5, label: `操作系统`, visible: true },
+        { key: 6, label: `登录状态`, visible: true },
+        { key: 7, label: `操作信息`, visible: true },
+        { key: 8, label: `登录日期`, visible: true }
       ],
       // 字典表格数据
       logList: [],
@@ -98,8 +104,13 @@ export default {
       loginLog(this.addDateRange(this.queryParams, this.dateRange)).then(response => {
         this.logList = response.records
         this.total = response.total
+      }).finally(() => {
         this.loading = false
       })
+    },
+    /** 日志类型显示名 */
+    logTypeFormat(row) {
+      return LOG_TYPE_LABELS[row.logType] || row.logType
     },
     /** 重置按钮操作 */
     resetQuery() {
@@ -121,25 +132,3 @@ export default {
   }
 }
 </script>
-
-<style lang="scss" scoped>
-.el-container {
-  height: 100%;
-}
-.el-header {
-  height: auto !important;
-  padding: 0;
-}
-.el-main {
-  padding: 0;
-}
-.el-footer {
-  height: auto !important;
-  border: 1px solid #d7dae2;
-}
-.query-form {
-  padding-top: 20px;
-  background-color: #f2f2f2;
-  padding-left: 20px;
-}
-</style>

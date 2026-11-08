@@ -37,6 +37,22 @@ $space-8: 32px;
 $shadow-card:    0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.08);
 $shadow-popover: 0 6px 24px rgba(0, 0, 0, 0.12);
 
+// ===== 岛屿(功能模块的 Islands 风格)=====
+// 只用于页面内容区:内容区是画布,侧栏树 / 查询栏 / 表格等功能模块各成一座岛;
+// 岛与岛之间只靠缝隙 + 色阶区分,不画边框。布局外壳(侧栏 / 顶栏 / 页签)不用这套
+$bg-canvas:     #EBECF0;     // 画布:介于 systemGray6 与 systemGray5 之间的冷灰
+$bg-island:     $bg-base;    // 岛屿:纯白
+$island-gap:    $space-2;    // 8px:岛与岛、岛与内容区边缘的统一缝隙
+$radius-island: $radius-lg;  // 14px:岛是页面里最大的容器,用最大一级圆角
+// 克制阴影:1px 极淡描边圈定轮廓 + 1px 软投影托起,不做大面积弥散
+$shadow-island: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.05);
+
+@mixin island {
+  background-color: $bg-island;
+  border-radius: $radius-island;
+  box-shadow: $shadow-island;
+}
+
 // ===== 动效 =====
 // 曲线:内置 ease-* 太弱,统一用更有力度的自定义曲线(hover 色彩过渡直接用内置 ease 即可)
 $ease-out:      cubic-bezier(0.23, 1, 0.32, 1);   // 强减速:入场 / 展开,起步快、收尾稳

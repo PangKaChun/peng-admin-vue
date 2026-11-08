@@ -208,10 +208,14 @@
 }
 
 
-/** 操作栏样式 */
+/** 查询栏 / 操作栏样式(同处工具栏岛内,背景由岛屿提供) */
+.query-form {
+	padding: $space-4 $space-4 0;
+}
+
 .button-bar{
-	background-color: $bg-grouped;
-	padding: 0 0 $space-3 $space-4;
+	// el-row gutter=10 给每列左右各 5px 内边距,左侧减掉 5px 与查询栏输入框左对齐
+	padding: 0 $space-4 $space-4 ($space-4 - 5px);
 	margin: 0 !important;
 }
 

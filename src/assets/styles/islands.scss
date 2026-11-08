@@ -1,0 +1,96 @@
+@import './tokens.scss';
+
+/**
+ * Islands:页面级岛屿布局
+ *
+ * 页面根节点 <el-container> 直接挂在 .app-main 下,惯用结构:
+ *   [el-aside 侧栏树]  +  [el-header 查询栏 / 操作栏]
+ *                         [el-main   表格]
+ *                         [el-footer 分页]
+ * 每个功能模块各成一座白色岛屿,浮在 $bg-canvas 画布上,靠 $island-gap 缝隙与背景色阶区分,不画边框。
+ * 表格与分页是同一个模块,拼成一座岛(上下圆角分别由 el-main / el-footer 承担)。
+ * 只作用于页面内容区;布局外壳(src/layout 的侧栏 / 顶栏 / 页签)保持原样,不成岛。
+ */
+
+// 内容区就是画布。缝隙放在内边距里:.app-main 是 overflow:hidden,只裁到 padding 盒边缘,岛屿阴影不会被切掉
+.app-main {
+  padding: $island-gap;
+  box-sizing: border-box;
+  background-color: $bg-canvas;
+}
+
+.app-main > .el-container {
+  &,
+  > .el-container {
+    height: 100%;
+
+    // 横向容器(侧栏树 + 右侧列):岛与岛之间留缝
+    &:not(.is-vertical) {
+      gap: $island-gap;
+    }
+
+    > .el-aside,
+    > .el-header,
+    > .el-main {
+      @include island;
+    }
+
+    // 查询栏 + 操作栏:工具栏岛,与下方表格岛之间留缝
+    > .el-header {
+      height: auto !important; // 覆盖 Element 内联的 60px
+      padding: 0;
+      margin-bottom: $island-gap;
+    }
+
+    > .el-main {
+      padding: 0;
+
+      // 下方还有分页时,底部圆角交给 el-footer
+      &:not(:last-child) {
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+      }
+
+      // 表格外框与岛屿轮廓重合,去掉,只保留内部网格线
+      > .el-table--border {
+        border: 0;
+
+        &::after {
+          display: none;
+        }
+      }
+    }
+
+    > .el-footer {
+      height: auto !important;
+      // 无数据时分页被 v-show 隐藏,保底高度让岛屿底部圆角仍然完整
+      min-height: $radius-island;
+      padding: $space-2 $space-3;
+      background-color: $bg-island;
+      border-radius: 0 0 $radius-island $radius-island;
+      box-shadow: $shadow-island;
+      // 只裁掉向上的阴影,与表格岛无缝拼接
+      clip-path: inset(0 -8px -8px -8px);
+    }
+  }
+
+  // 岛内的卡片只是内容分组,去掉自身边框 / 圆角 / 阴影,由所在岛屿承担轮廓
+  .el-card {
+    border: 0;
+    border-radius: 0;
+    background-color: transparent;
+    box-shadow: none;
+  }
+}
+
+// 不走惯用结构的页面(如个人中心),卡片直接浮在画布上,本身就是岛
+.app-main > :not(.el-container) .el-card {
+  border: 0;
+  border-radius: $radius-island;
+  box-shadow: $shadow-island;
+}
+
+// 画布缝已由 .app-main 内边距提供,页面容器不再叠加自己的内边距,卡片与其他页面的岛屿左上角对齐
+.app-main > .app-container {
+  padding: 0;
+}

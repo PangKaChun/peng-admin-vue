@@ -459,23 +459,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.el-container {
-  height: 100%;
-}
-.el-aside {
-  border: 1px solid #d7dae2;
-}
-.el-header {
-  height: auto !important;
-  padding: 0;
-}
-.el-main {
-  padding: 0;
-}
-.el-footer {
-  height: auto !important;
-  border: 1px solid #d7dae2;
-}
 .dept-filter-input {
   width: 90%;
   display: block;
@@ -486,10 +469,5 @@ export default {
   ::v-deep .el-scrollbar__wrap {
     overflow-x: hidden;
   }
-}
-.query-form {
-  padding-top: 20px;
-  background-color: #f2f2f2;
-  padding-left: 20px;
 }
 </style>

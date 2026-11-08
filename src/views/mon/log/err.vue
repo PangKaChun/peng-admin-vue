@@ -40,33 +40,23 @@
           </template>
         </el-table-column>
         <el-table-column label="操作人员" align="center" key="username" prop="username" v-if="columns[6].visible" />
-        <el-table-column label="部门名称" align="center" key="deptName" prop="deptName" v-if="columns[7].visible" />
         <el-table-column
           label="请求URL"
           align="center"
           key="requestUrl"
           prop="requestUrl"
-          v-if="columns[8].visible"
+          v-if="columns[7].visible"
           :show-overflow-tooltip="true"
         />
-        <el-table-column label="浏览器" align="center" key="browser" prop="browser" v-if="columns[9].visible" :show-overflow-tooltip="true" />
-        <el-table-column label="主机地址" align="center" key="requestIp" prop="requestIp" v-if="columns[10].visible" />
-        <el-table-column label="操作地点" align="center" key="address" prop="address" v-if="columns[11].visible" />
-        <el-table-column label="请求参数" align="center" key="params" prop="params" v-if="columns[12].visible" :show-overflow-tooltip="true" />
-        <el-table-column
-          label="返回参数"
-          align="center"
-          key="jsonResult"
-          prop="jsonResult"
-          v-if="columns[13].visible"
-          :show-overflow-tooltip="true"
-        />
-        <el-table-column label="操作状态" align="center" key="status" prop="status" v-if="columns[14].visible">
+        <el-table-column label="浏览器" align="center" key="browser" prop="browser" v-if="columns[8].visible" :show-overflow-tooltip="true" />
+        <el-table-column label="主机地址" align="center" key="requestIp" prop="requestIp" v-if="columns[9].visible" />
+        <el-table-column label="操作地点" align="center" key="address" prop="address" v-if="columns[10].visible" />
+        <el-table-column label="操作状态" align="center" key="status" prop="status" v-if="columns[11].visible">
           <template slot-scope="scope">
             <dict-tag :options="dict.type.log_status" :value="scope.row.status" />
           </template>
         </el-table-column>
-        <el-table-column label="操作时间" width="150" align="center" key="createTime" prop="createTime" v-if="columns[15].visible" />
+        <el-table-column label="操作时间" width="150" align="center" key="createTime" prop="createTime" v-if="columns[12].visible" />
         <el-table-column label="操作" align="center" width="80" fixed="right" class-name="small-padding fixed-width">
           <template slot-scope="scope">
             <el-button size="mini" type="text" icon="el-icon-view" @click="handleDetail(scope.row)">详情</el-button>
@@ -120,15 +110,12 @@ export default {
         { key: 5, label: `请求方式`, visible: true },
         { key: 6, label: `耗时`, visible: true },
         { key: 7, label: `操作人员`, visible: true },
-        { key: 8, label: `部门名称`, visible: true },
-        { key: 9, label: `请求URL`, visible: false },
-        { key: 10, label: `浏览器`, visible: false },
-        { key: 11, label: `主机地址`, visible: true },
-        { key: 12, label: `操作地点`, visible: true },
-        { key: 13, label: `请求参数`, visible: false },
-        { key: 14, label: `返回参数`, visible: false },
-        { key: 15, label: `操作状态`, visible: true },
-        { key: 16, label: `操作时间`, visible: true }
+        { key: 8, label: `请求URL`, visible: false },
+        { key: 9, label: `浏览器`, visible: false },
+        { key: 10, label: `主机地址`, visible: true },
+        { key: 11, label: `操作地点`, visible: true },
+        { key: 12, label: `操作状态`, visible: true },
+        { key: 13, label: `操作时间`, visible: true }
       ],
       // 日志表格数据
       logList: [],
@@ -179,25 +166,3 @@ export default {
   }
 }
 </script>
-
-<style lang="scss" scoped>
-.el-container {
-  height: 100%;
-}
-.el-header {
-  height: auto !important;
-  padding: 0;
-}
-.el-main {
-  padding: 0;
-}
-.el-footer {
-  height: auto !important;
-  border: 1px solid #d7dae2;
-}
-.query-form {
-  padding-top: 20px;
-  background-color: #f2f2f2;
-  padding-left: 20px;
-}
-</style>

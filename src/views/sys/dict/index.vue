@@ -1,11 +1,7 @@
 <template>
   <el-container>
-    <el-main>
-      <dict-type @update:value="(val)=>dictType=val" />
-    </el-main>
-    <el-main>
-      <dict-data :dictType="dictType" />
-    </el-main>
+    <dict-type class="dict-pane" @update:value="(val)=>dictType=val" />
+    <dict-data class="dict-pane" :dictType="dictType" />
   </el-container>
 </template>
 
@@ -24,11 +20,9 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.el-container {
-  height: 100%;
-}
-.el-main {
+// 两栏等分
+.dict-pane {
   flex-basis: 0;
-  padding: 0;
+  min-width: 0;
 }
 </style>

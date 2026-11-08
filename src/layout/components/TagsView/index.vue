@@ -424,15 +424,15 @@ $motion-fast: .16s;
 
       &.active {
         z-index: 2;
-        color: $color-primary;
+        color: #000;
 
         .tags-view-item__background {
           .tags-view-item__background-content {
-            background-color: $tabs-active-bg;
+            background-color: #EBECF0;
           }
 
           svg {
-            fill: $tabs-active-bg;
+            fill: #EBECF0;
           }
         }
       }

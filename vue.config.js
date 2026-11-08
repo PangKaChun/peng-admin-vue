@@ -64,9 +64,6 @@ module.exports = {
         pathRewrite: {
           ["^" + process.env.VUE_APP_BASE_API]: "",
         },
-        headers: {
-          'X-Forwarded-For': '113.90.49.179'
-        },
       },
     },
     allowedHosts: "all",
