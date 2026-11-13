@@ -6,7 +6,7 @@
         <p class="login-subtitle">欢迎登录</p>
       </div>
 
-      <!-- 第一步:账号密码 + 图形验证码 -->
+      <!-- 第一步:账号密码 + 人机验证(图形验证码或滑块二选一) -->
       <el-form v-show="step === 1" class="login-form" :model="form" :rules="rules" ref="loginForm" @submit.native.prevent>
         <el-form-item prop="username">
           <el-input v-model.trim="form.username" placeholder="请输入用户名" @keyup.enter.native="onPrecheck" autocomplete="off">
@@ -18,7 +18,7 @@
             <i slot="prefix" class="el-input__icon el-icon-lock"></i>
           </el-input>
         </el-form-item>
-        <el-form-item prop="captcha">
+        <el-form-item v-if="captchaType === 'image'" key="captcha" prop="captcha">
           <div class="captcha-row">
             <el-input
               class="captcha-input"
@@ -42,6 +42,11 @@
             </div>
           </div>
         </el-form-item>
+        <el-form-item v-else-if="captchaType === 'slider'" key="slider" prop="sliderToken">
+          <slider-verify ref="slider" v-model="form.sliderToken" @success="$refs.loginForm.clearValidate('sliderToken')" />
+        </el-form-item>
+        <!-- 验证方式加载前先占住一行 -->
+        <div v-else class="login-verify-placeholder"></div>
         <el-form-item class="login-actions">
           <el-button class="login-btn" type="primary" @click="onPrecheck" :loading="loginLoading">登录</el-button>
         </el-form-item>
@@ -109,11 +114,13 @@
 
 <script>
 import QRCode from 'qrcode'
-import { bindMfaForLogin, changePwdForLogin, getPasswordPolicy } from '@/api/login'
+import { bindMfaForLogin, changePwdForLogin, getCaptchaType, getPasswordPolicy } from '@/api/login'
 import { newPasswordRule, formatPasswordRule, DEFAULT_PASSWORD_POLICY } from '@/utils/validate'
+import SliderVerify from '@/components/SliderVerify'
 
 export default {
   name: 'Login',
+  components: { SliderVerify },
   data() {
     const validateConfirmPassword = (rule, value, callback) => {
       if (value !== this.pwdForm.newPassword) {
@@ -124,6 +131,8 @@ export default {
     }
     return {
       captchaSrc: process.env.VUE_APP_BASE_API +'/captcha/' ,
+      // 人机验证方式:image 图形验证码 / slider 滑块
+      captchaType: '',
       step: 1,
       ticket: '',
       // precheck 返回的待完成步骤
@@ -136,7 +145,8 @@ export default {
         username: '',
         password: '',
         randomCode: this.guid(),
-        captcha: null
+        captcha: null,
+        sliderToken: ''
       },
       mfaForm: {
         mfaCode: null
@@ -160,7 +170,8 @@ export default {
           { required: true, message: '请输入密码', trigger: 'blur' },
           { min: 6, message: '长度最少6位', trigger: 'blur' }
         ],
-        captcha: [{ required: true, message: '请输入验证码', trigger: 'blur' }]
+        captcha: [{ required: true, message: '请输入验证码', trigger: 'blur' }],
+        sliderToken: [{ required: true, message: '请完成滑块验证' }]
       },
       mfaRules: {
         mfaCode: [{ required: true, message: '请输入动态验证码', trigger: 'blur' }]
@@ -184,12 +195,32 @@ export default {
     }
   },
   mounted() {
-    this.refreshCaptcha()
+    this.loadCaptchaType()
   },
   methods: {
+    // 人机验证方式:图形验证码或滑块二选一,默认图形验证码
+    loadCaptchaType() {
+      getCaptchaType()
+        .then(res => res.captchaType)
+        .catch(() => 'image')
+        .then(type => {
+          this.captchaType = type === 'slider' ? 'slider' : 'image'
+          if (this.captchaType === 'image') {
+            this.refreshCaptcha()
+          }
+        })
+    },
     refreshCaptcha() {
       this.captchaLoading = true
       this.form.randomCode = this.guid()
+    },
+    // 重新做人机验证:图形验证码换一张,滑块复位
+    resetVerify() {
+      if (this.captchaType === 'slider') {
+        this.$refs.slider.reset()
+      } else {
+        this.refreshCaptcha()
+      }
     },
     guid() {
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
@@ -198,8 +229,12 @@ export default {
             return v.toString(16);
         });
     },
-    // 第一步:校验账号密码 + 图形验证码
+    // 第一步:校验账号密码 + 人机验证
     onPrecheck() {
+      // 验证方式还没加载出来时不提交
+      if (!this.captchaType) {
+        return
+      }
       this.$refs.loginForm.validate(valid => {
         if (!valid) {
           return
@@ -218,7 +253,7 @@ export default {
           })
           .catch(() => {
             this.loginLoading = false
-            this.refreshCaptcha()
+            this.resetVerify()
           })
       })
     },
@@ -318,7 +353,7 @@ export default {
       this.bind = { secret: '', qrDataUrl: '' }
       this.$refs.pwdForm.resetFields()
       this.loginLoading = false
-      this.refreshCaptcha()
+      this.resetVerify()
     }
   }
 }
@@ -422,6 +457,11 @@ export default {
 .captcha-row {
   display: flex;
   gap: $space-3;
+}
+
+.login-verify-placeholder {
+  height: 44px;
+  margin-bottom: $space-5;
 }
 
 .captcha-input {

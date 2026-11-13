@@ -1,27 +1,15 @@
 <template>
   <!-- PDF 预览对话框 -->
-  <el-dialog
+  <viewer-dialog
     :visible.sync="visible"
-    :fullscreen="maximized"
-    width="72%"
-    top="4vh"
-    append-to-body
-    custom-class="pdf-viewer-dialog"
-    @closed="cleanup"
+    :title="title"
+    :loading="loading"
+    :message="errorMsg"
+    dialog-class="pdf-viewer-dialog"
+    @closed="discard"
+    @maximize="relayout"
   >
-    <!-- 自定义标题栏 -->
-    <div slot="title" class="pdf-viewer__header" @dblclick="toggleMaximize">
-      <span class="el-dialog__title">{{ title }}</span>
-      <button
-        type="button"
-        class="pdf-viewer__maximize"
-        :title="maximized ? '还原' : '最大化'"
-        @click="toggleMaximize"
-      >
-        <i :class="maximized ? 'el-icon-copy-document' : 'el-icon-full-screen'" />
-      </button>
-    </div>
-    <div class="pdf-viewer__toolbar">
+    <template slot="toolbar">
       <el-button-group>
         <el-button size="mini" icon="el-icon-arrow-left" title="上一页" :disabled="loading || pageNumber <= 1" @click="gotoPage(pageNumber - 1)" />
         <el-button size="mini" icon="el-icon-arrow-right" title="下一页" :disabled="loading || pageNumber >= pageCount" @click="gotoPage(pageNumber + 1)" />
@@ -58,28 +46,17 @@
       </el-button-group>
       <span v-if="matchTotal > 0" class="pdf-viewer__match">{{ matchCurrent }} / {{ matchTotal }}</span>
       <span v-else-if="searched && searchText" class="pdf-viewer__match pdf-viewer__match--none">无匹配</span>
-    </div>
+    </template>
 
-    <div v-loading="loading" class="pdf-viewer__body">
-      <!-- pdf.js 要求滚动容器绝对定位 -->
-      <div ref="container" class="pdf-viewer__container">
-        <div class="pdfViewer" />
-      </div>
-      <div v-if="errorMsg" class="pdf-viewer__error">{{ errorMsg }}</div>
+    <!-- pdf.js 要求滚动容器绝对定位 -->
+    <div v-show="!errorMsg" ref="container" class="pdf-viewer__container">
+      <div class="pdfViewer" />
     </div>
-  </el-dialog>
+  </viewer-dialog>
 </template>
 
 <script>
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf'
-import { EventBus, PDFLinkService, PDFFindController, PDFViewer } from 'pdfjs-dist/legacy/web/pdf_viewer'
-import 'pdfjs-dist/legacy/web/pdf_viewer.css'
-import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.js'
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
-
-// CJK 字型映射与标准字体资源
-const PDF_ASSETS_BASE = process.env.BASE_URL + 'static/pdf-assets/'
+import viewer from '@/components/ViewerDialog/viewer'
 
 // 缩放步进与上下限
 const ZOOM_STEP = 1.25
@@ -88,18 +65,9 @@ const ZOOM_MAX = 4
 
 export default {
   name: 'PdfViewer',
+  mixins: [viewer({ title: 'PDF 预览', failText: 'PDF 加载失败，请尝试下载后查看' })],
   data() {
     return {
-      // 预览对话框
-      visible: false,
-      // 是否最大化
-      maximized: false,
-      // 对话框标题(文件名)
-      title: '',
-      // 文档加载中
-      loading: false,
-      // 加载失败提示
-      errorMsg: '',
       // 当前页码
       pageNumber: 1,
       // 总页数
@@ -123,35 +91,35 @@ export default {
       return Math.round(this.scale * 100)
     }
   },
-  beforeDestroy() {
-    this.cleanup()
-  },
   methods: {
-    /** 打开对话框并加载 PDF,source 为 Blob 或 Promise<Blob> */
-    open(source, title) {
-      this.title = title || 'PDF 预览'
-      this.errorMsg = ''
-      this.visible = true
-      // 等对话框体渲染出容器后再初始化 viewer
-      this.$nextTick(() => this.load(source))
+    /** 加载并显示文档 */
+    async renderFile(blob, isStale) {
+      // pdf.js(./pdfjs)首次预览 PDF 时才加载
+      const [buffer, pdfjs] = await Promise.all([
+        blob.arrayBuffer(),
+        import(/* webpackChunkName: "viewer-pdf" */ './pdfjs')
+      ])
+      if (isStale()) {
+        return
+      }
+      this.initViewer(pdfjs)
+      const task = pdfjs.loadDocument(new Uint8Array(buffer))
+      this._loadingTask = task
+      const doc = await task.promise
+      // 加载完成前对话框已被关闭(resetViewer 已 destroy 这次加载),丢弃结果
+      if (isStale()) {
+        return
+      }
+      this._viewer.setDocument(doc)
+      this._linkService.setDocument(doc, null)
+      this.pageCount = doc.numPages
     },
-    /** 初始化 pdf.js viewer */
-    initViewer() {
+    /** 初始化 pdf.js viewer,整个组件生命周期只建一次 */
+    initViewer(pdfjs) {
       if (this._viewer) {
         return
       }
-      const container = this.$refs.container
-      const eventBus = new EventBus()
-      const linkService = new PDFLinkService({ eventBus })
-      const findController = new PDFFindController({ eventBus, linkService })
-      const viewer = new PDFViewer({
-        container,
-        viewer: container.querySelector('.pdfViewer'),
-        eventBus,
-        linkService,
-        findController
-      })
-      linkService.setViewer(viewer)
+      const { eventBus, linkService, viewer } = pdfjs.createViewer(this.$refs.container)
       eventBus.on('pagesinit', () => {
         // 文档就绪后默认适应宽度
         viewer.currentScaleValue = 'page-width'
@@ -170,52 +138,8 @@ export default {
       this._linkService = linkService
       this._viewer = viewer
     },
-    /** 加载文档 */
-    async load(source) {
-      this.initViewer()
-      this.resetDocState()
-      this.loading = true
-      // 加载令牌
-      const token = {}
-      this._loadToken = token
-      try {
-        const data = new Uint8Array(await (await source).arrayBuffer())
-        if (this._loadToken !== token) {
-          return
-        }
-        const task = pdfjsLib.getDocument({
-          data,
-          cMapUrl: PDF_ASSETS_BASE + 'cmaps/',
-          cMapPacked: true,
-          standardFontDataUrl: PDF_ASSETS_BASE + 'standard_fonts/',
-          // 禁用 eval 执行 PDF 内嵌字体程序(CVE-2024-4367 防护,文件来自用户上传不可信)
-          isEvalSupported: false
-        })
-        this._loadingTask = task
-        const doc = await task.promise
-        // 加载完成前对话框已被关闭(cleanup 已 destroy),丢弃结果
-        if (this._loadToken !== token) {
-          return
-        }
-        this._viewer.setDocument(doc)
-        this._linkService.setDocument(doc, null)
-        this.pageCount = doc.numPages
-        this.pageNumber = 1
-        this.pageInput = '1'
-      } catch (e) {
-        if (this._loadToken === token) {
-          this.errorMsg = 'PDF 加载失败，请尝试下载后查看'
-          console.error('PDF 加载失败', e)
-        }
-      } finally {
-        if (this._loadToken === token) {
-          this.loading = false
-        }
-      }
-    },
-    /** 关闭后清理 */
-    cleanup() {
-      this._loadToken = null
+    /** 中止加载、卸下文档并复位文档相关状态 */
+    resetViewer() {
       if (this._loadingTask) {
         this._loadingTask.destroy()
         this._loadingTask = null
@@ -224,11 +148,6 @@ export default {
         this._viewer.setDocument(null)
         this._linkService.setDocument(null, null)
       }
-      this.resetDocState()
-    },
-    /** 复位文档相关状态 */
-    resetDocState() {
-      this.loading = false
       this.pageNumber = 1
       this.pageCount = 0
       this.pageInput = '1'
@@ -277,9 +196,8 @@ export default {
         this._viewer.currentScaleValue = 'page-width'
       }
     },
-    /** 最大化/还原 */
-    toggleMaximize() {
-      this.maximized = !this.maximized
+    /** 最大化/还原后,等对话框换完尺寸再按新容器宽度重排 */
+    relayout() {
       this.$nextTick(() => {
         const viewer = this._viewer
         if (!viewer || !this.pageCount) {
@@ -360,61 +278,9 @@ export default {
 </script>
 
 <style lang="scss">
-@import '@/assets/styles/tokens.scss';
-/* 对话框挂 body(append-to-body) */
 .pdf-viewer-dialog {
-  .el-dialog__body {
-    padding: 0;
-  }
-
-  /* 标题栏最大化/还原按钮 */
-  .pdf-viewer__maximize {
-    position: absolute;
-    top: 20px;
-    right: 50px;
-    padding: 0;
-    border: none;
-    outline: none;
-    background: transparent;
-    font-size: 16px;
-    color: #909399;
-    cursor: pointer;
-
-    &:hover {
-      color: $color-primary;
-    }
-  }
-
-  /* 最大化 */
-  &.is-fullscreen {
-    display: flex;
-    flex-direction: column;
-
-    .el-dialog__body {
-      display: flex;
-      flex: 1;
-      flex-direction: column;
-      min-height: 0;
-    }
-
-    .pdf-viewer__toolbar {
-      flex-shrink: 0;
-    }
-
-    .pdf-viewer__body {
-      flex: 1;
-      height: auto;
-      min-height: 0;
-    }
-  }
-
-  .pdf-viewer__toolbar {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 8px 16px;
-    border-bottom: 1px solid #ebeef5;
+  .viewer-dialog__body {
+    background: #e9ebee;
   }
 
   .pdf-viewer__pages {
@@ -454,25 +320,10 @@ export default {
     }
   }
 
-  .pdf-viewer__body {
-    position: relative;
-    height: 74vh;
-    background: #e9ebee;
-  }
-
   .pdf-viewer__container {
     position: absolute;
     inset: 0;
     overflow: auto;
-  }
-
-  .pdf-viewer__error {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 14px;
-    color: #909399;
   }
 }
 </style>

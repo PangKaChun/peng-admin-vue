@@ -6,95 +6,116 @@
 </template>
 
 <script>
-import Hls from 'hls.js'
 import { getToken, getRefreshToken, setToken, setRefreshToken } from '@/utils/auth'
 import { refreshToken } from '@/api/login'
 
+// hls.js 首次播放时才加载,加载后留在模块变量里
+let Hls = null
+function loadHls() {
+  return import(/* webpackChunkName: "viewer-hls" */ 'hls.js').then(mod => {
+    Hls = mod.default
+  })
+}
+
 export default {
   name: 'VideoPlayer',
+  // 播放器实例与播放参数不进 data,挂非响应式私有属性(_hls / _source / _session 等):
+  // 进了 data 会被 Vue 深度代理,hls.js 内部每次状态变更都要过一遍响应式
   data() {
     return {
       // 播放对话框
       visible: false,
       // 播放标题
-      title: '',
-      // 播放地址(m3u8)
-      playUrl: '',
-      // hls.js 实例
-      hls: null,
-      // 是否携带令牌
-      withToken: true,
-      // 换取短码播放地址
-      shareUrl: null,
-      // 是否正在刷新令牌
-      tokenRefreshing: false,
-      // 本次过期事件是否已刷新过
-      tokenRefreshedOnce: false
+      title: ''
     }
   },
   beforeDestroy() {
     this.destroyHls()
   },
   methods: {
-    /** 打开对话框并播放视频(HLS),options.shareUrl 供原生 HLS 换短码地址 */
+    /**
+     * 打开对话框并播放视频(HLS)
+     * @param url m3u8 播放地址
+     * @param title 对话框标题
+     * @param options.withToken 是否携带令牌,公开文件传 false
+     * @param options.shareUrl 返回 Promise<短码地址> 的函数,原生 HLS 带不了请求头时用
+     */
     play(url, title, options) {
-      this.playUrl = url
+      const { withToken, shareUrl } = options || {}
       this.title = title || ''
-      this.withToken = !(options && options.withToken === false)
-      this.shareUrl = (options && options.shareUrl) || null
       this.visible = true
-      this.$nextTick(() => this.initHls())
+      this.start({ url, withToken: withToken !== false, shareUrl: shareUrl || null })
     },
-    /** 初始化 hls.js 播放器 */
-    initHls() {
-      const video = this.$refs.video
-      if (!video) {
+    /** 加载 hls.js 并开始播放 */
+    async start(source) {
+      this.destroyHls()
+      this._source = source
+      // 播放令牌:hls.js 还没加载完就关掉对话框或换了视频时,这次初始化作废
+      const session = (this._session = {})
+      try {
+        // 同时等对话框体渲染出 video 节点
+        await Promise.all([loadHls(), this.$nextTick()])
+      } catch (e) {
+        if (this._session === session) {
+          console.error('hls.js 加载失败', e)
+          this.$modal.msgError('播放器加载失败，请重试')
+        }
         return
       }
-      this.destroyHls()
-      this.tokenRefreshing = false
-      this.tokenRefreshedOnce = false
+      const video = this.$refs.video
+      if (this._session !== session || !video) {
+        return
+      }
       if (Hls.isSupported()) {
-        const hls = new Hls({
-          // 每次请求动态读取当前令牌,令牌刷新后分片请求自动使用新令牌;公开文件免鉴权不注入
-          xhrSetup: (xhr) => {
-            const token = this.withToken ? getToken() : null
-            if (token) {
-              xhr.setRequestHeader('Authorization', 'Bearer ' + token)
-            }
-          }
-        })
-        hls.on(Hls.Events.ERROR, this.onHlsError)
-        // 成功加载分片即认为已恢复,允许后续再次过期时重新刷新
-        hls.on(Hls.Events.FRAG_LOADED, () => {
-          this.tokenRefreshedOnce = false
-        })
-        hls.loadSource(this.playUrl)
-        hls.attachMedia(video)
-        this.hls = hls
+        this.attachHls(video)
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        // Safari 原生 HLS 带不了请求头,私有视频临时换短码地址,播放超过有效期会中断
-        if (this.withToken && this.shareUrl) {
-          this.shareUrl().then((url) => {
-            if (this.visible) {
-              video.src = url
-            }
-          }).catch(() => {})
-        } else {
-          video.src = this.playUrl
-        }
+        this.playNative(video, session)
       } else {
         this.$modal.msgError('当前浏览器不支持 HLS 播放')
       }
     },
+    /** 用 hls.js 播放 */
+    attachHls(video) {
+      const hls = new Hls({
+        // 每次请求动态读取当前令牌,令牌刷新后分片请求自动使用新令牌;公开文件免鉴权不注入
+        xhrSetup: (xhr) => {
+          const token = this._source.withToken ? getToken() : null
+          if (token) {
+            xhr.setRequestHeader('Authorization', 'Bearer ' + token)
+          }
+        }
+      })
+      this._hls = hls
+      hls.on(Hls.Events.ERROR, this.onHlsError)
+      // 成功加载分片即认为已恢复,允许后续再次过期时重新刷新
+      hls.on(Hls.Events.FRAG_LOADED, () => {
+        this._refreshedOnce = false
+      })
+      hls.loadSource(this._source.url)
+      hls.attachMedia(video)
+    },
+    // Safari 原生 HLS 带不了请求头,私有视频临时换短码地址,播放超过有效期会中断
+    playNative(video, session) {
+      const { url, withToken, shareUrl } = this._source
+      if (!withToken || !shareUrl) {
+        video.src = url
+        return
+      }
+      shareUrl().then((shared) => {
+        if (this._session === session) {
+          video.src = shared
+        }
+      }).catch(() => {})
+    },
     /** hls.js 错误处理:令牌过期(401/424)刷新后续播,其余致命错误尝试恢复 */
     onHlsError(event, data) {
-      if (!data) {
+      const hls = this._hls
+      if (!data || !hls) {
         return
       }
       const code = data.response && data.response.code
       // 令牌过期刷新仅对鉴权播放生效,免鉴权播放不存在令牌语义
-      if (this.withToken && data.type === Hls.ErrorTypes.NETWORK_ERROR && (code === 401 || code === 424)) {
+      if (this._source.withToken && data.type === Hls.ErrorTypes.NETWORK_ERROR && (code === 401 || code === 424)) {
         this.refreshAndReload(data.details)
         return
       }
@@ -103,52 +124,55 @@ export default {
       }
       switch (data.type) {
         case Hls.ErrorTypes.NETWORK_ERROR:
-          this.hls.startLoad()
+          hls.startLoad()
           break
         case Hls.ErrorTypes.MEDIA_ERROR:
-          this.hls.recoverMediaError()
+          hls.recoverMediaError()
           break
         default:
           this.$modal.msgError('视频播放失败')
           this.destroyHls()
       }
     },
-    /** 令牌过期:用 refresh_token 刷新后继续加载 */
-    refreshAndReload(details) {
-      if (this.tokenRefreshing) {
+    /** 令牌过期:用 refresh_token 刷新后继续加载;刷新过仍然 401 则判定登录失效 */
+    async refreshAndReload(details) {
+      if (this._refreshing) {
         return
       }
-      if (this.tokenRefreshedOnce) {
-        this.$modal.msgError('登录已过期，请重新登录')
-        this.destroyHls()
+      if (this._refreshedOnce) {
+        this.expire()
         return
       }
-      this.tokenRefreshing = true
-      this.tokenRefreshedOnce = true
+      this._refreshing = true
+      this._refreshedOnce = true
+      const hls = this._hls
       // 暂停加载,避免用旧令牌空转重试
-      if (this.hls) {
-        this.hls.stopLoad()
+      hls.stopLoad()
+      let token = null
+      try {
+        token = await this.refreshAccessToken()
+      } catch (e) {
+        // 刷新请求失败按拿不到令牌处理
       }
-      this.refreshAccessToken()
-        .then((token) => {
-          if (token && this.hls) {
-            // 清单/层级错误需重载源,分片错误从当前位置续播
-            if (this.isManifestError(details)) {
-              this.hls.loadSource(this.playUrl)
-            }
-            this.hls.startLoad()
-          } else {
-            this.$modal.msgError('登录已过期，请重新登录')
-            this.destroyHls()
-          }
-        })
-        .catch(() => {
-          this.$modal.msgError('登录已过期，请重新登录')
-          this.destroyHls()
-        })
-        .finally(() => {
-          this.tokenRefreshing = false
-        })
+      // 刷新期间对话框已关闭或换了视频,与这个播放器无关了
+      if (this._hls !== hls) {
+        return
+      }
+      this._refreshing = false
+      if (!token) {
+        this.expire()
+        return
+      }
+      // 清单/层级错误需重载源,分片错误从当前位置续播
+      if (this.isManifestError(details)) {
+        hls.loadSource(this._source.url)
+      }
+      hls.startLoad()
+    },
+    /** 登录失效:提示并停止播放 */
+    expire() {
+      this.$modal.msgError('登录已过期，请重新登录')
+      this.destroyHls()
     },
     /** 是否清单/层级加载错误 */
     isManifestError(details) {
@@ -176,14 +200,15 @@ export default {
         return token
       })
     },
-    /** 释放播放器 */
+    /** 释放播放器,进行中的初始化一并作废 */
     destroyHls() {
-      if (this.hls) {
-        this.hls.destroy()
-        this.hls = null
+      this._session = null
+      if (this._hls) {
+        this._hls.destroy()
+        this._hls = null
       }
-      this.tokenRefreshing = false
-      this.tokenRefreshedOnce = false
+      this._refreshing = false
+      this._refreshedOnce = false
       const video = this.$refs.video
       if (video) {
         video.removeAttribute('src')

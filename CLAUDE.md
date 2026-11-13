@@ -71,6 +71,15 @@ Backend-driven enums are loaded lazily via the `dicts` component option. [src/ut
 
 [src/layout/index.vue](src/layout/index.vue) is the shell: sidebar (with mousedown-drag resize, min 200px, right pane min 1000px), navbar, tags-view, app-main. The watermark on every page is set in `mounted` via [src/utils/waterMark.js](src/utils/waterMark.js) using the logged-in username + timestamp.
 
+### File viewers
+
+The preview dialogs under `src/components/` (`PdfViewer`, `ExcelViewer`, `WordViewer`, `ArchiveViewer`, `MarkdownViewer`) share one shell and one load lifecycle; `VideoPlayer` is a plain `el-dialog` that follows the same loading rules.
+
+- [src/components/ViewerDialog/index.vue](src/components/ViewerDialog/index.vue) is the dialog shell (maximize, toolbar / `before` / `after` slots, loading mask, centered `message`). Per-viewer styles override it through their own `dialog-class` prefix.
+- [src/components/ViewerDialog/viewer.js](src/components/ViewerDialog/viewer.js) is a mixin factory providing `open(source, title, ...args)` and `discard()`. A viewer implements `renderFile(blob, isStale, ...args)` (check `isStale()` after every `await` — the dialog may have closed or another file may have been opened) and optionally `resetViewer()`.
+- Heavy libraries (pdf.js, SheetJS, docx-preview, jszip, libarchive.js, marked / DOMPurify / highlight.js, hls.js) must only be reached through `import()` inside the component, usually via a sibling module (`pdfjs.js`, `grid.js`, `renderer.js`) so the library and its glue code form one `viewer-*` chunk fetched on first use. A static import of any of them puts it back into the page chunk of every view that uses the viewer.
+- Library instances and parsed documents live on non-reactive `this._xxx` fields, never in `data` (Vue 2 would deep-observe them).
+
 ### Build pipeline
 
 [vue.config.js](vue.config.js) splits chunks into `chunk-libs` / `chunk-elementUI` / `chunk-echarts` / `chunk-fluent-icons` / `chunk-commons`, drops `console.log/info/debug` and `debugger` in production via Terser (keeps `warn`/`error` — Vue reports component errors through `console.error`), emits `.gz` + `.br` for assets > 10KB (including the libarchive `.wasm`), and uses webpack 5 filesystem cache (`cache.type = 'filesystem'`, invalidated when `vue.config.js`, `package.json` or `babel.config.js` changes) — expect a slow first build, fast subsequent ones.

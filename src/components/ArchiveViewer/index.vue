@@ -1,28 +1,14 @@
 <template>
   <!-- 压缩包预览对话框 -->
-  <el-dialog
+  <viewer-dialog
     :visible.sync="visible"
-    :fullscreen="maximized"
-    width="72%"
-    top="4vh"
-    append-to-body
-    custom-class="archive-viewer-dialog"
-    @closed="cleanup"
+    :title="title"
+    :loading="loading"
+    :message="message"
+    dialog-class="archive-viewer-dialog"
+    @closed="discard"
   >
-    <!-- 自定义标题栏:标题 + 最大化/还原按钮(双击标题栏也可切换) -->
-    <div slot="title" class="archive-viewer__header" @dblclick="toggleMaximize">
-      <span class="el-dialog__title">{{ title }}</span>
-      <button
-        type="button"
-        class="archive-viewer__maximize"
-        :title="maximized ? '还原' : '最大化'"
-        @click="toggleMaximize"
-      >
-        <i :class="maximized ? 'el-icon-copy-document' : 'el-icon-full-screen'" />
-      </button>
-    </div>
-
-    <div v-if="!errorMsg" class="archive-viewer__toolbar">
+    <template v-if="!errorMsg" slot="toolbar">
       <el-input
         v-model="filterText"
         size="mini"
@@ -38,126 +24,128 @@
       <span class="archive-viewer__summary">
         共 {{ fileCount }} 个文件、{{ dirCount }} 个文件夹 · 解压后约 {{ formatFileSize(totalSize) }}
       </span>
-    </div>
+    </template>
 
-    <div v-loading="loading" class="archive-viewer__body">
-      <div v-if="errorMsg" class="archive-viewer__error">{{ errorMsg }}</div>
-      <el-tree
-        v-else
-        ref="tree"
-        :data="treeData"
-        node-key="id"
-        :props="treeProps"
-        :default-expanded-keys="expandedKeys"
-        :filter-node-method="filterNode"
-        empty-text="空压缩包"
-        class="archive-viewer__tree"
-      >
-        <span slot-scope="{ node, data }" class="archive-node">
-          <i
-            class="archive-node__icon"
-            :class="[data.dir ? 'el-icon-folder' : fileIcon(data.label), { 'archive-node__icon--dir': data.dir }]"
-          />
-          <span class="archive-node__label">{{ node.label }}</span>
-          <span v-if="!data.dir" class="archive-node__size">{{ formatFileSize(data.size) }}</span>
-        </span>
-      </el-tree>
+    <!-- 目录树:摊平成行做虚拟滚动,只渲染视口附近的一段,上万条目也不卡 -->
+    <div v-show="!errorMsg" ref="scroller" class="archive-viewer__scroller" @scroll="onScroll">
+      <div class="archive-viewer__rows" role="tree" :style="{ height: rowCount * rowHeight + 'px' }">
+        <div :style="{ transform: 'translateY(' + windowStart * rowHeight + 'px)' }">
+          <div
+            v-for="row in windowRows"
+            :key="row.node.id"
+            class="archive-node"
+            role="treeitem"
+            :aria-level="row.depth + 1"
+            :aria-expanded="row.node.dir ? String(row.expanded) : null"
+            :style="{ paddingLeft: row.depth * indent + 'px' }"
+            @click="toggle(row.node)"
+          >
+            <i
+              class="archive-node__caret el-icon-caret-right"
+              :class="{ 'is-expanded': row.expanded, 'is-leaf': !row.node.dir || !row.node.children.length }"
+            />
+            <i
+              class="archive-node__icon"
+              :class="row.node.dir ? 'el-icon-folder archive-node__icon--dir' : fileIcon(row.node.label)"
+            />
+            <span class="archive-node__label">{{ row.node.label }}</span>
+            <span v-if="!row.node.dir" class="archive-node__size">{{ formatFileSize(row.node.size) }}</span>
+          </div>
+        </div>
+      </div>
     </div>
-  </el-dialog>
+  </viewer-dialog>
 </template>
 
 <script>
-import JSZip from 'jszip'
+import viewer from '@/components/ViewerDialog/viewer'
 import { formatFileSize } from '@/utils/file'
+import { buildTree, flattenRows, matchNodes, eachDir, fileIcon } from './tree'
 
 const LIBARCHIVE_WORKER_URL = process.env.BASE_URL + 'static/libarchive/worker-bundle.js'
 // Archive.init 为全局一次性配置,标记避免重复设置
 let libarchiveInited = false
 
+// 行高与每级缩进(px),行高须与样式里 .archive-node 的 height 一致
+const ROW_HEIGHT = 30
+const INDENT = 18
+// 视口上下各多渲染的行数,滚动时不露白
+const OVERSCAN = 10
+
 export default {
   name: 'ArchiveViewer',
+  mixins: [viewer({ title: '压缩包预览', failText: '压缩包解析失败，可能已加密或文件损坏，请下载后查看' })],
+  // 目录树、展开状态、可见行都挂非响应式私有属性(_nodes / _expanded / _matched / _rows),
+  // 进了 data 会被 Vue 逐节点深度代理;模板只拿冻结后的一小段 windowRows
   data() {
     return {
-      // 预览对话框
-      visible: false,
-      // 是否最大化
-      maximized: false,
-      // 对话框标题(文件名)
-      title: '',
-      // 加载中
-      loading: false,
-      // 加载失败提示
-      errorMsg: '',
-      // el-tree 数据(嵌套目录树)
-      treeData: [],
-      // 默认展开的节点(顶层文件夹)
-      expandedKeys: [],
       // 文件名过滤关键词
       filterText: '',
       // 统计:文件数 / 文件夹数 / 解压后总大小
       fileCount: 0,
       dirCount: 0,
       totalSize: 0,
-      // el-tree 字段映射
-      treeProps: { label: 'label', children: 'children' }
+      // 当前可见行总数,决定滚动高度
+      rowCount: 0,
+      // 实际渲染的那一段行,以及它在可见行里的起始下标
+      windowRows: [],
+      windowStart: 0,
+      // 模板用的行高与缩进
+      rowHeight: ROW_HEIGHT,
+      indent: INDENT
+    }
+  },
+  computed: {
+    // 预览区居中提示:解析失败、空压缩包或过滤无结果
+    message() {
+      if (this.errorMsg) {
+        return this.errorMsg
+      }
+      if (this.loading || this.rowCount) {
+        return ''
+      }
+      return this.filterText ? '没有匹配的文件' : '空压缩包'
     }
   },
   watch: {
-    // 关键词变化时驱动 el-tree 过滤
-    filterText(val) {
-      if (this.$refs.tree) {
-        this.$refs.tree.filter(val)
-      }
+    // 关键词变化时重新过滤
+    filterText() {
+      this.applyFilter()
     }
   },
+  mounted() {
+    window.addEventListener('resize', this.onResize)
+  },
   beforeDestroy() {
-    this.cleanup()
+    window.removeEventListener('resize', this.onResize)
   },
   methods: {
     /**
-     * 打开对话框并加载压缩包
-     * @param source 文件内容:Blob 或 Promise<Blob>
-     * @param title  文件名(标题)
-     * @param format 压缩格式:zip / rar / 7z
+     * 读取压缩包目录并建树(仅列目录,不解压条目内容)
+     * @param format 压缩格式:zip / rar / 7z,由 open 的第三个参数传入
      */
-    open(source, title, format) {
-      this.title = title || '压缩包预览'
-      this.visible = true
-      this.load(source, format)
-    },
-    /** 拉取并解析压缩包目录(仅列目录,不解压条目内容,大包也秒开) */
-    async load(source, format) {
-      this.resetState()
-      this.loading = true
-      // 加载令牌:对话框关闭后丢弃迟到结果
-      const token = {}
-      this._loadToken = token
-      try {
-        const blob = await source
-        if (this._loadToken !== token) {
-          return
-        }
-        // zip 用轻量 jszip(已随 docx-preview 打包);rar/7z 才拉起 libarchive 的 WASM Worker
-        const entries = format === 'zip'
-          ? await this.readZip(blob)
-          : await this.readByLibarchive(blob)
-        if (this._loadToken !== token) {
-          return
-        }
-        this.buildTree(entries)
-      } catch (e) {
-        if (this._loadToken === token) {
-          console.error('压缩包加载失败', e)
-          this.errorMsg = '压缩包解析失败，可能已加密或文件损坏，请下载后查看'
-        }
-      } finally {
-        if (this._loadToken === token) {
-          this.loading = false
-        }
+    async renderFile(blob, isStale, format) {
+      // zip 用轻量 jszip;rar/7z 才拉起 libarchive 的 WASM Worker
+      const entries = format === 'zip'
+        ? await this.readZip(blob)
+        : await this.readByLibarchive(blob)
+      if (isStale()) {
+        return
       }
+      const tree = buildTree(entries)
+      this.fileCount = tree.fileCount
+      this.dirCount = tree.dirCount
+      this.totalSize = tree.totalSize
+      this._nodes = tree.nodes
+      // 顶层文件夹默认展开一层,便于概览
+      this._expanded = new Set(tree.nodes.filter(node => node.dir))
+      this.$refs.scroller.scrollTop = 0
+      this.refreshRows()
     },
     /** jszip 读取 zip 目录,归一为 { path, dir, size } 列表 */
     async readZip(blob) {
+      // 首次预览 zip 时才加载,与 docx-preview 依赖的是同一份
+      const { default: JSZip } = await import(/* webpackChunkName: "viewer-jszip" */ 'jszip')
       const zip = await JSZip.loadAsync(blob)
       return Object.keys(zip.files).map(path => {
         const entry = zip.files[path]
@@ -174,164 +162,111 @@ export default {
     /** libarchive.js 读取 rar/7z 目录,归一为 { path, dir, size } 列表(仅文件,中间目录由建树补齐) */
     async readByLibarchive(blob) {
       // 按需加载,zip 场景不会拉进这段依赖与 WASM
-      const { Archive } = await import('libarchive.js')
+      const { Archive } = await import(/* webpackChunkName: "viewer-libarchive" */ 'libarchive.js')
       if (!libarchiveInited) {
         Archive.init({ workerUrl: LIBARCHIVE_WORKER_URL })
         libarchiveInited = true
       }
       const archive = await Archive.open(blob)
+      // 记下来,对话框中途关闭时 resetViewer 能立刻终止 Worker
       this._archive = archive
       try {
         // getFilesArray 返回 [{ file: { name, size }, path: '父目录/' }],大小来自档案头,无需解压
-        const arr = await archive.getFilesArray()
-        return arr.map(({ file, path }) => ({
+        const files = await archive.getFilesArray()
+        return files.map(({ file, path }) => ({
           path: (path || '') + file.name,
           dir: false,
           size: typeof file.size === 'number' ? file.size : 0
         }))
       } finally {
-        // 关闭即终止 Worker,释放 WASM 内存
+        // 关闭即终止 Worker,释放 WASM 内存;close 可重复调用
+        if (this._archive === archive) {
+          this._archive = null
+        }
         await archive.close()
-        this._archive = null
       }
     },
-    /** 由归一后的扁平条目构建嵌套目录树(缺失的中间层文件夹按需补齐) */
-    buildTree(entries) {
-      const root = { children: [] }
-      // 路径(不含末尾 /)→ 目录节点,复用避免重复建层
-      const dirMap = { '': root }
-      let fileCount = 0
-      let dirCount = 0
-      let totalSize = 0
-
-      // 逐级确保目录节点存在,返回最末层目录节点
-      const ensureDir = (dirPath) => {
-        if (dirMap[dirPath]) {
-          return dirMap[dirPath]
-        }
-        const parts = dirPath.split('/')
-        let cur = ''
-        let parent = root
-        for (const part of parts) {
-          const next = cur ? cur + '/' + part : part
-          if (!dirMap[next]) {
-            const node = { id: next + '/', label: part, dir: true, children: [] }
-            parent.children.push(node)
-            dirMap[next] = node
-            dirCount += 1
-          }
-          parent = dirMap[next]
-          cur = next
-        }
-        return parent
-      }
-
-      entries.forEach(entry => {
-        // 显式文件夹条目:仅建层(空文件夹也能呈现)
-        if (entry.dir) {
-          if (entry.path) {
-            ensureDir(entry.path)
-          }
-          return
-        }
-        const path = entry.path
-        const idx = path.lastIndexOf('/')
-        const dirPath = idx >= 0 ? path.slice(0, idx) : ''
-        const base = idx >= 0 ? path.slice(idx + 1) : path
-        // 防御:异常空文件名跳过
-        if (!base) {
-          return
-        }
-        const parent = dirPath ? ensureDir(dirPath) : root
-        parent.children.push({ id: path, label: base, dir: false, size: entry.size })
-        fileCount += 1
-        totalSize += entry.size
-      })
-
-      this.sortNodes(root.children)
-      this.fileCount = fileCount
-      this.dirCount = dirCount
-      this.totalSize = totalSize
-      this.treeData = root.children
-      // 顶层文件夹默认展开一层,便于概览
-      this.expandedKeys = root.children.filter(n => n.dir).map(n => n.id)
-    },
-    /** 递归排序 */
-    sortNodes(nodes) {
-      nodes.sort((a, b) => {
-        if (a.dir !== b.dir) {
-          return a.dir ? -1 : 1
-        }
-        return a.label.localeCompare(b.label, 'zh-Hans-CN', { numeric: true, sensitivity: 'base' })
-      })
-      nodes.forEach(n => {
-        if (n.children && n.children.length) {
-          this.sortNodes(n.children)
-        }
-      })
-    },
-    /** 按扩展名挑选文件图标 */
-    fileIcon(name) {
-      const ext = (name.split('.').pop() || '').toLowerCase()
-      const map = {
-        png: 'el-icon-picture-outline', jpg: 'el-icon-picture-outline', jpeg: 'el-icon-picture-outline',
-        gif: 'el-icon-picture-outline', bmp: 'el-icon-picture-outline', webp: 'el-icon-picture-outline', svg: 'el-icon-picture-outline',
-        mp4: 'el-icon-video-camera', mov: 'el-icon-video-camera', avi: 'el-icon-video-camera', mkv: 'el-icon-video-camera',
-        mp3: 'el-icon-headset', wav: 'el-icon-headset', flac: 'el-icon-headset',
-        zip: 'el-icon-folder-opened', rar: 'el-icon-folder-opened', '7z': 'el-icon-folder-opened',
-        gz: 'el-icon-folder-opened', tar: 'el-icon-folder-opened',
-        xls: 'el-icon-s-grid', xlsx: 'el-icon-s-grid', csv: 'el-icon-s-grid',
-        doc: 'el-icon-document', docx: 'el-icon-document', pdf: 'el-icon-document',
-        txt: 'el-icon-document-copy', md: 'el-icon-document-copy', json: 'el-icon-document-copy',
-        xml: 'el-icon-document-copy', html: 'el-icon-document-copy', css: 'el-icon-document-copy',
-        js: 'el-icon-document-copy', ts: 'el-icon-document-copy'
-      }
-      return map[ext] || 'el-icon-document'
-    },
-    /** el-tree 过滤 */
-    filterNode(value, data) {
-      if (!value) {
-        return true
-      }
-      return data.label.toLowerCase().indexOf(value.toLowerCase()) !== -1
-    },
-    /** 展开/折叠全部节点 */
-    setExpandAll(expand) {
-      const tree = this.$refs.tree
-      if (!tree) {
+    /** 点击行:文件夹展开/折叠,文件不响应 */
+    toggle(node) {
+      if (!node.dir) {
         return
       }
-      const nodesMap = tree.store.nodesMap
-      Object.keys(nodesMap).forEach(key => {
-        nodesMap[key].expanded = expand
-      })
+      if (!this._expanded.delete(node)) {
+        this._expanded.add(node)
+      }
+      this.refreshRows()
     },
-    /** 最大化/还原 */
-    toggleMaximize() {
-      this.maximized = !this.maximized
+    /** 展开/折叠全部文件夹 */
+    setExpandAll(expand) {
+      this._expanded = new Set()
+      if (expand) {
+        eachDir(this._nodes, node => this._expanded.add(node))
+      }
+      this.refreshRows()
     },
-    /** 关闭后清理 */
-    cleanup() {
-      this._loadToken = null
+    /** 按关键词过滤;命中路径上的文件夹一并展开,清空关键词后保持展开 */
+    applyFilter() {
+      this._matched = this.filterText ? matchNodes(this._nodes, this.filterText) : null
+      if (this._matched) {
+        this._matched.forEach(node => {
+          if (node.dir) {
+            this._expanded.add(node)
+          }
+        })
+      }
+      this.refreshRows()
+    },
+    /** 展开状态或过滤结果变了,重算可见行 */
+    refreshRows() {
+      this._rows = flattenRows(this._nodes, this._expanded, this._matched)
+      this.rowCount = this._rows.length
+      this.updateWindow()
+    },
+    /** 当前滚动位置下应渲染的行区间 */
+    windowRange() {
+      const scroller = this.$refs.scroller
+      // 一屏行数按窗口高度估,必然不小于预览区高度,省得跟踪对话框尺寸(最大化等)
+      const size = Math.ceil(window.innerHeight / ROW_HEIGHT) + OVERSCAN * 2
+      const first = scroller ? Math.floor(scroller.scrollTop / ROW_HEIGHT) - OVERSCAN : 0
+      return { start: Math.max(0, Math.min(first, this._rows.length - size)), size }
+    },
+    /** 取出要渲染的那一段行 */
+    updateWindow() {
+      const { start, size } = this.windowRange()
+      this.windowStart = start
+      // 冻结后 Vue 不会深入代理行里引用的节点
+      this.windowRows = Object.freeze(this._rows.slice(start, start + size))
+    },
+    /** 滚动:滚过一整行、起始行变了才重取 */
+    onScroll() {
+      if (this.windowRange().start !== this.windowStart) {
+        this.updateWindow()
+      }
+    },
+    /** 窗口尺寸变化,一屏能放的行数跟着变 */
+    onResize() {
+      if (this.visible) {
+        this.updateWindow()
+      }
+    },
+    /** 终止读取中的 Worker 并复位状态 */
+    resetViewer() {
       if (this._archive) {
         this._archive.close()
         this._archive = null
       }
-      this.resetState()
-    },
-    /** 复位状态 */
-    resetState() {
-      this.loading = false
-      this.errorMsg = ''
-      this.treeData = []
-      this.expandedKeys = []
+      this._nodes = []
+      this._expanded = new Set()
+      this._matched = null
       this.filterText = ''
       this.fileCount = 0
       this.dirCount = 0
       this.totalSize = 0
+      this.refreshRows()
     },
-    // 文件大小格式化(公共工具)
-    formatFileSize
+    // 模板里用到的公共工具
+    formatFileSize,
+    fileIcon
   }
 }
 </script>
@@ -340,35 +275,8 @@ export default {
 @import '@/assets/styles/tokens.scss';
 
 .archive-viewer-dialog {
-  .el-dialog__body {
-    padding: 0;
-  }
-
-  /* 标题栏最大化/还原按钮 */
-  .archive-viewer__maximize {
-    position: absolute;
-    top: 20px;
-    right: 50px;
-    padding: 0;
-    border: none;
-    outline: none;
-    background: transparent;
-    font-size: 16px;
-    color: #909399;
-    cursor: pointer;
-
-    &:hover {
-      color: $color-primary;
-    }
-  }
-
-  .archive-viewer__toolbar {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 12px;
-    padding: 8px 16px;
-    border-bottom: 1px solid #ebeef5;
+  .viewer-dialog__toolbar {
+    gap: $space-3;
   }
 
   .archive-viewer__filter {
@@ -380,32 +288,55 @@ export default {
     color: #909399;
   }
 
-  .archive-viewer__body {
-    position: relative;
-    height: 74vh;
-    overflow: auto;
-    background: #fff;
-  }
-
-  .archive-viewer__tree {
+  /* 滚动容器铺满预览区,滚动事件与高度都由它给出 */
+  .archive-viewer__scroller {
+    position: absolute;
+    inset: 0;
     padding: 10px 16px;
+    overflow: auto;
   }
 
-  /* 让节点内容撑满行宽,便于大小右对齐 */
-  .archive-viewer__tree .el-tree-node__content {
-    height: 30px;
+  /* 撑出全部行的总高度;里面只有视口附近那一段真实节点 */
+  .archive-viewer__rows {
+    overflow: hidden;
   }
 
+  /* 一行一个节点,外观沿用 Element 树节点 */
   .archive-node {
     display: flex;
     align-items: center;
-    flex: 1;
-    min-width: 0;
+    height: 30px;
     padding-right: 8px;
     font-size: 13px;
+
+    &[aria-expanded] {
+      cursor: pointer;
+    }
+
+    &:hover {
+      background-color: #f5f7fa;
+    }
+  }
+
+  .archive-node__caret {
+    flex-shrink: 0;
+    padding: 6px;
+    font-size: 12px;
+    color: #c0c4cc;
+    transition: transform $duration-fast ease;
+
+    &.is-expanded {
+      transform: rotate(90deg);
+    }
+
+    /* 文件与空文件夹没有可展开的内容,箭头只占位 */
+    &.is-leaf {
+      color: transparent;
+    }
   }
 
   .archive-node__icon {
+    flex-shrink: 0;
     margin-right: 6px;
     font-size: 15px;
     color: $label-tertiary;
@@ -431,38 +362,6 @@ export default {
     font-size: 12px;
     color: #909399;
     font-variant-numeric: tabular-nums;
-  }
-
-  .archive-viewer__error {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 14px;
-    color: #909399;
-  }
-
-  /* 最大化:对话框纵向弹性布局,预览区吃满剩余高度 */
-  &.is-fullscreen {
-    display: flex;
-    flex-direction: column;
-
-    .el-dialog__body {
-      display: flex;
-      flex: 1;
-      flex-direction: column;
-      min-height: 0;
-    }
-
-    .archive-viewer__toolbar {
-      flex-shrink: 0;
-    }
-
-    .archive-viewer__body {
-      flex: 1;
-      height: auto;
-      min-height: 0;
-    }
   }
 }
 </style>

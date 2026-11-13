@@ -82,10 +82,10 @@ const user = {
       });
     },
 
-    // 两步登录第一步:预校验账号密码 + 图形验证码,返回 {mfaRequired, mfaBindRequired, pwdChangeRequired, ticket}
+    // 两步登录第一步:预校验账号密码 + 人机验证(图形验证码或滑块凭证),返回 {mfaRequired, mfaBindRequired, pwdChangeRequired, ticket}
     Precheck(_ctx, userInfo) {
       return new Promise((resolve, reject) => {
-        precheck((userInfo.username || "").trim(), userInfo.password, userInfo.randomCode, userInfo.captcha)
+        precheck((userInfo.username || "").trim(), userInfo.password, userInfo.randomCode, userInfo.captcha, userInfo.sliderToken)
           .then((data) => {
             resolve(data || {});
           })

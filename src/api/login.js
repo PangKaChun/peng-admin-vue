@@ -22,14 +22,42 @@ export function getPasswordPolicy() {
   });
 }
 
-// 两步登录第一步:校验账号密码 + 图形验证码,返回 {mfaRequired, mfaBindRequired, pwdChangeRequired, ticket}
-export async function precheck(username, password, randomCode, captcha) {
+// 登录页人机验证方式(参数管理 sys.login.captchaType),返回 {captchaType}:image 图形验证码 / slider 滑块
+export function getCaptchaType() {
+  return request({
+    url: authAPI + "/login/captcha-type",
+    method: "get",
+    headers: { isToken: false }
+  });
+}
+
+// 滑块验证:领取挑战令牌,返回 {token, difficulty}(工作量证明难度)
+export function createSliderChallenge() {
+  return request({
+    url: authAPI + "/login/slider/challenge",
+    method: "post",
+    headers: { isToken: false, repeatSubmit: false }
+  });
+}
+
+// 滑块验证:拖到终点后提交 {token, nonce},通过后 token 即为一次性登录凭证
+export function verifySlider(data) {
+  return request({
+    url: authAPI + "/login/slider/verify",
+    method: "post",
+    headers: { isToken: false, repeatSubmit: false },
+    data
+  });
+}
+
+// 两步登录第一步:校验账号密码 + 人机验证(图形验证码或滑块凭证,后端按参数管理只认其一),返回 {mfaRequired, mfaBindRequired, pwdChangeRequired, ticket}
+export async function precheck(username, password, randomCode, captcha, sliderToken) {
   password = await encrypt(password)
   return request({
     url: authAPI + "/login/precheck",
     method: "post",
     headers: { isToken: false },
-    data: { username, password, randomCode, captcha }
+    data: { username, password, randomCode, captcha, sliderToken }
   });
 }
 

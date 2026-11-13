@@ -266,14 +266,14 @@ import {
 } from '@/api/sys/oss'
 import { formatFileSize } from '@/utils/file'
 import FileUpload from '@/components/FileUpload'
+// 播放器与各预览器本身很轻,可以直接引入:hls.js / pdf.js / SheetJS / docx-preview / jszip / libarchive.js / marked
+// 这些重型库由组件在首次播放、预览时自行按需加载,不拖累本页打开
 import VideoPlayer from '@/components/VideoPlayer'
-// PDF 预览走 pdf.js(含 worker/cmaps 资源),Excel 预览走 SheetJS,Word 预览走 docx-preview,
-// 压缩包(zip/rar/7z)预览走 jszip + libarchive.js,Markdown 预览走 marked,均异步加载避免拖累首屏
-const PdfViewer = () => import('@/components/PdfViewer')
-const ExcelViewer = () => import('@/components/ExcelViewer')
-const WordViewer = () => import('@/components/WordViewer')
-const ArchiveViewer = () => import('@/components/ArchiveViewer')
-const MarkdownViewer = () => import('@/components/MarkdownViewer')
+import PdfViewer from '@/components/PdfViewer'
+import ExcelViewer from '@/components/ExcelViewer'
+import WordViewer from '@/components/WordViewer'
+import ArchiveViewer from '@/components/ArchiveViewer'
+import MarkdownViewer from '@/components/MarkdownViewer'
 
 export default {
   name: 'Oss',

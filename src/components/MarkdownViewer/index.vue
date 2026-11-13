@@ -1,164 +1,81 @@
 <template>
   <!-- Markdown 预览对话框 -->
-  <el-dialog
+  <viewer-dialog
     :visible.sync="visible"
-    :fullscreen="maximized"
-    width="72%"
-    top="4vh"
-    append-to-body
-    custom-class="md-viewer-dialog"
-    @closed="cleanup"
+    :title="title"
+    :loading="loading"
+    :message="errorMsg"
+    dialog-class="md-viewer-dialog"
+    @closed="discard"
   >
-    <!-- 自定义标题栏 -->
-    <div slot="title" class="md-viewer__header" @dblclick="toggleMaximize">
-      <span class="el-dialog__title">{{ title }}</span>
-      <button
-        type="button"
-        class="md-viewer__maximize"
-        :title="maximized ? '还原' : '最大化'"
-        @click="toggleMaximize"
-      >
-        <i :class="maximized ? 'el-icon-copy-document' : 'el-icon-full-screen'" />
-      </button>
-    </div>
-
-    <div v-loading="loading" class="md-viewer__body">
-      <div v-if="errorMsg" class="md-viewer__error">{{ errorMsg }}</div>
-      <!-- 内容经 DOMPurify 白名单消毒后才交给 v-html,脚本/事件属性/危险协议均被剥除 -->
-      <div v-else ref="content" class="md-viewer__content md-body" v-html="contentHtml" />
-    </div>
-  </el-dialog>
+    <!-- 内容经 DOMPurify 白名单消毒后才交给 v-html,脚本/事件属性/危险协议均被剥除 -->
+    <div v-if="!errorMsg" ref="content" class="md-viewer__content md-body" v-html="contentHtml" />
+  </viewer-dialog>
 </template>
 
 <script>
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
-import hljs from 'highlight.js/lib/core'
-import 'highlight.js/styles/github.css'
-// 按需注册常用语言
-import javascript from 'highlight.js/lib/languages/javascript'
-import typescript from 'highlight.js/lib/languages/typescript'
-import java from 'highlight.js/lib/languages/java'
-import json from 'highlight.js/lib/languages/json'
-import xml from 'highlight.js/lib/languages/xml'
-import css from 'highlight.js/lib/languages/css'
-import scss from 'highlight.js/lib/languages/scss'
-import bash from 'highlight.js/lib/languages/bash'
-import shell from 'highlight.js/lib/languages/shell'
-import sql from 'highlight.js/lib/languages/sql'
-import python from 'highlight.js/lib/languages/python'
-import go from 'highlight.js/lib/languages/go'
-import yaml from 'highlight.js/lib/languages/yaml'
-import ini from 'highlight.js/lib/languages/ini'
-import plaintext from 'highlight.js/lib/languages/plaintext'
+import viewer from '@/components/ViewerDialog/viewer'
 
-hljs.registerLanguage('javascript', javascript)
-hljs.registerLanguage('typescript', typescript)
-hljs.registerLanguage('java', java)
-hljs.registerLanguage('json', json)
-hljs.registerLanguage('xml', xml)
-hljs.registerLanguage('html', xml)
-hljs.registerLanguage('vue', xml)
-hljs.registerLanguage('css', css)
-hljs.registerLanguage('scss', scss)
-hljs.registerLanguage('bash', bash)
-hljs.registerLanguage('shell', shell)
-hljs.registerLanguage('sql', sql)
-hljs.registerLanguage('python', python)
-hljs.registerLanguage('go', go)
-hljs.registerLanguage('yaml', yaml)
-hljs.registerLanguage('ini', ini)
-hljs.registerLanguage('plaintext', plaintext)
-hljs.configure({ ignoreUnescapedHTML: true })
-
-const purifier = DOMPurify(window)
-// 外链统一新窗口打开并断开 opener,避免预览内点击把整个管理端导航走
-purifier.addHook('afterSanitizeAttributes', node => {
-  if (node.tagName === 'A' && node.hasAttribute('href')) {
-    node.setAttribute('target', '_blank')
-    node.setAttribute('rel', 'noopener noreferrer')
-  }
-})
-// 禁掉 style 标签与内联样式:防止注入全局 CSS 或 fixed 覆盖层遮挡管理端
-const SANITIZE_OPTIONS = { FORBID_TAGS: ['style'], FORBID_ATTR: ['style'] }
+// 代码块进入预览区上下这段距离内就提前高亮,正常滚动时看不到未高亮的状态
+const HIGHLIGHT_MARGIN = '400px 0px'
 
 export default {
   name: 'MarkdownViewer',
+  mixins: [viewer({ title: 'Markdown 预览', failText: 'Markdown 加载失败，请尝试下载后查看' })],
   data() {
     return {
-      // 预览对话框
-      visible: false,
-      // 是否最大化
-      maximized: false,
-      // 对话框标题(文件名)
-      title: '',
-      // 加载中
-      loading: false,
-      // 加载失败提示
-      errorMsg: '',
       // 消毒后的渲染 HTML
       contentHtml: ''
     }
   },
-  beforeDestroy() {
-    this.cleanup()
-  },
   methods: {
-    /** 打开对话框并加载 Markdown,source 为 Blob 或 Promise<Blob> */
-    open(source, title) {
-      this.title = title || 'Markdown 预览'
-      this.visible = true
-      this.load(source)
-    },
-    /** 拉取、解析、消毒并渲染 */
-    async load(source) {
-      this.resetState()
-      this.loading = true
-      const token = {}
-      this._loadToken = token
-      try {
-        const text = await (await source).text()
-        if (this._loadToken !== token) {
-          return
-        }
-        const rawHtml = marked.parse(text, { gfm: true })
-        this.contentHtml = purifier.sanitize(rawHtml, SANITIZE_OPTIONS)
-        // DOM 落地后对代码块做高亮
-        this.$nextTick(() => this.highlightCode())
-      } catch (e) {
-        if (this._loadToken === token) {
-          console.error('Markdown 加载失败', e)
-          this.errorMsg = 'Markdown 加载失败，请尝试下载后查看'
-        }
-      } finally {
-        if (this._loadToken === token) {
-          this.loading = false
-        }
-      }
-    },
-    /** 高亮渲染区内全部代码块 */
-    highlightCode() {
-      const content = this.$refs.content
-      if (!content) {
+    /** 解析、消毒并渲染 */
+    async renderFile(blob, isStale) {
+      // 渲染链路(marked / DOMPurify / highlight.js)首次预览 Markdown 时才加载
+      const [text, renderer] = await Promise.all([
+        blob.text(),
+        import(/* webpackChunkName: "viewer-markdown" */ './renderer')
+      ])
+      if (isStale()) {
         return
       }
-      content.querySelectorAll('pre code').forEach(block => {
-        hljs.highlightElement(block)
-      })
+      this.contentHtml = renderer.renderMarkdown(text)
+      // DOM 落地后再挂代码高亮
+      await this.$nextTick()
+      if (!isStale()) {
+        this.observeCodeBlocks(renderer.highlightBlock)
+      }
     },
-    /** 最大化/还原 */
-    toggleMaximize() {
-      this.maximized = !this.maximized
+    // 未标注语言的代码块要让 hljs 把各语法挨个试一遍,代码块多的长文档一次扫完会卡住主线程,
+    // 所以滚到预览区附近才高亮
+    observeCodeBlocks(highlight) {
+      const content = this.$refs.content
+      const blocks = content ? content.querySelectorAll('pre code') : []
+      if (!blocks.length) {
+        return
+      }
+      // 不支持 IntersectionObserver 的旧浏览器退回一次性高亮
+      if (!window.IntersectionObserver) {
+        blocks.forEach(block => highlight(block))
+        return
+      }
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            observer.unobserve(entry.target)
+            highlight(entry.target)
+          }
+        })
+      }, { root: content.closest('.viewer-dialog__body'), rootMargin: HIGHLIGHT_MARGIN })
+      blocks.forEach(block => observer.observe(block))
+      this._codeObserver = observer
     },
-    /** 关闭后清理 */
-    cleanup() {
-      this._loadToken = null
-      this.resetState()
-    },
-    /** 复位状态 */
-    resetState() {
-      this.loading = false
-      this.errorMsg = ''
+    /** 清空内容并停掉代码块观察 */
+    resetViewer() {
+      if (this._codeObserver) {
+        this._codeObserver.disconnect()
+        this._codeObserver = null
+      }
       this.contentHtml = ''
     }
   }
@@ -169,67 +86,10 @@ export default {
 @import '@/assets/styles/tokens.scss';
 
 .md-viewer-dialog {
-  .el-dialog__body {
-    padding: 0;
-  }
-
-  /* 标题栏最大化/还原按钮 */
-  .md-viewer__maximize {
-    position: absolute;
-    top: 20px;
-    right: 50px;
-    padding: 0;
-    border: none;
-    outline: none;
-    background: transparent;
-    font-size: 16px;
-    color: #909399;
-    cursor: pointer;
-
-    &:hover {
-      color: $color-primary;
-    }
-  }
-
-  .md-viewer__body {
-    position: relative;
-    height: 74vh;
-    overflow: auto;
-    background: #fff;
-  }
-
   .md-viewer__content {
     max-width: 880px;
     margin: 0 auto;
     padding: 24px 32px 48px;
-  }
-
-  .md-viewer__error {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 14px;
-    color: #909399;
-  }
-
-  /* 最大化 */
-  &.is-fullscreen {
-    display: flex;
-    flex-direction: column;
-
-    .el-dialog__body {
-      display: flex;
-      flex: 1;
-      flex-direction: column;
-      min-height: 0;
-    }
-
-    .md-viewer__body {
-      flex: 1;
-      height: auto;
-      min-height: 0;
-    }
   }
 }
 
@@ -303,15 +163,20 @@ export default {
     font-size: 85%;
   }
 
-  /* 代码块(高亮底色交给 hljs github 主题) */
+  /* 代码块(高亮配色交给 hljs github 主题) */
   pre {
     padding: 14px 16px;
     border-radius: 6px;
     background: #f6f8fa;
     overflow: auto;
 
-    code {
+    /* hljs 主题样式随渲染链路晚加载,带上 .hljs 才压得过它的 pre code.hljs 内边距;
+       display / overflow 与高亮后保持一致,懒高亮前后代码块高度不变 */
+    code,
+    code.hljs {
+      display: block;
       padding: 0;
+      overflow-x: auto;
       border-radius: 0;
       background: transparent;
       font-size: 13px;
