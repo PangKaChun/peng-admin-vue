@@ -256,3 +256,11 @@
 	border-right-width: 2px;
 	border-bottom-width: 2px;
 }
+
+// 避免 el-select 默认按 baseline 对齐行盒，空值与中文选中态字体度量差异撑高容器 1~2px
+.el-select {
+	vertical-align: top;
+	> .el-input > .el-input__inner {
+		display: block;
+	}
+}
