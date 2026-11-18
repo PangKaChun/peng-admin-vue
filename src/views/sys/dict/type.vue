@@ -3,7 +3,7 @@
     <el-header>
       <el-form inline label-position="right" class="query-form" size="small" :model="queryParams" ref="queryForm">
         <el-form-item prop="dictName">
-          <el-input v-model="queryParams.dictName" placeholder="请输入字典名称" clearable style="width: 240px" @keyup.enter.native="handleQuery" />
+          <el-input v-model="queryParams.dictName" placeholder="请输入字典名称或字典类型" clearable style="width: 240px" @keyup.enter.native="handleQuery" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
