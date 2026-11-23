@@ -355,7 +355,6 @@ export default {
       getClient(id).then(response => {
         this.form = response
         // 后端不回显密钥
-        this.form.clientSecret = undefined
         this.redirectUrisText = (response.redirectUris || []).join('\n')
         this.open = true
         this.title = '修改客户端'
