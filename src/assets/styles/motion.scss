@@ -102,7 +102,9 @@
   .el-zoom-in-top-enter,
   .el-zoom-in-top-leave-active,
   .el-zoom-in-bottom-enter,
-  .el-zoom-in-bottom-leave-active {
+  .el-zoom-in-bottom-leave-active,
+  .el-popper[x-placement^='top'].el-zoom-in-top-enter,
+  .el-popper[x-placement^='top'].el-zoom-in-top-leave-active {
     transform: none;
   }
 

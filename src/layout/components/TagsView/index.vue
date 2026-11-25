@@ -1,74 +1,58 @@
 <template>
   <div id="tags-view-container" class="tags-view-container">
-    <scroll-pane
-      ref="scrollPane"
-      class="tags-view-wrapper"
-      @scroll="handleScroll"
-    >
-      <!-- FLIP:新增标签淡入,关闭后右侧标签平滑补位;离场瞬删(绝对定位会破坏重叠式布局) -->
+    <scroll-pane ref="scrollPane" class="tags-view-wrapper" @scroll="handleScroll">
       <transition-group name="tags-flip" tag="span" class="tags-view-flip">
-      <router-link
-        v-for="(tag, index) in visitedViews"
-        ref="tag"
-        :key="tag.path"
-        :class="isActive(tag) ? 'active' : ''"
-        :to="{ path: tag.path, query: tag.query, fullPath: tag.fullPath }"
-        tag="span"
-        class="tags-view-item"
-        @click.middle.native="!isAffix(tag) ? closeSelectedTag(tag) : ''"
-        @contextmenu.prevent.native="openMenu(tag, $event)"
-      >
-        <!-- 相邻标签间的分隔线：首个与活动标签不渲染 -->
-        <span v-if="index !== 0 && !isActive(tag)" class="tags-view-item__divider" />
-        <!-- 背景层：圆角矩形 + 左右 SVG 弧脚  -->
-        <span class="tags-view-item__background">
-          <span class="tags-view-item__background-content" />
-          <svg class="tags-view-item__background-before" width="7" height="7" aria-hidden="true">
-            <path d="M 0 7 A 7 7 0 0 0 7 0 L 7 7 Z" />
-          </svg>
-          <svg class="tags-view-item__background-after" width="7" height="7" aria-hidden="true">
-            <path d="M 0 0 A 7 7 0 0 0 7 7 L 0 7 Z" />
-          </svg>
-        </span>
-        <span class="tags-view-item__main">{{ tag.title }}</span>
-        <span
-          v-if="!isAffix(tag)"
-          class="el-icon-close"
-          @click.prevent.stop="closeSelectedTag(tag)"
-        />
-      </router-link>
+        <router-link
+          v-for="tag in visitedViews"
+          ref="tag"
+          :key="tag.path"
+          :class="{ active: isActive(tag) }"
+          :to="{ path: tag.path, query: tag.query, fullPath: tag.fullPath }"
+          tag="span"
+          class="tags-view-item"
+          @click.middle.native="!isAffix(tag) ? closeSelectedTag(tag) : ''"
+          @contextmenu.prevent.native="openMenu(tag, $event)"
+        >
+          <span class="tags-view-item__title">{{ tag.title }}</span>
+          <span
+            v-if="!isAffix(tag)"
+            class="el-icon-close tags-view-item__close"
+            @click.prevent.stop="closeSelectedTag(tag)"
+          />
+        </router-link>
       </transition-group>
     </scroll-pane>
+
     <ul
       v-show="visible"
       :style="{ left: left + 'px', top: top + 'px' }"
       class="contextmenu"
     >
       <li @click="refreshSelectedTag(selectedTag)">
-        <i class="el-icon-refresh-right"></i> 刷新页面
+        <i class="el-icon-refresh-right" /> 刷新页面
       </li>
       <li v-if="!isAffix(selectedTag)" @click="closeSelectedTag(selectedTag)">
-        <i class="el-icon-close"></i> 关闭当前
+        <i class="el-icon-close" /> 关闭当前
       </li>
       <li @click="closeOthersTags">
-        <i class="el-icon-circle-close"></i> 关闭其他
+        <i class="el-icon-circle-close" /> 关闭其他
       </li>
       <li v-if="!isFirstView()" @click="closeLeftTags">
-        <i class="el-icon-back"></i> 关闭左侧
+        <i class="el-icon-back" /> 关闭左侧
       </li>
       <li v-if="!isLastView()" @click="closeRightTags">
-        <i class="el-icon-right"></i> 关闭右侧
+        <i class="el-icon-right" /> 关闭右侧
       </li>
       <li @click="closeAllTags(selectedTag)">
-        <i class="el-icon-circle-close"></i> 全部关闭
+        <i class="el-icon-circle-close" /> 全部关闭
       </li>
     </ul>
   </div>
 </template>
 
 <script>
-import ScrollPane from "./ScrollPane";
-import path from "path";
+import ScrollPane from './ScrollPane'
+import path from 'path'
 
 export default {
   components: { ScrollPane },
@@ -78,444 +62,313 @@ export default {
       top: 0,
       left: 0,
       selectedTag: {},
-      affixTags: [],
-    };
+      affixTags: []
+    }
   },
   computed: {
     visitedViews() {
-      return this.$store.state.tagsView.visitedViews;
+      return this.$store.state.tagsView.visitedViews
     },
     routes() {
-      return this.$store.state.permission.routes;
-    },
+      return this.$store.state.permission.routes
+    }
   },
   watch: {
     $route() {
-      this.addTags();
-      this.moveToCurrentTag();
+      this.addTags()
+      this.moveToCurrentTag()
     },
     visible(value) {
       if (value) {
-        document.body.addEventListener("click", this.closeMenu);
+        document.body.addEventListener('click', this.closeMenu)
+        document.addEventListener('keydown', this.handleKeydown)
       } else {
-        document.body.removeEventListener("click", this.closeMenu);
+        document.body.removeEventListener('click', this.closeMenu)
+        document.removeEventListener('keydown', this.handleKeydown)
       }
-    },
+    }
   },
   mounted() {
-    this.initTags();
-    this.addTags();
+    this.initTags()
+    this.addTags()
+  },
+  beforeDestroy() {
+    document.body.removeEventListener('click', this.closeMenu)
+    document.removeEventListener('keydown', this.handleKeydown)
   },
   methods: {
     isActive(route) {
-      return route.path === this.$route.path;
+      return route.path === this.$route.path
     },
     isAffix(tag) {
-      return tag.meta && tag.meta.affix;
+      return tag.meta && tag.meta.affix
     },
     isFirstView() {
-      try {
-        return (
-          this.selectedTag.fullPath === "/index" ||
-          this.selectedTag.fullPath === this.visitedViews[1].fullPath
-        );
-      } catch (err) {
-        return false;
-      }
+      const idx = this.visitedViews.findIndex(v => v.path === this.selectedTag.path)
+      return idx <= 0 || this.visitedViews.slice(0, idx).every(v => this.isAffix(v))
     },
     isLastView() {
-      try {
-        return (
-          this.selectedTag.fullPath ===
-          this.visitedViews[this.visitedViews.length - 1].fullPath
-        );
-      } catch (err) {
-        return false;
-      }
+      const idx = this.visitedViews.findIndex(v => v.path === this.selectedTag.path)
+      return idx === -1 || idx >= this.visitedViews.length - 1 || this.visitedViews.slice(idx + 1).every(v => this.isAffix(v))
     },
-    filterAffixTags(routes, basePath = "/") {
-      let tags = [];
-      routes.forEach((route) => {
+    filterAffixTags(routes, basePath = '/') {
+      let tags = []
+      routes.forEach(route => {
         if (route.meta && route.meta.affix) {
-          const tagPath = path.resolve(basePath, route.path);
+          const tagPath = path.resolve(basePath, route.path)
           tags.push({
             fullPath: tagPath,
             path: tagPath,
             name: route.name,
-            meta: { ...route.meta },
-          });
+            meta: { ...route.meta }
+          })
         }
         if (route.children) {
-          // 父级 path 为空时（如根路由 `{ path: '' }`）继承当前 basePath，
-          // 否则 path.resolve('', 'index') 会让 path-browserify 调用 process.cwd() 抛出 process is not defined
-          const tempTags = this.filterAffixTags(route.children, route.path || basePath);
+          const tempTags = this.filterAffixTags(route.children, route.path ? path.resolve(basePath, route.path) : basePath)
           if (tempTags.length >= 1) {
-            tags = [...tags, ...tempTags];
+            tags = [...tags, ...tempTags]
           }
         }
-      });
-      return tags;
+      })
+      return tags
     },
     initTags() {
-      const affixTags = (this.affixTags = this.filterAffixTags(this.routes));
+      const affixTags = (this.affixTags = this.filterAffixTags(this.routes))
       for (const tag of affixTags) {
-        // Must have tag name
         if (tag.name) {
-          this.$store.dispatch("tagsView/addVisitedView", tag);
+          this.$store.dispatch('tagsView/addVisitedView', tag)
         }
       }
     },
     addTags() {
-      const { name } = this.$route;
+      const { name } = this.$route
       if (name) {
-        this.$store.dispatch("tagsView/addView", this.$route);
-        if (this.$route.meta.link) {
-          this.$store.dispatch("tagsView/addIframeView", this.$route);
-        }
+        this.$store.dispatch('tagsView/addView', this.$route)
       }
-      return false;
+      return false
     },
     moveToCurrentTag() {
-      const tags = this.$refs.tag;
       this.$nextTick(() => {
+        const tags = this.$refs.tag
+        if (!tags) return
         for (const tag of tags) {
           if (tag.to.path === this.$route.path) {
-            this.$refs.scrollPane.moveToTarget(tag);
-            // when query is different then update
+            this.$refs.scrollPane.moveToTarget(tag)
             if (tag.to.fullPath !== this.$route.fullPath) {
-              this.$store.dispatch("tagsView/updateVisitedView", this.$route);
+              this.$store.dispatch('tagsView/updateVisitedView', this.$route)
             }
-            break;
+            break
           }
         }
-      });
+      })
     },
     refreshSelectedTag(view) {
-      this.$tab.refreshPage(view);
-      if (this.$route.meta.link) {
-        this.$store.dispatch("tagsView/delIframeView", this.$route);
-      }
+      this.$tab.refreshPage(view)
     },
     closeSelectedTag(view) {
       this.$tab.closePage(view).then(({ visitedViews }) => {
         if (this.isActive(view)) {
-          this.toLastView(visitedViews, view);
+          this.toLastView(visitedViews, view)
         }
-      });
+      })
     },
     closeRightTags() {
-      this.$tab.closeRightPage(this.selectedTag).then((visitedViews) => {
-        if (!visitedViews.find((i) => i.fullPath === this.$route.fullPath)) {
-          this.toLastView(visitedViews);
+      this.$tab.closeRightPage(this.selectedTag).then(visitedViews => {
+        if (!visitedViews.find(i => i.fullPath === this.$route.fullPath)) {
+          this.toLastView(visitedViews)
         }
-      });
+      })
     },
     closeLeftTags() {
-      this.$tab.closeLeftPage(this.selectedTag).then((visitedViews) => {
-        if (!visitedViews.find((i) => i.fullPath === this.$route.fullPath)) {
-          this.toLastView(visitedViews);
+      this.$tab.closeLeftPage(this.selectedTag).then(visitedViews => {
+        if (!visitedViews.find(i => i.fullPath === this.$route.fullPath)) {
+          this.toLastView(visitedViews)
         }
-      });
+      })
     },
     closeOthersTags() {
-      this.$router.push(this.selectedTag).catch(() => {});
+      this.$router.push(this.selectedTag).catch(() => {})
       this.$tab.closeOtherPage(this.selectedTag).then(() => {
-        this.moveToCurrentTag();
-      });
+        this.moveToCurrentTag()
+      })
     },
     closeAllTags(view) {
       this.$tab.closeAllPage().then(({ visitedViews }) => {
-        if (this.affixTags.some((tag) => tag.path === this.$route.path)) {
-          return;
+        if (this.affixTags.some(tag => tag.path === this.$route.path)) {
+          return
         }
-        this.toLastView(visitedViews, view);
-      });
+        this.toLastView(visitedViews, view)
+      })
     },
     toLastView(visitedViews, view) {
-      const latestView = visitedViews.slice(-1)[0];
+      const latestView = visitedViews.slice(-1)[0]
       if (latestView) {
-        this.$router.push(latestView.fullPath);
+        this.$router.push(latestView.fullPath)
+      } else if (view && view.name === 'Index') {
+        this.$router.replace({ path: '/redirect' + view.fullPath })
       } else {
-        // now the default is to redirect to the home page if there is no tags-view,
-        // you can adjust it according to your needs.
-        if (view.name === "Dashboard") {
-          // to reload home page
-          this.$router.replace({ path: "/redirect" + view.fullPath });
-        } else {
-          this.$router.push("/");
-        }
+        this.$router.push('/')
       }
     },
     openMenu(tag, e) {
-      const menuMinWidth = 105;
-      const offsetLeft = this.$el.getBoundingClientRect().left; // container margin left
-      const offsetWidth = this.$el.offsetWidth; // container width
-      const maxLeft = offsetWidth - menuMinWidth; // left boundary
-      const left = e.clientX - offsetLeft + 15; // 15: margin right
-
-      if (left > maxLeft) {
-        this.left = maxLeft;
-      } else {
-        this.left = left;
-      }
-
-      this.top = e.clientY - 50;
-      this.visible = true;
-      this.selectedTag = tag;
+      const menuWidth = 148
+      const maxLeft = window.innerWidth - menuWidth - 8
+      this.left = Math.max(8, Math.min(e.clientX, maxLeft))
+      this.top = e.clientY + 4
+      this.visible = true
+      this.selectedTag = tag
     },
     closeMenu() {
-      this.visible = false;
+      this.visible = false
+    },
+    handleKeydown(e) {
+      if (e.key === 'Escape') {
+        this.closeMenu()
+      }
     },
     handleScroll() {
-      this.closeMenu();
-    },
-  },
-};
+      this.closeMenu()
+    }
+  }
+}
 </script>
 
 <style lang="scss" scoped>
-@import "../../../assets/styles/tokens.scss";
-
-$tabs-gap: 7px;                              // 基准间隙：分隔线偏移 / 顶部圆角 / 弧脚尺寸
-$tabs-overlap: 12px;                         // 相邻标签重叠量
-$tabs-active-bg: rgba($color-primary, 0.15); // 活动标签：主题色 15% 蒙层
-$tabs-hover-bg: $bg-grouped;                 // 悬停浮块
-
-$motion-fast: .16s;
+@import '../../../assets/styles/tokens.scss';
 
 .tags-view-container {
-  width: 100%;
-  height: 38px;
-  background: $bg-base;
-  border-bottom: 1px solid $separator-light;
-  box-sizing: border-box;
+  height: $topbar-height;
+  min-width: 0;
+  display: flex;
+  align-items: center;
   overflow: hidden;
 
   .tags-view-wrapper {
+    width: 100%;
     white-space: nowrap;
-    height: 100%;
 
-    /* transition-group 渲染的容器:保持内联流 */
     .tags-view-flip {
-      display: inline-block;
-      white-space: nowrap;
-      height: 100%;
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      height: $topbar-height;
     }
 
     .tags-view-item {
-      position: relative;
-      z-index: 1;
       display: inline-flex;
       align-items: center;
-
-      height: 33px; // 37(容器内高，扣除底边框) - 4(顶部留白)
-      margin-top: 4px;
-      margin-right: -$tabs-overlap;
-
-      color: rgba(0, 0, 0, 0.72);
+      gap: 6px;
+      height: 28px;
+      padding: 0 10px;
+      border-radius: $radius-sm;
+      color: $label-secondary;
       font-size: 12px;
-
       cursor: pointer;
       user-select: none;
+      transition:
+        background-color $duration-fast $ease-out,
+        color $duration-fast $ease-out;
 
-      transition: color $motion-fast $ease-out;
-
-      &:first-of-type {
-        margin-left: 4px; // 给首个标签左弧脚的 1px 外溢留位
-      }
-
-      &:last-of-type {
-        margin-right: 0;
-      }
-
-      /* 分隔线（模板 v-if 控制：首个与活动标签不渲染） */
-      .tags-view-item__divider {
-        position: absolute;
-        top: 50%;
-        left: $tabs-gap;
-        z-index: 1;
-        width: 1px;
-        height: 16px;
-        background: $separator;
-        transform: translateY(-50%);
-        transition: opacity $motion-fast;
-      }
-
-      /* 背景层：激活时是「顶部圆角矩形 + 两侧弧脚」的 Chrome 标签形；
-         悬停时收底 2px、左右内缩 2px、四角全圆，同一元素平滑形变 */
-      .tags-view-item__background {
-        position: absolute;
-        inset: 0;
-        z-index: -1;
-        padding: 0 ($tabs-gap - 1px);
-        box-sizing: border-box;
-        transition: padding $motion-fast $ease-out;
-
-        .tags-view-item__background-content {
-          display: block;
-          height: 100%;
-          border-radius: $tabs-gap $tabs-gap 0 0;
-          transition:
-            background-color $motion-fast $ease-out,
-            margin $motion-fast $ease-out,
-            border-radius $motion-fast $ease-out;
-        }
-
-        svg {
-          position: absolute;
-          bottom: 0;
-          fill: transparent;
-          transition: fill $motion-fast $ease-out;
-        }
-
-        .tags-view-item__background-before {
-          left: -1px;
-        }
-
-        .tags-view-item__background-after {
-          right: -1px;
-        }
-      }
-
-      /* 主体文字：压在背景层之上 */
-      .tags-view-item__main {
-        position: relative;
-        z-index: 2;
-        display: inline-flex;
-        align-items: center;
-        height: 100%;
-        margin: 0 ($tabs-gap * 2);
-        padding: 0 18px 0 2px;
-        overflow: hidden;
-        white-space: nowrap;
-      }
-
-      /* -----------------------------
-       * hover（非活动）：背景形变为悬浮圆角块
-       * ----------------------------- */
-
-      &:hover:not(.active) {
+      &:hover {
+        background-color: $fill-hover;
         color: $label;
 
-        .tags-view-item__divider {
-          opacity: 0;
-        }
-
-        .tags-view-item__background {
-          padding-bottom: 2px;
-
-          .tags-view-item__background-content {
-            margin: 0 2px;
-            border-radius: 6px;
-            background-color: $tabs-hover-bg;
-          }
+        .tags-view-item__close {
+          opacity: 1;
         }
       }
-
-      /* 悬停/活动标签右邻的分隔线同步隐藏 */
-      &:hover:not(.active) + .tags-view-item .tags-view-item__divider,
-      &.active + .tags-view-item .tags-view-item__divider {
-        opacity: 0;
-      }
-
-      /* -----------------------------
-       * active：主题色蒙层卡片 + 弧脚填色
-       * ----------------------------- */
 
       &.active {
-        z-index: 2;
-        color: #000;
+        background-color: $fill-active;
+        color: $label;
+        font-weight: 500;
 
-        .tags-view-item__background {
-          .tags-view-item__background-content {
-            background-color: #EBECF0;
-          }
-
-          svg {
-            fill: #EBECF0;
-          }
+        .tags-view-item__close {
+          opacity: 0.75;
         }
+      }
+    }
+
+    .tags-view-item__close {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      margin-right: -4px;
+      border-radius: 50%;
+      font-size: 11px;
+      opacity: 0;
+      transition: opacity $duration-fast ease, background-color $duration-fast ease;
+
+      &:hover {
+        opacity: 1 !important;
+        background-color: rgba(0, 0, 0, 0.1);
+      }
+
+      @media (hover: none) {
+        opacity: 0.75;
       }
     }
   }
 
- /* -----------------------------
-   * Context Menu
-   * ----------------------------- */
   .contextmenu {
-    position: absolute;
-    z-index: 2001;
+    position: fixed;
+    z-index: 2050;
     margin: 0;
-    padding: 6px;
-    min-width: 150px;
+    padding: 4px;
+    min-width: 144px;
     list-style: none;
     background: $bg-base;
-    border: 1px solid $separator-light;
+    border: 1px solid $separator;
     border-radius: $radius-md;
     box-shadow: $shadow-popover;
-    font-size: 13px;
+    font-size: 12px;
     color: $label;
+    transform-origin: top left;
+    animation: menuFadeIn 0.14s $ease-out;
 
-    transform-origin: top left; // 菜单定位在光标处,从触发点长出而非从中心
-    animation: menuFadeIn .16s $ease-out;
-
-    // 减弱动效:去位移缩放,保留淡入
     @media (prefers-reduced-motion: reduce) {
-      animation: menuFadeReduced .12s $ease-out;
+      animation: none;
     }
 
     li {
       display: flex;
       align-items: center;
-      height: 32px;
-      padding: 0 12px;
+      height: 30px;
+      padding: 0 10px;
       border-radius: $radius-xs;
       cursor: pointer;
       white-space: nowrap;
-      transition:
-        background-color $motion-fast,
-        color $motion-fast;
+      transition: background-color $duration-fast;
 
       &:hover {
-        background: $bg-grouped;
+        background: $fill-hover;
       }
 
       i {
         width: 16px;
-        margin-right: 8px;
+        margin-right: 6px;
         text-align: center;
+        color: $label-secondary;
       }
     }
   }
 }
 
-/* -----------------------------
- * Animation
- * ----------------------------- */
-
 @keyframes menuFadeIn {
   from {
     opacity: 0;
-    transform: translateY(-4px) scale(.98);
+    transform: translateY(-4px) scale(0.98);
   }
-
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
 }
 
-@keyframes menuFadeReduced {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-/* -----------------------------
- * 标签增删 FLIP
- * ----------------------------- */
-
 .tags-flip-enter-active {
-  transition: opacity 0.15s $ease-out, transform 0.15s $ease-out;
+  transition: opacity $duration-fast $ease-out, transform $duration-fast $ease-out;
 }
 
 .tags-flip-enter {
@@ -524,51 +377,15 @@ $motion-fast: .16s;
 }
 
 .tags-flip-move {
-  transition: transform 0.2s $ease-in-out;
+  transition: transform $duration-base $ease-in-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .tags-flip-enter {
     transform: none;
   }
-
   .tags-flip-move {
     transition: none;
-  }
-}
-</style>
-
-<style lang="scss">
-// 关闭按钮
-.tags-view-wrapper {
-  .tags-view-item {
-    .el-icon-close {
-      position: absolute;
-      top: 50%;
-      right: 14px;
-      z-index: 3;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      transform: translateY(-50%);
-      transition: background-color .16s ease;
-
-      &:before {
-        display: inline-block;
-        transform: scale(.9);
-      }
-
-      &:hover {
-        background: rgba(0, 0, 0, .10);
-      }
-
-      &:active {
-        background: rgba(0, 0, 0, .16);
-      }
-    }
   }
 }
 </style>

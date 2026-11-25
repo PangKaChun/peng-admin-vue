@@ -1,29 +1,18 @@
-import defaultSettings from '@/settings'
-
-const { sideTheme } = defaultSettings
-
-const storageSetting = JSON.parse(localStorage.getItem('layout-setting')) || ''
 const state = {
-  title: '',
-  theme: storageSetting.theme || '#094194',
-  sideTheme: storageSetting.sideTheme || sideTheme,
+  title: ''
 }
+
 const mutations = {
-  CHANGE_SETTING: (state, { key, value }) => {
-    if (state.hasOwnProperty(key)) {
-      state[key] = value
-    }
+  SET_TITLE: (state, title) => {
+    state.title = title
   }
 }
 
 const actions = {
-  // 修改布局设置
-  changeSetting({ commit }, data) {
-    commit('CHANGE_SETTING', data)
-  },
-  // 设置网页标题
   setTitle({ commit }, title) {
-    state.title = title
+    commit('SET_TITLE', title)
+    const base = process.env.VUE_APP_TITLE || 'PENG ADMIN'
+    document.title = title ? `${title} - ${base}` : base
   }
 }
 
@@ -33,4 +22,3 @@ export default {
   mutations,
   actions
 }
-

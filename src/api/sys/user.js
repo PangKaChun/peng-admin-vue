@@ -1,5 +1,5 @@
 import request from "@/utils/request";
-import { parseStrEmpty } from "@/utils/rongji";
+import { parseStrEmpty } from "@/utils/common";
 import { encrypt } from '@/utils/jsencrypt.js'
 const systemAPI = '/api-system'
 

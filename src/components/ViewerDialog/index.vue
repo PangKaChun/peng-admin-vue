@@ -4,7 +4,6 @@
     :visible="visible"
     :fullscreen="maximized"
     width="72%"
-    top="4vh"
     append-to-body
     :custom-class="'viewer-dialog ' + dialogClass"
     @update:visible="$emit('update:visible', $event)"
@@ -12,7 +11,7 @@
   >
     <!-- 自定义标题栏,双击也可切换最大化 -->
     <div slot="title" class="viewer-dialog__header" @dblclick="toggleMaximize">
-      <span class="el-dialog__title">{{ title }}</span>
+      <span class="el-dialog__title" :title="title">{{ title }}</span>
       <button
         type="button"
         class="viewer-dialog__maximize"
@@ -77,17 +76,24 @@ export default {
   padding: 0;
 }
 
+.viewer-dialog__header {
+  padding-right: 64px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* 标题栏最大化/还原按钮 */
 .viewer-dialog__maximize {
   position: absolute;
-  top: 20px;
-  right: 50px;
+  top: 17px;
+  right: 46px;
   padding: 0;
   border: none;
   outline: none;
   background: transparent;
-  font-size: 16px;
-  color: #909399;
+  font-size: 15px;
+  color: $label-secondary;
   cursor: pointer;
 
   &:hover {
@@ -101,7 +107,7 @@ export default {
   flex-wrap: wrap;
   gap: $space-2;
   padding: $space-2 $space-4;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid $separator-light;
 }
 
 .viewer-dialog__body {
@@ -117,7 +123,7 @@ export default {
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 14px;
-  color: #909399;
+  color: $label-secondary;
 }
 
 /* 最大化:对话框纵向弹性布局,预览区吃满剩余高度 */

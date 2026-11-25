@@ -81,6 +81,7 @@ import ExpressionSelect from '@/components/ExpressionSelect'
 import RoleSelect from '@/components/RoleSelect'
 import { setApproverValue } from './properties/approver'
 import { saveAs } from 'file-saver'
+import { copyText } from '@/utils/clipboard'
 
 import hljs from 'highlight.js/lib/core'
 import 'highlight.js/styles/github.css'
@@ -104,7 +105,6 @@ export default {
   },
   data() {
     return {
-      modeler: null,
       // 选择用户弹窗状态
       userSelectVisible: false,
       userSelectMultiple: false,
@@ -131,8 +131,11 @@ export default {
       xmlContent: ''
     }
   },
+  created() {
+    this._modeler = null
+  },
   mounted() {
-    this.modeler = new BpmnModeler({
+    this._modeler = new BpmnModeler({
       container: this.$refs.canvas,
       propertiesPanel: { parent: this.$refs.panel },
       additionalModules: [
@@ -146,43 +149,43 @@ export default {
       moddleExtensions: { flowable: flowableModdle }
     })
     // 监听属性面板内「选择用户」按钮广播的事件，打开 UserSelect 弹窗
-    this.modeler.get('eventBus').on('flowable.userSelect', e => {
+    this._modeler.get('eventBus').on('flowable.userSelect', e => {
       this.openUserSelect(e.payload || {})
     })
     // 监听属性面板内「候选组」选择按钮广播的事件，打开 DeptSelect 弹窗
-    this.modeler.get('eventBus').on('flowable.deptSelect', e => {
+    this._modeler.get('eventBus').on('flowable.deptSelect', e => {
       this.openDeptSelect(e.payload || {})
     })
     // 监听属性面板内「办理人」字段的「选择表达式」按钮事件，打开 ExpressionSelect 弹窗
-    this.modeler.get('eventBus').on('flowable.expressionSelect', e => {
+    this._modeler.get('eventBus').on('flowable.expressionSelect', e => {
       this.openExpressionSelect(e.payload || {})
     })
     // 监听属性面板内「候选组」字段的「选择角色」按钮事件，打开 RoleSelect 弹窗
-    this.modeler.get('eventBus').on('flowable.roleSelect', e => {
+    this._modeler.get('eventBus').on('flowable.roleSelect', e => {
       this.openRoleSelect(e.payload || {})
     })
     // 命令栈变化时刷新「后退 / 前进」按钮可用态
-    this.modeler.get('eventBus').on('commandStack.changed', () => {
+    this._modeler.get('eventBus').on('commandStack.changed', () => {
       this.updateUndoRedo()
     })
     // 无外部 xml 时新建空白流程
     if (this.xml) {
       this.createDiagram(this.xml)
-    } else{
-      this.handleNew(this.genProcessId(), this.genProcessName())
+    } else {
+      this.handleNew()
     }
   },
   beforeDestroy() {
-    if (this.modeler) {
-      this.modeler.destroy()
-      this.modeler = null
+    if (this._modeler) {
+      this._modeler.destroy()
+      this._modeler = null
     }
   },
   methods: {
     /** 导入 XML 渲染到设计器 */
     async createDiagram(xml) {
       try {
-        await this.modeler.importXML(xml)
+        await this._modeler.importXML(xml)
         this.fitViewport()
         this.updateUndoRedo()
       } catch (e) {
@@ -191,11 +194,11 @@ export default {
     },
     /** 适应画布 */
     fitViewport() {
-      this.modeler.get('canvas').zoom('fit-viewport')
+      this._modeler.get('canvas').zoom('fit-viewport')
     },
     /** 视图居中 */
     centerView() {
-      const canvas = this.modeler.get('canvas')
+      const canvas = this._modeler.get('canvas')
       const viewbox = canvas.viewbox()
       const inner = viewbox.inner
       canvas.viewbox({
@@ -207,18 +210,18 @@ export default {
     },
     /** 缩放 */
     zoom(step) {
-      const canvas = this.modeler.get('canvas')
+      const canvas = this._modeler.get('canvas')
       canvas.zoom(canvas.zoom() + step)
     },
     /** 获取当前设计的 XML，供父组件保存 */
     async getXml() {
-      const { xml } = await this.modeler.saveXML({ format: true })
+      const { xml } = await this._modeler.saveXML({ format: true })
       return xml
     },
     /** 查看当前 BPMN XML */
     async viewXml() {
       try {
-        const { xml } = await this.modeler.saveXML({ format: true })
+        const { xml } = await this._modeler.saveXML({ format: true })
         this.xmlContent = xml
         this.xmlVisible = true
       } catch (e) {
@@ -227,26 +230,14 @@ export default {
     },
     /** 复制 XML 到剪贴板 */
     copyXml() {
-      const text = this.xmlContent || ''
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text)
-          .then(() => this.$modal && this.$modal.msgSuccess('已复制到剪贴板'))
-          .catch(() => this.$modal && this.$modal.msgError('复制失败'))
-      } else {
-        // 降级：临时 textarea + execCommand
-        const ta = document.createElement('textarea')
-        ta.value = text
-        document.body.appendChild(ta)
-        ta.select()
-        document.execCommand('copy')
-        document.body.removeChild(ta)
-        this.$modal && this.$modal.msgSuccess('已复制到剪贴板')
-      }
+      copyText(this.xmlContent || '')
+        .then(() => this.$modal && this.$modal.msgSuccess('已复制到剪贴板'))
+        .catch(() => this.$modal && this.$modal.msgError('复制失败'))
     },
     /** 下载当前流程图为 SVG */
     async downloadSvg() {
       try {
-        const { svg } = await this.modeler.saveSVG()
+        const { svg } = await this._modeler.saveSVG()
         this.downloadFile(svg, this.diagramName() + '.svg', 'image/svg+xml')
       } catch (e) {
         this.$modal && this.$modal.msgError('下载 SVG 失败：' + e.message)
@@ -255,7 +246,7 @@ export default {
     /** 下载当前流程为 BPMN 文件 */
     async downloadBpmn() {
       try {
-        const { xml } = await this.modeler.saveXML({ format: true })
+        const { xml } = await this._modeler.saveXML({ format: true })
         this.downloadFile(xml, this.diagramName() + '.bpmn', 'application/bpmn20-xml')
       } catch (e) {
         this.$modal && this.$modal.msgError('下载 BPMN 失败：' + e.message)
@@ -269,7 +260,7 @@ export default {
     /** 文件名基名：取流程编号(Key)，缺省 diagram */
     diagramName() {
       try {
-        const root = this.modeler.get('canvas').getRootElement()
+        const root = this._modeler.get('canvas').getRootElement()
         const id = root && root.businessObject && root.businessObject.id
         return id || 'diagram'
       } catch (e) {
@@ -286,39 +277,39 @@ export default {
     },
     /** 新建空白流程 */
     async handleNew() {
-      await this.modeler.createDiagram();
-      const root = this.modeler.get('canvas').getRootElement()
-      const elementRegistry = this.modeler.get('elementRegistry');
-      this.modeler.get('modeling').updateProperties(root, {
+      await this._modeler.createDiagram();
+      const root = this._modeler.get('canvas').getRootElement()
+      const elementRegistry = this._modeler.get('elementRegistry');
+      this._modeler.get('modeling').updateProperties(root, {
         id: this.genProcessId(),
         name: this.genProcessName(),
         isExecutable: true
       })
       const startEventElement = elementRegistry.find(el => el.type === 'bpmn:StartEvent');
       if (startEventElement) {
-        this.modeler.get('modeling').updateProperties(startEventElement, {
+        this._modeler.get('modeling').updateProperties(startEventElement, {
           name: '开始'
         });
       }
     },
     /** 后退 */
     undo() {
-      this.modeler.get('commandStack').undo()
+      this._modeler.get('commandStack').undo()
     },
     /** 前进 */
     redo() {
-      this.modeler.get('commandStack').redo()
+      this._modeler.get('commandStack').redo()
     },
     /** 同步「后退 / 前进」按钮的可用状态 */
     updateUndoRedo() {
-      const commandStack = this.modeler.get('commandStack')
+      const commandStack = this._modeler.get('commandStack')
       this.canUndo = commandStack.canUndo()
       this.canRedo = commandStack.canRedo()
     },
     /** 选人 / 选角色 / 选部门 / 选表达式弹窗选定后，统一写回用户任务的审批人取值 approverValue（按类型重算 assignmentMode） */
     writeApproverValue(element, value) {
-      if (!this.modeler) return
-      setApproverValue(this.modeler.get('modeling'), this.modeler.get('bpmnFactory'), element, value || undefined)
+      if (!this._modeler) return
+      setApproverValue(this._modeler.get('modeling'), this._modeler.get('bpmnFactory'), element, value || undefined)
     },
     /**
      * 打开选择用户弹窗（审批人类型=USER，写回 approverValue）
@@ -345,7 +336,7 @@ export default {
      */
     onUserSelectConfirm(rowOrRows, idOrIds) {
       const ctx = this._userSelectCtx
-      if (!ctx || !this.modeler) return
+      if (!ctx || !this._modeler) return
       const value = this.userSelectMultiple
         ? (idOrIds || []).join(',')
         : (idOrIds != null ? String(idOrIds) : '')
@@ -376,7 +367,7 @@ export default {
      */
     onDeptSelectConfirm(nodeOrNodes, idOrIds) {
       const ctx = this._deptSelectCtx
-      if (!ctx || !this.modeler) return
+      if (!ctx || !this._modeler) return
       const value = this.deptSelectMultiple
         ? (idOrIds || []).join(',')
         : (idOrIds != null ? String(idOrIds) : '')
@@ -399,7 +390,7 @@ export default {
      */
     onExpressionSelectConfirm(row, id) {
       const ctx = this._expressionSelectCtx
-      if (!ctx || !this.modeler) return
+      if (!ctx || !this._modeler) return
       const value = row && row.expressionContent ? String(row.expressionContent).trim() : ''
       this.writeApproverValue(ctx.element, value)
     },
@@ -428,7 +419,7 @@ export default {
      */
     onRoleSelectConfirm(rowOrRows, idOrIds) {
       const ctx = this._roleSelectCtx
-      if (!ctx || !this.modeler) return
+      if (!ctx || !this._modeler) return
       const value = this.roleSelectMultiple
         ? (idOrIds || []).join(',')
         : (idOrIds != null ? String(idOrIds) : '')
@@ -443,7 +434,9 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '@/assets/styles/tokens.scss';
+
 .bpmn-designer {
   height: 100%;
   display: flex;
@@ -453,13 +446,13 @@ export default {
   padding: 6px 0;
 }
 .bpmn-toolbar-group {
-  margin-right: 8px;
+  margin-right: $space-2;
 }
 .bpmn-body {
   flex: 1;
   display: flex;
   min-height: 0;
-  border: 1px solid #e4e7ed;
+  border: 1px solid $separator;
 }
 .bpmn-canvas {
   flex: 1 1 auto;
@@ -469,12 +462,12 @@ export default {
 .bpmn-properties {
   flex: 0 0 320px;
   width: 320px;
-  border-left: 1px solid #e4e7ed;
+  border-left: 1px solid $separator;
   overflow-y: auto;
-  background: #fff;
+  background: $bg-base;
 }
 /* 属性面板内部默认无边框，去掉自带阴影以贴合对话框 */
-.bpmn-properties >>> .bio-properties-panel {
+.bpmn-properties ::v-deep .bio-properties-panel {
   border-left: none;
 }
 /* 查看 XML 弹窗内的代码块 */
@@ -482,10 +475,10 @@ export default {
   margin: 0;
   max-height: 60vh;
   overflow: auto;
-  padding: 12px;
-  background: #f5f5f7;
-  border-radius: 4px;
-  font-family: Consolas, Monaco, monospace;
+  padding: $space-3;
+  background: $fill-quaternary;
+  border-radius: $radius-xs;
+  font-family: $font-mono;
   font-size: 12px;
   line-height: 1.5;
   white-space: pre-wrap;
@@ -495,6 +488,8 @@ export default {
 
 <!-- 审批人 / 审批策略等字段由 preact 渲染在属性面板内，scoped 样式命中不到，故用非 scoped 块并限定在 .bpmn-properties 下 -->
 <style lang="scss">
+@import '@/assets/styles/tokens.scss';
+
 .bpmn-properties {
   // 文本框 + ··· 选人按钮同一行：输入框自适应、按钮贴右
   .flowable-user-input-row {
@@ -517,14 +512,14 @@ export default {
     width: 28px;
     padding: 0;
     font-size: 14px;
-    color: #1d1d1f;
-    background: #f5f5f7;
-    border: 1px solid #d2d2d7;
-    border-radius: 4px;
+    color: $label;
+    background: $fill-quaternary;
+    border: 1px solid $separator;
+    border-radius: $radius-xs;
     cursor: pointer;
 
     &:hover {
-      background: #ebebf0;
+      background: $fill-active;
     }
 
     // SvgIcon 自带的 .svg-icon 尺寸样式是 scoped，preact 面板内手绘的 svg 命中不到，故在此显式补齐
@@ -549,7 +544,7 @@ export default {
     align-items: center;
     gap: 6px;
     font-size: 13px;
-    color: #1d1d1f;
+    color: $label;
     cursor: pointer;
 
     input {

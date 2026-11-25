@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <span class="dict-tag">
     <template v-for="(item, index) in options">
       <template v-if="values.includes(item.value)">
         <span
@@ -16,7 +16,7 @@
         >{{ item.label }}</el-tag>
       </template>
     </template>
-  </div>
+  </span>
 </template>
 
 <script>
@@ -36,16 +36,18 @@ export default {
   computed: {
     values() {
       if (this.value !== null && typeof this.value !== 'undefined') {
-        return Array.isArray(this.value) ? this.value : [String(this.value)]
-      } else {
-        return []
+        return Array.isArray(this.value) ? this.value.map(String) : [String(this.value)]
       }
+      return []
     }
   }
 }
 </script>
+
 <style scoped>
-.el-tag + .el-tag {
-  margin-left: 10px;
+.dict-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 </style>

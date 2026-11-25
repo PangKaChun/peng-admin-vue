@@ -1,13 +1,13 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code and AI coding agents working in this repository.
 
 ## Commands
 
 ```bash
 npm install         # install dependencies (Node >= 8.9 required)
 npm run dev         # dev server with hot reload (vue-cli-service serve)
-npm run build:prod  # production build → ./dist
+npm run build:prod  # production build -> ./dist
 npm run build:stage # staging build (uses .env.staging)
 npm run preview     # build then serve dist on http://localhost:9526
 ```
@@ -18,82 +18,78 @@ The dev server proxies `process.env.VUE_APP_BASE_API` (`/dev-api`, `/stage-api`,
 
 ## Architecture
 
-Vue 2.7 admin shell using Vuex 3, Vue Router 3 (history mode), Element UI 2.15, and ECharts 5. The repo aliases `@` → `src/`.
+Vue 2.7 admin shell using Vuex 3, Vue Router 3 (history mode), and Element UI 2.15. The repo aliases `@` -> `src/`.
 
 ### Authentication & request flow
 
-Two OAuth2 flows coexist against the same `/api-auth/oauth2/token` endpoint:
+Authentication uses a single OAuth2 **PKCE `authorization_code`** flow against `/api-auth`:
 
-- **PKCE `authorization_code`** (primary): [src/store/modules/user.js](src/store/modules/user.js) `AuthorizeWithPKCE` generates `code_verifier` + `code_challenge` (S256) via [src/utils/pkce.js](src/utils/pkce.js), stashes `pkce_verifier` / `pkce_state` / `oauth_redirect_uri` in `sessionStorage`, then POSTs a hidden form to `VUE_APP_OAUTH_AUTHORIZE_ENDPOINT`. The IdP redirects to `/oauth/callback`, [src/views/oauth/callback.vue](src/views/oauth/callback.vue) validates `state`, calls `ExchangeCodeForToken`, and routes to the saved target.
-- **Password grant** (legacy): [src/views/login-legacy.vue](src/views/login-legacy.vue) → `login()` in [src/api/login.js](src/api/login.js) with Basic auth from `VUE_APP_OAUTH_CLIENT_ID/SECRET`.
+- [src/views/login.vue](src/views/login.vue) runs step-by-step precheck (`user/Precheck`: username + password + image captcha or PoW `SliderVerify`), optional/enforced TOTP MFA (`user/VerifyMfa`, QR binding via `bindMfaForLogin`), and expired/initial password change (`changePwdForLogin`), then dispatches `user/AuthorizeWithPKCE`.
+- [src/store/modules/user.js](src/store/modules/user.js) `AuthorizeWithPKCE` generates `code_verifier` + `code_challenge` (S256) via [src/utils/pkce.js](src/utils/pkce.js), stores `pkce_verifier` / `pkce_state` / `oauth_redirect_uri` in `sessionStorage`, and submits a hidden form to `VUE_APP_OAUTH_AUTHORIZE_ENDPOINT`.
+- The IdP redirects to `/oauth/callback`; [src/views/oauth/callback.vue](src/views/oauth/callback.vue) validates `state`, dispatches `user/ExchangeCodeForToken`, and navigates directly to the saved route.
 
-Both flows encrypt the password with **SM2** ([src/utils/jsencrypt.js](src/utils/jsencrypt.js)) before transmission — the public key is hardcoded and must match the backend keypair.
+Passwords sent to the backend are encrypted with **SM2** ([src/utils/jsencrypt.js](src/utils/jsencrypt.js)), which dynamically fetches and caches the public key from `GET /api-auth/login/public-key`; `encrypt(txt)` is **`async`** and returns a Promise.
 
-Tokens live in cookies via [src/utils/auth.js](src/utils/auth.js) (`Access-Token`, `Refresh-Token`). The axios instance in [src/utils/request.js](src/utils/request.js) attaches `Bearer` automatically and implements **single-flight refresh**: on 401/424 the first request triggers `refreshToken()`, subsequent in-flight requests queue on `requests[]` until the refresh resolves, then replay with the new token. If refresh fails (or no refresh token exists), `reloginMessageBox()` prompts the user and routes back through `user/LogOut`. Request headers `isToken: false` skip the Authorization header; `repeatSubmit: false` skips the 1-second duplicate-POST guard backed by `sessionStorage.sessionObj`.
+Tokens live in cookies via [src/utils/auth.js](src/utils/auth.js) (`Access-Token`, `Refresh-Token`). The axios instance in [src/utils/request.js](src/utils/request.js) attaches `Bearer` automatically and implements **single-flight refresh**: on 401/424 the first request triggers `refreshToken()`, subsequent in-flight requests queue on `requests[]` until resolved, then replay with the new token. Request headers `isToken: false` skip `Authorization`; `repeatSubmit: false` skips the 1-second duplicate-POST guard backed by `sessionStorage.sessionObj`.
 
-API path prefixes are convention-based — `/api-auth` for auth (see [src/api/login.js](src/api/login.js)), `/api-system` for system modules (see [src/api/menu.js](src/api/menu.js), [src/api/sys/](src/api/sys)).
+API path prefixes are service-based — `/api-auth` for auth ([src/api/login.js](src/api/login.js)), `/api-system` for system & menu APIs ([src/api/menu.js](src/api/menu.js), [src/api/sys/](src/api/sys)), `/api-file` for OSS storage ([src/api/sys/oss.js](src/api/sys/oss.js)), `/api-job` for scheduled jobs ([src/api/mon/job.js](src/api/mon/job.js), [src/api/mon/jobLog.js](src/api/mon/jobLog.js)), `/api-log` for audit logs ([src/api/mon/log.js](src/api/mon/log.js)), and `/api-flowable` for workflows ([src/api/flowable/](src/api/flowable)).
 
 ### Routing & permissions
 
-[src/router/index.js](src/router/index.js) exports `constantRoutes` (login, callback, 404, redirect, index) wired at startup, plus `dynamicRoutes` that are filtered by permissions.
+[src/router/index.js](src/router/index.js) exports `constantRoutes` (login, callback, 404, 401, redirect, index, user/profile) wired at startup, plus `dynamicRoutes` filtered by permissions.
 
-[src/permission.js](src/permission.js) is the global beforeEach guard. White-listed paths: `/login`, `/oauth/callback`, `/login/legacy`. For authenticated users without loaded roles, it dispatches `user/GetInfo` then `GenerateRoutes`.
+[src/permission.js](src/permission.js) is the global `beforeEach` guard. White-listed paths: `/login`, `/oauth/callback`. Authenticated users without loaded roles dispatch `user/GetInfo` then `GenerateRoutes`, and route meta titles update `document.title` via `settings/setTitle`.
 
-[src/store/modules/permission.js](src/store/modules/permission.js) `GenerateRoutes` calls `getRouters()` (the backend returns a route tree as JSON), then `filterAsyncRouter` recursively replaces string `component` values:
+[src/store/modules/permission.js](src/store/modules/permission.js) `GenerateRoutes` fetches backend routes via `getRouters()` and transforms component strings:
 
-- `'Layout'` → [src/layout/index.vue](src/layout/index.vue)
-- `'ParentView'` → [src/components/ParentView](src/components/ParentView)
-- anything else → `loadView(path)` which uses `require` in dev and dynamic `import` in prod (this distinction matters — do not change `loadView` to a single form).
+- `'Layout'` -> [src/layout/index.vue](src/layout/index.vue)
+- `'ParentView'` -> [src/components/ParentView](src/components/ParentView)
+- anything else -> `loadView(path)` using `require` in dev and dynamic `import` in prod (keep both branches — do not collapse `loadView`).
 
-`filterDynamicRoutes` separately filters `dynamicRoutes` by `permissions` / `roles` arrays using the `$auth` plugin.
+Permission checks read `store.getters.permissions` / `roles` (wildcard `*:*:*` and role `admin` always pass):
 
-Permission checks have three surfaces, all reading `store.getters.permissions` / `roles`:
+- Directives `v-hasPermi="['sys:user:add']"` / `v-hasRole="['admin']"` ([src/directive/permission](src/directive/permission))
+- Imperative `$auth.hasPermi(...)` / `hasPermiOr(...)` / `hasPermiAnd(...)` ([src/plugins/auth.js](src/plugins/auth.js))
 
-- `v-hasPermi="['sys:user:add']"` / `v-hasRole="['admin']"` directives ([src/directive/permission](src/directive/permission)) remove the element from the DOM when denied.
-- `this.$auth.hasPermi(...)` / `hasPermiOr(...)` / `hasPermiAnd(...)` ([src/plugins/auth.js](src/plugins/auth.js)) for imperative checks.
-- The wildcard permission `*:*:*` and role `admin` always pass.
+### Global registrations (main.js) & shared utilities
 
-### Global registrations (main.js)
+[src/main.js](src/main.js) registers global components (`DictTag`, `Pagination`, `FluentIcon`, and `svg-icon` via [src/assets/icons/index.js](src/assets/icons/index.js)), prototype helpers from [src/utils/common.js](src/utils/common.js) (`parseTime`, `resetForm`, `addDateRange`, `handleTree`), directives (`hasPermi`, `hasRole`), plugins (`$tab`, `$auth`, `$modal`), and Element UI defaults (`closeOnClickModal = false`, `size = 'small'`).
 
-[src/main.js](src/main.js) wires global components (`DictTag`, `Pagination`, `RightTool`), global prototypes (`$echarts`, `$tab`, `$auth`, `$modal`, `parseTime`, `handleTree`, `resetForm`, etc. from [src/utils/rongji.js](src/utils/rongji.js)), and patches Element UI defaults:
-
-- `el-input` default `maxlength=50` (textarea: 300) unless explicitly overridden
-- `el-dialog` `closeOnClickModal` defaulted to `false`
-- ElementUI default size: `small`
-
-When adding a global utility, mount it here so views can call `this.xxx` without importing.
+Shared helpers:
+- [src/utils/common.js](src/utils/common.js): `parseTime`, `resetForm`, `addDateRange`, `parseStrEmpty`, `mergeRecursive`, `handleTree`, `tansParams`.
+- [src/utils/clipboard.js](src/utils/clipboard.js): `copyText(text)` returning a Promise (Clipboard API with hidden-textarea fallback).
+- [src/utils/validate.js](src/utils/validate.js): `isExternal`, `DEFAULT_PASSWORD_POLICY`, `formatPasswordRule`, `validPassword`, `newPasswordRule`.
 
 ### Dictionary system
 
-Backend-driven enums are loaded lazily via the `dicts` component option. [src/utils/dict](src/utils/dict) installs a Vue mixin: any component declaring `dicts: ['user_status', ...]` gets a reactive `this.dict.type.user_status` populated by `getDicts(type)` ([src/api/sys/dict/data.js](src/api/sys/dict/data.js)). `<dict-tag>` renders a value against a dict array. Configuration of label/value field names lives in [src/components/DictData/index.js](src/components/DictData/index.js) (`labelField: dictLabel`, `valueField: dictValue`).
+Backend-driven enums load lazily via the `dicts` component option ([src/utils/dict](src/utils/dict), configured in [src/components/DictData/index.js](src/components/DictData/index.js) with `labelField: dictLabel`, `valueField: dictValue`). Components declaring `dicts: ['user_status', ...]` receive reactive `this.dict.type.user_status` and render values with `<dict-tag>`.
 
-### Layout
+### Design system & layout grammar
 
-[src/layout/index.vue](src/layout/index.vue) is the shell: sidebar (with mousedown-drag resize, min 200px, right pane min 1000px), navbar, tags-view, app-main. The watermark on every page is set in `mounted` via [src/utils/waterMark.js](src/utils/waterMark.js) using the logged-in username + timestamp.
+Visual style follows Linear / Apple Notes restraint: pure white `#FFFFFF` workspace, `#F7F7F8` subtle chrome, crisp `1px` hairlines (`#E6E6E9` / `#F0F0F3`), single accent `#094194`, tabular numbers on timestamps/metrics, and zero decorative boxes, slogans, helper-text paragraphs, or redundant tags.
 
-### File viewers
+- **Tokens**: [src/assets/styles/tokens.scss](src/assets/styles/tokens.scss) defines all colors, fonts (`$font-sans`, `$font-mono`), spacing, radii, shadows, layout sizes (`$topbar-height: 44px`, `$sidebar-width: 220px`), and motion curves.
+- **App Shell**: [src/layout/index.vue](src/layout/index.vue) combines a collapsible/resizable sidebar (sash drag) with a single `44px` top bar ([src/layout/components/Navbar.vue](src/layout/components/Navbar.vue)) containing sidebar toggle, scrollable route tabs ([src/layout/components/TagsView](src/layout/components/TagsView)), fullscreen toggle, and user menu.
+- **Canonical Page Classes** (defined in [src/assets/styles/index.scss](src/assets/styles/index.scss)):
+  - Single-pane views: `.page` > `.page-toolbar` (`.page-filters` left + `.page-actions` right) + `.page-body` (full-height `<el-table height="100%">`) + `.page-footer` (`<pagination>`).
+  - Split-pane views: `.page-split` containing `.page-aside` (or `.page-aside--right`) + `.page-content` (with `.page-header` / `.page-toolbar`, `.page-body` or `.page-body--scroll`, `.page-footer`).
+- **UI Discipline**: If a control or layout needs explanatory prose, `<el-alert>` boxes, or helper tooltips to be understood, fix the layout/structure (progressive disclosure, clear labels, side-by-side grouping, auto-selection of initial rows) instead of adding hint text. Keep one primary CTA per toolbar, left-align text/path columns and dialog titles, and keep `name` on every routed view matching backend routes for `keep-alive`.
 
-The preview dialogs under `src/components/` (`PdfViewer`, `ExcelViewer`, `WordViewer`, `ArchiveViewer`, `MarkdownViewer`) share one shell and one load lifecycle; `VideoPlayer` is a plain `el-dialog` that follows the same loading rules.
+### Heavy modules & file viewers
 
-- [src/components/ViewerDialog/index.vue](src/components/ViewerDialog/index.vue) is the dialog shell (maximize, toolbar / `before` / `after` slots, loading mask, centered `message`). Per-viewer styles override it through their own `dialog-class` prefix.
-- [src/components/ViewerDialog/viewer.js](src/components/ViewerDialog/viewer.js) is a mixin factory providing `open(source, title, ...args)` and `discard()`. A viewer implements `renderFile(blob, isStale, ...args)` (check `isStale()` after every `await` — the dialog may have closed or another file may have been opened) and optionally `resetViewer()`.
-- Heavy libraries (pdf.js, SheetJS, docx-preview, jszip, libarchive.js, marked / DOMPurify / highlight.js, hls.js) must only be reached through `import()` inside the component, usually via a sibling module (`pdfjs.js`, `grid.js`, `renderer.js`) so the library and its glue code form one `viewer-*` chunk fetched on first use. A static import of any of them puts it back into the page chunk of every view that uses the viewer.
-- Library instances and parsed documents live on non-reactive `this._xxx` fields, never in `data` (Vue 2 would deep-observe them).
+- [src/components/FluentIcon/index.vue](src/components/FluentIcon/index.vue) and [src/components/IconSelect/index.vue](src/components/IconSelect/index.vue) lazy-load [src/components/FluentIcon/icons.js](src/components/FluentIcon/icons.js) into an async `chunk-fluent-icons` bundle on first use.
+- Preview dialogs under `src/components/` (`PdfViewer`, `ExcelViewer`, `WordViewer`, `ArchiveViewer`, `MarkdownViewer`) share [src/components/ViewerDialog](src/components/ViewerDialog) and lazy-load `pdfjs-dist`, `xlsx`, `docx-preview`, `jszip`, `libarchive.js`, and `marked`/`dompurify`/`highlight.js`; [src/components/VideoPlayer](src/components/VideoPlayer) wraps `<el-dialog>` directly and lazy-loads `hls.js`.
+- Flowable `BpmnDesigner` and `BpmnViewer` are loaded asynchronously by [src/views/flowable/definition/index.vue](src/views/flowable/definition/index.vue).
+- Non-Vue instances (PDF docs, workbooks, HLS, BPMN modeler/viewer) live on non-reactive `this._xxx` fields so Vue 2 never deep-observes them.
 
 ### Build pipeline
 
-[vue.config.js](vue.config.js) splits chunks into `chunk-libs` / `chunk-elementUI` / `chunk-echarts` / `chunk-fluent-icons` / `chunk-commons`, drops `console.log/info/debug` and `debugger` in production via Terser (keeps `warn`/`error` — Vue reports component errors through `console.error`), emits `.gz` + `.br` for assets > 10KB (including the libarchive `.wasm`), and uses webpack 5 filesystem cache (`cache.type = 'filesystem'`, invalidated when `vue.config.js`, `package.json` or `babel.config.js` changes) — expect a slow first build, fast subsequent ones.
-
-The `browserslist` in package.json is an explicit ES2018 floor (Chrome 63 / Edge 79 / Firefox 60 / Safari 11.1), matching the syntax that untranspiled `node_modules` code in the initial bundle already requires. Every target supports ES modules, so Vue CLI does a single modern build; adding a non-ESM target (e.g. IE 11) would bring back the modern + legacy double build without making the app work in that browser.
-
-SCSS values exported to JS via `:export` must live in a `*.module.scss` file (e.g. `src/assets/styles/variables.module.scss`). Vue CLI 5's css-loader only processes `:export` for CSS modules, so importing a plain `.scss` file into JS yields `undefined` in production builds. SVGs under `src/assets/icons/svg/` are auto-registered as `<svg-icon icon-class="name"/>` via svg-sprite-loader; other SVGs go through the default loader.
-
-Webpack `prefetch` plugin is deleted (preload is kept) to avoid hurting first-paint LCP.
+[vue.config.js](vue.config.js) splits vendor chunks (`chunk-libs`, `chunk-elementUI`, async `chunk-fluent-icons`, `chunk-commons`), drops `console.log/info/debug` and `debugger` in production via Terser, emits `.gz` + `.br` for assets > 10KB, copies PDF/libarchive static assets, and enables webpack 5 filesystem cache. `browserslist` targets modern ESM browsers (Chrome >= 63, Edge >= 79, Firefox >= 60, Safari >= 11.1).
 
 ## Conventions
 
-- Use `@/...` imports for anything under `src/`.
-- Add new API modules under `src/api/<domain>/` and reuse the `service` instance from `@/utils/request` so token refresh / repeat-submit guards apply.
-- When adding a route that should appear in the sidebar, it must come from the backend `getRouters` response — only auth/error/index routes belong in `constantRoutes`.
-- Passwords sent to the backend must be SM2-encrypted with `encrypt()` from [src/utils/jsencrypt.js](src/utils/jsencrypt.js).
-- The codebase is in Chinese (comments, UI strings, commit messages). Match the existing language when editing nearby content.
+- Use `@/...` imports for modules under `src/`.
+- Add new API modules under `src/api/<domain>/` reusing `service` from `@/utils/request`.
+- Sidebar routes come from the backend `getRouters` response — only auth/error/index/profile routes belong in `constantRoutes`.
+- Passwords sent to the backend must be SM2-encrypted via `await encrypt(...)` from [src/utils/jsencrypt.js](src/utils/jsencrypt.js).
+- Match the codebase's Chinese UI copy and comments when editing nearby content.

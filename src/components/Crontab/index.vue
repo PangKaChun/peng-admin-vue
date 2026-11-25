@@ -70,43 +70,47 @@
         <p class="title">时间表达式</p>
         <table>
           <thead>
-            <th v-for="item of tabTitles" width="40" :key="item">{{item}}</th>
-            <th>Cron 表达式</th>
+            <tr>
+              <th v-for="item of tabTitles" width="40" :key="item">{{item}}</th>
+              <th>Cron 表达式</th>
+            </tr>
           </thead>
           <tbody>
-            <td>
-              <span>{{crontabValueObj.second}}</span>
-            </td>
-            <td>
-              <span>{{crontabValueObj.min}}</span>
-            </td>
-            <td>
-              <span>{{crontabValueObj.hour}}</span>
-            </td>
-            <td>
-              <span>{{crontabValueObj.day}}</span>
-            </td>
-            <td>
-              <span>{{crontabValueObj.month}}</span>
-            </td>
-            <td>
-              <span>{{crontabValueObj.week}}</span>
-            </td>
-            <td>
-              <span>{{crontabValueObj.year}}</span>
-            </td>
-            <td>
-              <span>{{crontabValueString}}</span>
-            </td>
+            <tr>
+              <td>
+                <span>{{crontabValueObj.second}}</span>
+              </td>
+              <td>
+                <span>{{crontabValueObj.min}}</span>
+              </td>
+              <td>
+                <span>{{crontabValueObj.hour}}</span>
+              </td>
+              <td>
+                <span>{{crontabValueObj.day}}</span>
+              </td>
+              <td>
+                <span>{{crontabValueObj.month}}</span>
+              </td>
+              <td>
+                <span>{{crontabValueObj.week}}</span>
+              </td>
+              <td>
+                <span>{{crontabValueObj.year}}</span>
+              </td>
+              <td>
+                <span>{{crontabValueString}}</span>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
       <CrontabResult :ex="crontabValueString"></CrontabResult>
 
       <div class="pop_btn">
-        <el-button size="small" type="primary" @click="submitFill">确定</el-button>
-        <el-button size="small" type="warning" @click="clearCron">重置</el-button>
         <el-button size="small" @click="hidePopup">取消</el-button>
+        <el-button size="small" @click="clearCron">重置</el-button>
+        <el-button size="small" type="primary" @click="submitFill">确定</el-button>
       </div>
     </div>
   </div>
@@ -179,10 +183,8 @@ export default {
     },
     // 由子组件触发，更改表达式组成的字段值
     updateCrontabValue(name, value, from) {
-      "updateCrontabValue", name, value, from;
       this.crontabValueObj[name] = value;
       if (from && from !== name) {
-        console.log(`来自组件 ${from} 改变了 ${name} ${value}`);
         this.changeRadio(name, value);
       }
     },
@@ -313,7 +315,6 @@ export default {
     },
     clearCron() {
       // 还原选择项
-      ("准备还原");
       this.crontabValueObj = {
         second: "*",
         min: "*",
@@ -368,63 +369,69 @@ export default {
   },
 };
 </script>
-<style scoped>
+<style lang="scss" scoped>
+@import '../../assets/styles/tokens.scss';
+
 .pop_btn {
-  text-align: center;
-  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-2;
+  margin-top: $space-4;
+
+  .el-button + .el-button {
+    margin-left: 0;
+  }
 }
+
 .popup-main {
   position: relative;
-  margin: 10px auto;
-  background: #fff;
-  border-radius: 5px;
+  margin: 10px auto 0;
+  background: $bg-base;
+  border-radius: $radius-sm;
   font-size: 12px;
-  overflow: hidden;
 }
-.popup-title {
-  overflow: hidden;
-  line-height: 34px;
-  padding-top: 6px;
-  background: #f2f2f2;
-}
+
 .popup-result {
   box-sizing: border-box;
   line-height: 24px;
-  margin: 25px auto;
-  padding: 15px 10px 10px;
-  border: 1px solid #ccc;
+  margin: 20px auto;
+  padding: 15px 12px 12px;
+  border: 1px solid $separator;
+  border-radius: $radius-sm;
   position: relative;
 }
+
 .popup-result .title {
   position: absolute;
-  top: -28px;
+  top: -15px;
   left: 50%;
   width: 140px;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: $label;
   margin-left: -70px;
   text-align: center;
-  line-height: 30px;
-  background: #fff;
+  line-height: 28px;
+  background: $bg-base;
 }
+
 .popup-result table {
   text-align: center;
   width: 100%;
   margin: 0 auto;
 }
+
 .popup-result table span {
   display: block;
   width: 100%;
-  font-family: arial;
+  font-family: $font-mono;
+  font-variant-numeric: tabular-nums;
   line-height: 30px;
   height: 30px;
   white-space: nowrap;
   overflow: hidden;
-  border: 1px solid #e8e8e8;
-}
-.popup-result-scroll {
-  font-size: 12px;
-  line-height: 24px;
-  height: 10em;
-  overflow-y: auto;
+  border: 1px solid $separator-light;
+  border-radius: $radius-xs;
+  background: $bg-subtle;
 }
 </style>

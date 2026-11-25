@@ -23,8 +23,13 @@ const mutations = {
       Cookies.set('sidebarStatus', 0)
     }
   },
-  CLOSE_SIDEBAR: (state, withoutAnimation) => {
-    Cookies.set('sidebarStatus', 0)
+  CLOSE_SIDEBAR: (state, payload) => {
+    const { withoutAnimation, persist = true } = typeof payload === 'object' && payload !== null
+      ? payload
+      : { withoutAnimation: Boolean(payload), persist: true }
+    if (persist !== false) {
+      Cookies.set('sidebarStatus', 0)
+    }
     state.sidebar.opened = false
     state.sidebar.withoutAnimation = withoutAnimation
   },
@@ -44,8 +49,8 @@ const actions = {
   toggleSideBar({ commit }) {
     commit('TOGGLE_SIDEBAR')
   },
-  closeSideBar({ commit }, { withoutAnimation }) {
-    commit('CLOSE_SIDEBAR', withoutAnimation)
+  closeSideBar({ commit }, { withoutAnimation, persist = true }) {
+    commit('CLOSE_SIDEBAR', { withoutAnimation, persist })
   },
   toggleDevice({ commit }, device) {
     commit('TOGGLE_DEVICE', device)

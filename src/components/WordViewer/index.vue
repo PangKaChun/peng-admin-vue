@@ -56,10 +56,12 @@ export default {
 </script>
 
 <style lang="scss">
+@import '@/assets/styles/tokens.scss';
+
 .word-viewer-dialog {
   .viewer-dialog__body,
   .docx-wrapper {
-    background: #f5f7fa;
+    background: $bg-subtle;
   }
 
   .word-viewer__container {

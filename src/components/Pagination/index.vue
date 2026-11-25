@@ -52,7 +52,7 @@ export default {
     },
     autoScroll: {
       type: Boolean,
-      default: true
+      default: false
     }
   },
   data() {

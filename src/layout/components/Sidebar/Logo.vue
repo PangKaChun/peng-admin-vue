@@ -1,5 +1,5 @@
 <template>
-  <div class="sidebar-logo-container" :class="{'collapse':collapse}">
+  <div class="sidebar-logo-container" :class="{ collapse }">
     <router-link class="sidebar-logo-link" to="/">
       <span class="sidebar-logo-badge">P</span>
       <span v-if="!collapse" class="sidebar-title">{{ title }}</span>
@@ -18,7 +18,7 @@ export default {
   },
   data() {
     return {
-      title: 'PENG ADMIN'
+      title: process.env.VUE_APP_TITLE || 'PENG ADMIN'
     }
   }
 }
@@ -30,50 +30,48 @@ export default {
 .sidebar-logo-container {
   position: relative;
   width: 100%;
-  height: 50px;
-  line-height: 50px;
+  height: $topbar-height;
+  line-height: $topbar-height;
   border-bottom: 1px solid $separator;
   overflow: hidden;
 
-  & .sidebar-logo-link {
+  .sidebar-logo-link {
     height: 100%;
     width: 100%;
     display: flex;
     align-items: center;
-    padding: 0 $space-4;
+    padding: 0 $space-3;
     box-sizing: border-box;
 
-    & .sidebar-logo-badge {
+    .sidebar-logo-badge {
       flex: none;
-      width: 26px;
-      height: 26px;
-      line-height: 26px;
+      width: 22px;
+      height: 22px;
+      line-height: 22px;
       border-radius: $radius-sm;
       background: $color-primary;
       color: #fff;
       font-weight: 700;
-      font-size: 13px;
+      font-size: 12px;
       text-align: center;
     }
 
-    & .sidebar-title {
+    .sidebar-title {
       display: inline-block;
-      margin: 0 0 0 $space-3;
+      margin-left: $space-2;
       color: $label;
       font-weight: 600;
-      line-height: 20px;
-      font-size: 14px;
+      font-size: 13px;
+      letter-spacing: -0.01em;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
   }
 
-  &.collapse {
-    .sidebar-logo-link {
-      padding: 0;
-      justify-content: center;
-    }
+  &.collapse .sidebar-logo-link {
+    padding: 0;
+    justify-content: center;
   }
 }
 </style>

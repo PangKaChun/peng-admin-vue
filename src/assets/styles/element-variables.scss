@@ -1,43 +1,32 @@
-/**
-* I think element-ui's default theme color is too light for long-term use.
-* So I modified the default color and you can modify it to your liking.
-**/
-
 @import './tokens.scss';
 
-/* theme color —— 引用 Apple 设计 token */
+// Element UI 主题变量映射
 $--color-primary: $color-primary;
 $--color-success: $color-success;
 $--color-warning: $color-warning;
 $--color-danger:  $color-danger;
 $--color-info:    $color-info;
 
-$--button-font-weight: 400;
+$--color-text-primary:     $label;
+$--color-text-regular:     $label;
+$--color-text-secondary:   $label-secondary;
+$--color-text-placeholder: $label-tertiary;
 
-// $--color-text-regular: #1f2d3d;
-
-$--border-color-light: $separator;
+$--border-color-base:    $separator;
+$--border-color-light:   $separator;
 $--border-color-lighter: $separator-light;
 
+$--button-font-weight: 500;
 $--table-border: 1px solid $separator-light;
 
-/* 圆角 —— 按控件尺寸分级,避免小控件套大圆角 */
-$--border-radius-base: $radius-sm;    // 6px：按钮 / 输入框
-$--border-radius-small: $radius-xs;   // 4px：checkbox 等小控件
-$--card-border-radius: $radius-md;    // 8px：卡片（默认 4px 太方）
-$--msgbox-border-radius: $radius-lg;  // 14px：消息框,与弹窗一致
+$--border-radius-base:  $radius-sm;
+$--border-radius-small: $radius-xs;
+$--card-border-radius:  $radius-md;
+$--msgbox-border-radius: $radius-lg;
 
-/* 阴影 —— 柔和、低透明度 */
-$--box-shadow-base: $shadow-popover;
+$--box-shadow-base:  $shadow-popover;
 $--box-shadow-light: $shadow-card;
 
-/* icon font path, required */
 $--font-path: '~element-ui/lib/theme-chalk/fonts';
 
 @import "~element-ui/packages/theme-chalk/src/index";
-
-// the :export directive is the magic sauce for webpack
-// https://www.bluematador.com/blog/how-to-share-variables-between-js-and-sass
-:export {
-  theme: $--color-primary;
-}

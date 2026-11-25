@@ -1,11 +1,11 @@
 <template>
-  <el-container :class="classObj" class="app-wrapper" :style="{ '--current-color': theme }">
+  <el-container :class="classObj" class="app-wrapper">
     <transition name="fade">
       <div v-if="device === 'mobile' && sidebar.opened" class="drawer-bg" @click="handleClickOutside" />
     </transition>
-    <sidebar v-if="!sidebar.hide" class="sidebar-container" :style="`width:${sidebar.opened?resize:54}px !important`" />
+    <sidebar v-if="!sidebar.hide" class="sidebar-container" :style="device === 'mobile' ? null : { width: (sidebar.opened ? resize : 54) + 'px' }" />
     <div
-      v-show="device !== 'mobile'"
+      v-show="device !== 'mobile' && sidebar.opened && !sidebar.hide"
       class="resize-sash"
       :class="{ 'is-active': isResizing }"
       :style="{ left: (sidebar.opened ? resize : 54) + 'px' }"
@@ -17,7 +17,6 @@
         <navbar />
       </el-header>
       <el-main>
-        <tags-view />
         <app-main />
       </el-main>
     </el-container>
@@ -25,34 +24,30 @@
 </template>
 
 <script>
-import { AppMain, Navbar, Sidebar, TagsView } from './components'
+import { AppMain, Navbar, Sidebar } from './components'
 import ResizeMixin from './mixin/ResizeHandler'
 import watermarkOption from '@/utils/waterMark.js'
 import { mapState } from 'vuex'
+
 export default {
   name: 'Layout',
   components: {
     AppMain,
     Navbar,
-    Sidebar,
-    TagsView
+    Sidebar
   },
   mixins: [ResizeMixin],
   data() {
     return {
-      resize: 200,
-      defaultResize: 200,
-      minSidebarWidth: 200,
-      minMainWidth: 1000,
-      isResizing: false,
-      _onMouseMove: null,
-      _onMouseUp: null
+      resize: 220,
+      defaultResize: 220,
+      minSidebarWidth: 180,
+      minMainWidth: 760,
+      isResizing: false
     }
   },
   computed: {
     ...mapState({
-      theme: state => state.settings.theme,
-      sideTheme: state => state.settings.sideTheme,
       sidebar: state => state.app.sidebar,
       device: state => state.app.device,
       username: state => state.user.name
@@ -70,16 +65,14 @@ export default {
     watermarkOption.set(this.username, this.parseTime(new Date(), '{y}-{m}-{d} {h}:{i}:{s}'))
   },
   beforeDestroy() {
-    // 防止组件销毁时拖拽未结束，残留全局监听
     this.endResize()
+    watermarkOption.clear()
   },
   methods: {
     handleClickOutside() {
       this.$store.dispatch('app/closeSideBar', { withoutAnimation: false })
     },
-    // VS Code 风格的 sash 拖拽：mousedown 开始监听 document，mouseup 释放
     onSashMouseDown(e) {
-      // 仅响应左键
       if (e.button !== 0) return
       e.preventDefault()
 
@@ -90,13 +83,11 @@ export default {
       const startWidth = this.resize
 
       this.isResizing = true
-      // 拖拽期间屏蔽全局文字选择 + 强制 cursor，避免穿过 iframe / 富文本时光标抖动
       document.body.style.userSelect = 'none'
       document.body.style.cursor = 'ew-resize'
 
-      this._onMouseMove = (evt) => {
+      this._onMouseMove = evt => {
         const dx = evt.clientX - startX
-        // sash 不占布局空间，只需约束 sidebar / 主区的最小宽度
         const maxAllowed = box.clientWidth - this.minMainWidth
         let next = startWidth + dx
         if (next < this.minSidebarWidth) next = this.minSidebarWidth
@@ -125,7 +116,6 @@ export default {
         document.body.style.cursor = ''
       }
     },
-    // 双击 sash 恢复默认宽度，与 VS Code 行为一致
     resetSashWidth() {
       this.resize = this.defaultResize
     }
@@ -140,13 +130,12 @@ export default {
   height: 100%;
 }
 
-// sash 用绝对定位浮在 sidebar / 主区交界处，需要 wrapper 提供定位上下文
 .app-wrapper {
   position: relative;
 }
 
 .el-header {
-  height: 50px !important;
+  height: $topbar-height !important;
   background-color: $bg-base;
   padding: 0;
   border-bottom: 1px solid $separator;
@@ -155,10 +144,10 @@ export default {
 .el-main {
   padding: 0;
   position: relative;
+  overflow: hidden;
 }
 
 .drawer-bg {
-  // 半透明用 rgba 而非 opacity:opacity 留给 fade 过渡(scoped 选择器优先级更高,会压住过渡类)
   background: rgba(0, 0, 0, 0.3);
   width: 100%;
   top: 0;
@@ -167,14 +156,11 @@ export default {
   z-index: 999;
 }
 
-/* VS Code 风格的可拖拽分隔条（sash） */
 .resize-sash {
   position: absolute;
   top: 0;
-  // left 由 :style 动态绑定到 sidebar 当前宽度
   width: 4px;
   height: 100%;
-  // 通过负位移让 4px 热区横跨在边界线两侧，sash 中心正好落在 sidebar 右边缘
   transform: translateX(-2px);
   cursor: ew-resize;
   background-color: transparent;
@@ -182,16 +168,15 @@ export default {
   z-index: 2001;
   touch-action: none;
 
-  // 默认不显示高亮线 —— sidebar 自身的边框/背景已经把两侧分开
   &::before {
     content: '';
     position: absolute;
     top: 0;
     left: 50%;
-    width: 4px;
+    width: 2px;
     height: 100%;
     transform: translateX(-50%) scaleX(0);
-    background-color: var(--current-color, $color-primary);
+    background-color: $color-primary;
     transition:
       transform 0.1s $ease-out 0.2s,
       opacity 0.1s $ease-out 0.2s;
@@ -199,13 +184,11 @@ export default {
     pointer-events: none;
   }
 
-  // hover：延迟后浮现 4px 高亮条（VS Code sash 的标志性效果）
   &:hover::before {
     transform: translateX(-50%) scaleX(1);
     opacity: 1;
   }
 
-  // 拖拽中：立刻高亮，无延迟
   &.is-active::before {
     transform: translateX(-50%) scaleX(1);
     opacity: 1;
@@ -214,7 +197,6 @@ export default {
       opacity 0.1s $ease-out;
   }
 
-  // 减弱动效:高亮条保持全宽,只做淡入淡出
   @media (prefers-reduced-motion: reduce) {
     &::before,
     &:hover::before,

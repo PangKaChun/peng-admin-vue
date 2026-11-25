@@ -1,4 +1,4 @@
-import { mergeRecursive } from "@/utils/rongji";
+import { mergeRecursive } from "@/utils/common";
 import DictOptions from './DictOptions'
 
 /**
@@ -33,6 +33,6 @@ DictMeta.parse= function(options) {
   } else if (typeof options === 'object') {
     opts = options
   }
-  opts = mergeRecursive(DictOptions.metas['*'], opts)
+  opts = mergeRecursive({ ...DictOptions.metas['*'] }, opts)
   return new DictMeta(opts)
 }

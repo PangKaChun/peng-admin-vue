@@ -1,5 +1,5 @@
 import request from '@/utils/request'
-import { parseStrEmpty } from "@/utils/rongji";
+import { parseStrEmpty } from "@/utils/common";
 const systemAPI = '/api-system'
 
 // 查询菜单列表

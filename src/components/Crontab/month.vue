@@ -18,7 +18,7 @@
 			<el-radio v-model='radioValue' :label="3">
 				从
 				<el-input-number v-model='average01' :min="1" :max="11" /> 月开始，每
-				<el-input-number v-model='average02' :min="1" :max="12 - average01 || 0" /> 月月执行一次
+				<el-input-number v-model='average02' :min="1" :max="12 - average01 || 0" /> 月执行一次
 			</el-radio>
 		</el-form-item>
 

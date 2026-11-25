@@ -1,6 +1,13 @@
 <template>
-  <div @click="click">
-    <fluent-icon :name="isFullscreen ? 'full_screen_minimize' : 'full_screen_maximize'" />
+  <div
+    role="button"
+    tabindex="0"
+    :aria-label="isFullscreen ? '退出全屏' : '全屏'"
+    @click="click"
+    @keydown.enter.prevent="click"
+    @keydown.space.prevent="click"
+  >
+    <svg-icon :icon-class="isFullscreen ? 'exit-fullscreen' : 'fullscreen'" />
   </div>
 </template>
 
@@ -23,7 +30,7 @@ export default {
   methods: {
     click() {
       if (!screenfull.isEnabled) {
-        this.$message({ message: '你的浏览器不支持全屏', type: 'warning' })
+        this.$message({ message: '当前浏览器不支持全屏', type: 'warning' })
         return false
       }
       screenfull.toggle()

@@ -16,7 +16,7 @@ export default {
   },
   computed: {
     isExternal() {
-      return isExternal(this.to)
+      return typeof this.to === 'string' && isExternal(this.to)
     },
     type() {
       if (this.isExternal) {

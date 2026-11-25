@@ -1,10 +1,9 @@
-<!-- @author zhengjie -->
 <template>
   <div class="icon-body">
-    <el-input v-model="name" style="position: relative;margin-bottom: 5px;" clearable placeholder="请输入图标名称" @clear="filterIcons" @input.native="filterIcons">
+    <el-input v-model="name" clearable placeholder="搜索图标" style="margin-bottom: 8px;" @clear="filterIcons" @input="filterIcons">
       <i slot="suffix" class="el-icon-search el-input__icon" />
     </el-input>
-    <el-tabs v-model="activeTab">
+    <el-tabs v-model="activeTab" @tab-click="onTabClick">
       <el-tab-pane label="默认图标" name="svg">
         <div class="icon-list">
           <div v-for="(item, index) in iconList" :key="index" @click="selectedIcon(item)">
@@ -14,7 +13,7 @@
         </div>
       </el-tab-pane>
       <el-tab-pane label="Fluent 图标" name="fluent">
-        <div class="fluent-icon-list">
+        <div v-loading="fluentLoading" class="fluent-icon-list">
           <div
             v-for="(item, index) in fluentIconList"
             :key="index"
@@ -32,9 +31,6 @@
 
 <script>
 import icons from './requireIcons'
-import fluentIconMap from '@/components/FluentIcon/icons'
-
-const fluentIcons = Object.keys(fluentIconMap)
 
 export default {
   name: 'IconSelect',
@@ -43,17 +39,32 @@ export default {
       name: '',
       activeTab: 'svg',
       iconList: icons,
-      fluentIconList: fluentIcons
+      allFluentIcons: [],
+      fluentIconList: [],
+      fluentLoading: false
     }
   },
   methods: {
-    filterIcons() {
-      this.iconList = icons
-      this.fluentIconList = fluentIcons
-      if (this.name) {
-        this.iconList = this.iconList.filter(item => item.includes(this.name))
-        this.fluentIconList = this.fluentIconList.filter(item => item.includes(this.name))
+    onTabClick(tab) {
+      if (tab.name === 'fluent' && !this.allFluentIcons.length && !this.fluentLoading) {
+        this.fluentLoading = true
+        import(/* webpackChunkName: "fluent-icons" */ '@/components/FluentIcon/icons')
+          .then(mod => {
+            this.allFluentIcons = Object.keys(mod.default || mod)
+            this.filterIcons()
+          })
+          .catch(() => {
+            this.$modal && this.$modal.msgError('图标加载失败')
+          })
+          .finally(() => {
+            this.fluentLoading = false
+          })
       }
+    },
+    filterIcons() {
+      const q = this.name
+      this.iconList = q ? icons.filter(item => item.includes(q)) : icons
+      this.fluentIconList = q ? this.allFluentIcons.filter(item => item.includes(q)) : this.allFluentIcons
     },
     selectedIcon(name) {
       this.$emit('selected', name)
@@ -65,63 +76,81 @@ export default {
     },
     reset() {
       this.name = ''
-      this.iconList = icons
-      this.fluentIconList = fluentIcons
+      this.filterIcons()
     }
   }
 }
 </script>
 
-<style rel="stylesheet/scss" lang="scss" scoped>
-  @import '../../assets/styles/tokens.scss';
+<style lang="scss" scoped>
+@import '../../assets/styles/tokens.scss';
 
-  .icon-body {
-    width: 100%;
-    padding: 10px;
-    .icon-list {
-      height: 200px;
-      overflow-y: scroll;
-      div {
-        height: 30px;
-        line-height: 30px;
-        margin-bottom: -5px;
-        cursor: pointer;
-        width: 33%;
-        float: left;
-      }
-      span {
-        display: inline-block;
-        vertical-align: -0.15em;
-        fill: currentColor;
-        overflow: hidden;
+.icon-body {
+  width: 100%;
+  padding: $space-2;
+
+  .icon-list {
+    height: 200px;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-content: flex-start;
+    gap: 4px;
+
+    div {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 30px;
+      padding: 0 6px;
+      border-radius: $radius-xs;
+      cursor: pointer;
+      min-width: 0;
+      transition: background-color $duration-fast ease;
+
+      &:hover {
+        background-color: $fill-hover;
       }
     }
-    // Fluent 图标键名较长，不展示文字，正方形网格排列，悬停 title 显示键名
-    .fluent-icon-list {
-      height: 200px;
-      overflow-y: auto;
+
+    span {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 12px;
+      color: $label;
+    }
+  }
+
+  .fluent-icon-list {
+    height: 200px;
+    overflow-y: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+
+    .fluent-icon-item {
+      width: 36px;
+      height: 36px;
+      margin: 0 8px 8px 0;
       display: flex;
-      flex-wrap: wrap;
-      align-content: flex-start;
-      .fluent-icon-item {
-        width: 36px;
-        height: 36px;
-        margin: 0 8px 8px 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
-        color: $label-secondary;
-        border: 1px solid $separator;
-        border-radius: $radius-xs;
-        cursor: pointer;
-        transition: color .2s, border-color .2s, background-color .2s;
-        &:hover {
-          color: $color-primary;
-          border-color: $color-primary;
-          background-color: $fill-quaternary;
-        }
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: $label-secondary;
+      border: 1px solid $separator;
+      border-radius: $radius-xs;
+      cursor: pointer;
+      transition: color $duration-fast, border-color $duration-fast, background-color $duration-fast;
+
+      &:hover {
+        color: $color-primary;
+        border-color: $color-primary;
+        background-color: $fill-quaternary;
       }
     }
   }
+}
 </style>

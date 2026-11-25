@@ -90,8 +90,12 @@ export default {
         return this.basePath
       }
       if (routeQuery) {
-        let query = JSON.parse(routeQuery);
-        return { path: path.resolve(this.basePath, routePath), query: query }
+        try {
+          const query = JSON.parse(routeQuery)
+          return { path: path.resolve(this.basePath, routePath), query }
+        } catch (e) {
+          return path.resolve(this.basePath, routePath)
+        }
       }
       return path.resolve(this.basePath, routePath)
     }

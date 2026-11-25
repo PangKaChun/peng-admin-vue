@@ -95,7 +95,7 @@ module.exports = {
     },
     // vue-loader 15 总会导入样式块的默认导出,而生产环境样式被抽离为无导出模块,每个 .vue 都会报一条无害警告
     ignoreWarnings: [/export 'default' \(imported as 'style\d+'\) was not found/],
-    // 体积已由 Vue CLI 构建摘要逐项列出;固定 244KB 阈值必被 echarts / 图标包触发,只会制造常驻警告
+    // 体积已由 Vue CLI 构建摘要逐项列出;固定 244KB 阈值必被异步图标/BPM/PDF 包触发,只会制造常驻警告
     performance: { hints: false },
     plugins: [
       // pdf.js 运行时按需加载的 CJK 字型映射与标准字体(中文 PDF 渲染必需),发布为静态资源
@@ -186,14 +186,10 @@ module.exports = {
             priority: 20, // the weight needs to be larger than libs and app or it will be packaged into libs or app
             test: /[\\/]node_modules[\\/]_?element-ui(.*)/, // in order to adapt to cnpm
           },
-          // 首屏最大的两个依赖单独成包:图标注册表增删或其它依赖升级时,不连带 1MB 级的 echarts / 图标包缓存失效
-          echarts: {
-            name: "chunk-echarts",
-            priority: 20,
-            test: /[\\/]node_modules[\\/](echarts|zrender)[\\/]/,
-          },
+          // 图标注册表体积较大，按需异步分包，不进首屏入口
           fluentIcons: {
             name: "chunk-fluent-icons",
+            chunks: "async",
             priority: 20,
             test: /[\\/]node_modules[\\/]@fluentui[\\/]svg-icons[\\/]/,
           },

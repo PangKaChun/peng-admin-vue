@@ -1,14 +1,23 @@
 <template>
-  <div @click="toggleClick">
+  <div
+    role="button"
+    tabindex="0"
+    :aria-label="isActive ? '收起侧边栏' : '展开侧边栏'"
+    @click="toggleClick"
+    @keydown.enter.prevent="toggleClick"
+    @keydown.space.prevent="toggleClick"
+  >
     <svg
-      :class="{'is-active':isActive}"
+      :class="{ 'is-active': isActive }"
       class="hamburger"
-      viewBox="0 0 1024 1024"
-      xmlns="http://www.w3.org/2000/svg"
-      width="64"
-      height="64"
+      viewBox="0 0 16 16"
+      width="16"
+      height="16"
+      fill="none"
+      aria-hidden="true"
     >
-      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM142.4 642.1L298.7 519a8.84 8.84 0 0 0 0-13.9L142.4 381.9c-5.8-4.6-14.4-.5-14.4 6.9v246.3a8.9 8.9 0 0 0 14.4 7z" />
+      <rect x="1.75" y="2.25" width="12.5" height="11.5" rx="2" stroke="currentColor" stroke-width="1.3" />
+      <line x1="6" y1="2.25" x2="6" y2="13.75" stroke="currentColor" stroke-width="1.3" />
     </svg>
   </div>
 </template>
@@ -32,16 +41,14 @@ export default {
 
 <style scoped>
 .hamburger {
-  display: inline-block;
-  vertical-align: middle;
-  width: 20px;
-  height: 20px;
-  transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1); /* = tokens.scss 的 $ease-out */
+  display: block;
+  width: 16px;
+  height: 16px;
+  opacity: 0.72;
+  transition: opacity 0.15s ease, transform 0.2s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .hamburger.is-active {
-  transform: rotate(180deg);
+  opacity: 1;
 }
-
-svg path { fill: rgb(6,30,89) !important }
 </style>

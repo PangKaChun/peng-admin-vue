@@ -30,7 +30,6 @@
     :title="title"
     :visible.sync="dialogVisible"
     :width="width"
-    top="10vh"
     append-to-body
     @open="onOpen"
   >
@@ -69,8 +68,8 @@
 
     <div slot="footer" class="dialog-footer">
       <span v-if="multiple" class="ds-count">已选 {{ checkedCount }} 项</span>
-      <el-button @click="dialogVisible = false">取 消</el-button>
-      <el-button type="primary" @click="handleConfirm">确 定</el-button>
+      <el-button @click="dialogVisible = false">取消</el-button>
+      <el-button type="primary" @click="handleConfirm">确定</el-button>
     </div>
   </el-dialog>
 </template>
@@ -232,32 +231,29 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import '../../assets/styles/tokens.scss';
+
 .dept-select {
   .ds-tree-scroll {
     margin-top: 8px;
-    // 随内容自适应高度，超出后内部滚动，保证弹窗整体不超过屏幕高度的 80%
     max-height: calc(80vh - 230px);
     min-height: 120px;
     overflow: auto;
-    border: 1px solid #ebeef5;
-    border-radius: 4px;
+    border: 1px solid $separator-light;
+    border-radius: $radius-xs;
     padding: 6px 4px;
   }
 
   .custom-tree-node {
     display: flex;
     align-items: center;
-    font-size: 14px;
+    font-size: 13px;
 
     .node-icon {
       margin-right: 6px;
       font-size: 14px;
-      color: #f5a623;
+      color: $label-secondary;
       flex-shrink: 0;
-    }
-
-    .el-icon-document.node-icon {
-      color: #909399;
     }
   }
 }
@@ -269,7 +265,7 @@ export default {
 
   .ds-count {
     margin-right: auto;
-    color: #6e6e73;
+    color: $label-secondary;
     font-size: 13px;
   }
 }

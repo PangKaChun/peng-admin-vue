@@ -285,7 +285,7 @@ export default {
 
   .archive-viewer__summary {
     font-size: 12px;
-    color: #909399;
+    color: $label-secondary;
   }
 
   /* 滚动容器铺满预览区,滚动事件与高度都由它给出 */
@@ -314,7 +314,7 @@ export default {
     }
 
     &:hover {
-      background-color: #f5f7fa;
+      background-color: $fill-hover;
     }
   }
 
@@ -322,7 +322,7 @@ export default {
     flex-shrink: 0;
     padding: 6px;
     font-size: 12px;
-    color: #c0c4cc;
+    color: $label-tertiary;
     transition: transform $duration-fast ease;
 
     &.is-expanded {
@@ -360,7 +360,7 @@ export default {
     flex-shrink: 0;
     margin-left: 12px;
     font-size: 12px;
-    color: #909399;
+    color: $label-secondary;
     font-variant-numeric: tabular-nums;
   }
 }

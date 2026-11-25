@@ -29,7 +29,6 @@
     :title="title"
     :visible.sync="dialogVisible"
     :width="width"
-    top="10vh"
     append-to-body
     @open="onOpen"
   >
@@ -48,8 +47,8 @@
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" icon="el-icon-search" @click="handleQuery">搜索</el-button>
-          <el-button icon="el-icon-refresh" @click="resetQuery">重置</el-button>
+          <el-button icon="el-icon-search" @click="handleQuery">搜索</el-button>
+          <el-button type="text" @click="resetQuery">重置</el-button>
         </el-form-item>
       </el-form>
 
@@ -70,11 +69,11 @@
         <el-table-column v-if="multiple" type="selection" reserve-selection width="45" align="center" />
         <el-table-column v-else label="选择" width="55" align="center">
           <template slot-scope="scope">
-            <el-radio v-model="singleSelectedId" :label="scope.row.roleId" class="rs-radio" />
+            <el-radio v-model="singleSelectedId" :label="String(scope.row.roleId)" class="rs-radio" />
           </template>
         </el-table-column>
-        <el-table-column label="角色名称" prop="roleName" align="center" show-overflow-tooltip />
-        <el-table-column label="角色标识" prop="roleCode" align="center" show-overflow-tooltip />
+        <el-table-column label="角色名称" prop="roleName" align="left" show-overflow-tooltip />
+        <el-table-column label="角色标识" prop="roleCode" align="left" class-name="mono-cell" show-overflow-tooltip />
         <el-table-column label="状态" align="center" width="90">
           <template slot-scope="scope">
             <dict-tag :options="dict.type.role_status" :value="scope.row.status" />
@@ -87,6 +86,7 @@
 
       <pagination
         v-show="total > 0"
+        class="rs-pagination"
         :total="total"
         :page.sync="queryParams.pageNum"
         :limit.sync="queryParams.pageSize"
@@ -96,8 +96,8 @@
 
     <div slot="footer" class="dialog-footer">
       <span v-if="multiple" class="rs-count">已选 {{ multipleSelection.length }} 项</span>
-      <el-button @click="dialogVisible = false">取 消</el-button>
-      <el-button type="primary" @click="handleConfirm">确 定</el-button>
+      <el-button @click="dialogVisible = false">取消</el-button>
+      <el-button type="primary" @click="handleConfirm">确定</el-button>
     </div>
   </el-dialog>
 </template>
@@ -272,9 +272,15 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import '../../assets/styles/tokens.scss';
+
 .role-select {
   .rs-query {
     margin-bottom: 8px;
+  }
+
+  .rs-pagination {
+    margin-top: $space-3;
   }
 
   .rs-radio {
@@ -297,7 +303,7 @@ export default {
 
   .rs-count {
     margin-right: auto;
-    color: #6e6e73;
+    color: $label-secondary;
     font-size: 13px;
   }
 }

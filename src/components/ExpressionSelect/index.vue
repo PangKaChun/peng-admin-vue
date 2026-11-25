@@ -26,7 +26,6 @@
     :title="title"
     :visible.sync="dialogVisible"
     :width="width"
-    top="10vh"
     append-to-body
     @open="onOpen"
   >
@@ -48,8 +47,8 @@
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" icon="el-icon-search" @click="handleQuery">搜索</el-button>
-          <el-button icon="el-icon-refresh" @click="resetQuery">重置</el-button>
+          <el-button icon="el-icon-search" @click="handleQuery">搜索</el-button>
+          <el-button type="text" @click="resetQuery">重置</el-button>
         </el-form-item>
       </el-form>
 
@@ -68,11 +67,11 @@
       >
         <el-table-column label="选择" width="55" align="center">
           <template slot-scope="scope">
-            <el-radio v-model="singleSelectedId" :label="scope.row.expressionId" class="es-radio" />
+            <el-radio v-model="singleSelectedId" :label="String(scope.row.expressionId)" class="es-radio" />
           </template>
         </el-table-column>
-        <el-table-column label="表达式名称" prop="expressionName" align="center" show-overflow-tooltip />
-        <el-table-column label="表达式内容" prop="expressionContent" align="center" show-overflow-tooltip />
+        <el-table-column label="表达式名称" prop="expressionName" align="left" show-overflow-tooltip />
+        <el-table-column label="表达式内容" prop="expressionContent" align="left" class-name="mono-cell" show-overflow-tooltip />
         <el-table-column label="表达式类型" align="center" width="120">
           <template slot-scope="scope">
             <dict-tag :options="dict.type.flow_expression_type" :value="scope.row.expressionType" />
@@ -85,6 +84,7 @@
 
       <pagination
         v-show="total > 0"
+        class="es-pagination"
         :total="total"
         :page.sync="queryParams.pageNum"
         :limit.sync="queryParams.pageSize"
@@ -93,8 +93,8 @@
     </div>
 
     <div slot="footer" class="dialog-footer">
-      <el-button @click="dialogVisible = false">取 消</el-button>
-      <el-button type="primary" @click="handleConfirm">确 定</el-button>
+      <el-button @click="dialogVisible = false">取消</el-button>
+      <el-button type="primary" @click="handleConfirm">确定</el-button>
     </div>
   </el-dialog>
 </template>
@@ -228,9 +228,15 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import '../../assets/styles/tokens.scss';
+
 .expression-select {
   .es-query {
     margin-bottom: 8px;
+  }
+
+  .es-pagination {
+    margin-top: $space-3;
   }
 
   .es-radio {

@@ -11,10 +11,7 @@
       drag
     >
       <i class="el-icon-upload"></i>
-      <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
-      <div class="el-upload__tip" slot="tip">
-        单文件最大 {{ maxSizeMb }}MB，支持分片上传与断点续传
-      </div>
+      <div class="el-upload__text">拖拽文件至此，或<em>点击选择</em></div>
     </el-upload>
 
     <div class="upload-status" v-if="file">
@@ -108,10 +105,6 @@ export default {
     }
   },
   computed: {
-    // 分片大小(MB) 展示
-    chunkSizeMb() {
-      return (this.chunkSize / 1024 / 1024).toFixed(0)
-    },
     // 是否处于忙碌状态
     isBusy() {
       return this.status === UploadStatus.CHECKING
@@ -160,6 +153,29 @@ export default {
       }
     }
   },
+  watch: {
+    isBusy(val) {
+      this.$emit('busy-change', val)
+    }
+  },
+  created() {
+    this._destroyed = false
+    this._pollTimer = null
+    this._pollResolve = null
+  },
+  beforeDestroy() {
+    this._destroyed = true
+    this.paused = true
+    if (this._pollTimer) {
+      clearTimeout(this._pollTimer)
+      this._pollTimer = null
+    }
+    if (this._pollResolve) {
+      const resolve = this._pollResolve
+      this._pollResolve = null
+      resolve()
+    }
+  },
   methods: {
     /** 选择文件 */
     onFileChange(file) {
@@ -189,9 +205,11 @@ export default {
       try {
         // 断点续传：查询服务端已持有的分片
         const res = await checkChunks({ identifier: this.identifier, totalChunks: this.totalChunks })
+        if (this._destroyed) return
         this.uploadedSet = new Set(res.uploadedChunks || [])
         this.updatePercent()
       } catch (e) {
+        if (this._destroyed) return
         this.status = UploadStatus.ERROR
         this.errorMsg = '检查分片失败，可点击重试'
         return
@@ -200,6 +218,7 @@ export default {
     },
     /** 继续/重试上传 */
     async continueUpload() {
+      if (this._destroyed) return
       this.prepareUpload()
 
       const pending = this.getPendingChunks()
@@ -211,11 +230,13 @@ export default {
       try {
         await this.uploadPendingChunks(pending)
       } catch (e) {
+        if (this._destroyed) return
         this.status = UploadStatus.ERROR
         this.errorMsg = '分片上传失败，可点击重试'
         return
       }
 
+      if (this._destroyed) return
       if (this.paused) {
         this.status = UploadStatus.PAUSED
         return
@@ -248,10 +269,11 @@ export default {
       let cursor = 0
       let failed = false
       const worker = async () => {
-        while (cursor < pending.length && !this.paused && !failed) {
+        while (cursor < pending.length && !this.paused && !failed && !this._destroyed) {
           const index = pending[cursor++]
           try {
             await this.sendChunkWithRetry(index)
+            if (this._destroyed) return
             this.uploadedSet.add(index)
             this.updatePercent()
           } catch (e) {
@@ -293,6 +315,7 @@ export default {
     },
     /** 合并分片:提交后台异步合并,再轮询结果(大文件哈希+上传耗时长,避免请求超时) */
     async merge() {
+      if (this._destroyed) return
       this.status = UploadStatus.MERGING
       try {
         await mergeChunks({
@@ -301,11 +324,14 @@ export default {
           totalChunks: this.totalChunks,
           publicFlag: this.isPublic
         })
+        if (this._destroyed) return
         const oss = await this.pollMergeResult()
+        if (this._destroyed) return
         this.status = UploadStatus.SUCCESS
         this.percent = 100
         this.$emit('success', oss)
       } catch (e) {
+        if (this._destroyed) return
         this.status = UploadStatus.ERROR
         this.errorMsg = (e && e.message) ? e.message : '合并失败，可点击重试'
       }
@@ -315,8 +341,9 @@ export default {
       // 每 1.5s 轮询一次，最多约 30 分钟，覆盖超大文件的哈希与上传耗时
       const intervalMs = 1500
       const maxAttempts = 1200
-      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      for (let attempt = 0; attempt < maxAttempts && !this._destroyed; attempt++) {
         const res = await getMergeStatus(this.identifier)
+        if (this._destroyed) return null
         if (res.status === 'success') {
           return res.oss
         }
@@ -325,11 +352,19 @@ export default {
         }
         await this.sleep(intervalMs)
       }
+      if (this._destroyed) return null
       throw new Error('合并超时，请稍后重试')
     },
     /** 延时 */
     sleep(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms))
+      return new Promise(resolve => {
+        this._pollResolve = resolve
+        this._pollTimer = setTimeout(() => {
+          this._pollTimer = null
+          this._pollResolve = null
+          resolve()
+        }, ms)
+      })
     },
     /** 暂停 */
     pause() {
@@ -382,88 +417,87 @@ export default {
 @import '@/assets/styles/tokens.scss';
 
 .chunk-upload {
-  // 拖拽上传区:撑满容器宽度
   ::v-deep .el-upload,
   ::v-deep .el-upload-dragger {
     width: 100%;
   }
+
   ::v-deep .el-upload-dragger {
     height: auto;
     padding: 28px 16px;
-    border: 1px dashed #d9dde3;
-    border-radius: 8px;
-    background-color: #fafbfc;
-    transition: border-color 0.2s ease, background-color 0.2s ease;
+    border: 1px dashed $separator;
+    border-radius: $radius-md;
+    background-color: $bg-subtle;
+    transition: border-color $duration-fast ease, background-color $duration-fast ease;
 
     .el-icon-upload {
       margin: 0 0 8px;
-      font-size: 48px;
+      font-size: 40px;
       line-height: 1;
-      color: #c0c4cc;
-      transition: color 0.2s ease;
+      color: $label-tertiary;
+      transition: color $duration-fast ease;
     }
+
     .el-upload__text {
-      font-size: 14px;
-      color: #606266;
+      font-size: 13px;
+      color: $label-secondary;
 
       em {
         color: $color-primary;
         font-style: normal;
       }
     }
+
     &:hover {
       border-color: $color-primary;
-      background-color: rgba($color-primary, 0.05);
+      background-color: rgba($color-primary, 0.04);
 
       .el-icon-upload {
         color: $color-primary;
       }
     }
   }
-  ::v-deep .el-upload__tip {
-    margin-top: 8px;
-    font-size: 12px;
-    line-height: 1.5;
-    color: #a8abb2;
-    text-align: center;
+
+  .upload-status {
+    margin-top: $space-3;
+    padding: $space-3 $space-4;
+    border: 1px solid $separator-light;
+    border-radius: $radius-md;
+    background-color: $bg-base;
   }
 
-  // 上传状态卡片
-  .upload-status {
-    margin-top: 14px;
-    padding: 14px 16px;
-    border: 1px solid #ebeef5;
-    border-radius: 8px;
-    background-color: #fff;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-  }
   .file-row {
     display: flex;
     align-items: center;
   }
+
   .file-icon {
     flex-shrink: 0;
     margin-right: 10px;
-    font-size: 26px;
+    font-size: 24px;
     color: $color-primary;
   }
+
   .file-info {
     flex: 1;
-    min-width: 0; // 允许子元素省略号生效
+    min-width: 0;
   }
+
   .file-name {
     overflow: hidden;
     font-size: 13px;
     font-weight: 500;
-    color: #303133;
+    color: $label;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
   .file-size {
     margin-top: 2px;
     font-size: 12px;
-    color: #909399;
+    color: $label-secondary;
   }
+
   .status-text {
     flex-shrink: 0;
     margin: 0 12px;
@@ -473,32 +507,38 @@ export default {
 
     &--checking,
     &--merging {
-      color: #909399;
+      color: $label-secondary;
     }
+
     &--uploading {
       color: $color-primary;
     }
+
     &--paused {
-      color: #e6a23c;
+      color: $color-warning;
     }
+
     &--success {
-      color: #67c23a;
+      color: $color-success;
     }
+
     &--error {
-      color: #f56c6c;
+      color: $color-danger;
     }
   }
+
   .actions {
     display: flex;
     flex-shrink: 0;
     gap: 6px;
 
     ::v-deep .el-button + .el-button {
-      margin-left: 0; // 间距统一交给 gap 控制
+      margin-left: 0;
     }
   }
+
   .upload-progress {
-    margin-top: 12px;
+    margin-top: $space-3;
   }
 }
 </style>

@@ -1,30 +1,36 @@
-// ===== 强调色 & 语义色（Apple System Colors）=====
-$color-primary:        #094194; // System Blue
-$color-primary-hover:  #1976D2; // 主色亮一档（hover）
-$color-primary-active: #082E6C; // 主色暗一档（active）
-$color-success:        #388E3C; // System Green
-$color-warning:        #FF9500; // System Orange
-$color-danger:         #D32F2F; // System Red
-$color-info:           #33333399; // System Gray
+// ===== 强调色 & 语义色 =====
+$color-primary:        #094194;
+$color-primary-hover:  #1453B0;
+$color-primary-active: #073274;
+$color-success:        #1F8A4C;
+$color-warning:        #C97A00;
+$color-danger:         #D12F2F;
+$color-info:           #666670;
 
-// ===== 中性色 =====
-$bg-base:           #FFFFFF; // 主背景
-$bg-grouped:        #F2F2F7; // 分组背景（拟替换各处 #f2f2f2 / #f8f8f9）
-$fill-quaternary:   #F5F5F7; // 极浅填充（表头等）
-$fill-hover:        rgba(0, 0, 0, 0.045); // 悬停底色（侧栏菜单项 / 顶栏按钮）
-$separator:         #DCDCE0; // 统一分隔线（卡片 / 分割线 / 表格外框）
-$separator-light:   #E8E8ED; // 更浅的分隔线（表格内框等）
-$label:             #1D1D1F; // 主文字
-$label-secondary:   #6E6E73; // 次要文字
-$label-tertiary:    #AEAEB2; // 三级文字(占位符 / 弱化图标)
+// ===== 中性色（Linear / Apple Notes 克制黑白灰）=====
+$bg-base:           #FFFFFF;
+$bg-subtle:         #F7F7F8;
+$bg-grouped:        $bg-subtle;
+$fill-quaternary:   #F4F4F6;
+$fill-hover:        rgba(0, 0, 0, 0.04);
+$fill-active:       rgba(0, 0, 0, 0.065);
+$separator:         #E6E6E9;
+$separator-light:   #F0F0F3;
+$label:             #18181B;
+$label-secondary:   #666670;
+$label-tertiary:    #9B9BA6;
 
-// ===== 圆角(随控件尺寸分级)=====
-$radius-xs: 4px;  // 小控件:checkbox / tag
-$radius-sm: 6px;  // 按钮 / 输入框
-$radius-md: 8px;  // 卡片 / 浮层
-$radius-lg: 14px; // 弹窗 / 大卡片
+// ===== 字体 =====
+$font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+$font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
 
-// ===== 间距(4 / 8pt 栅格)=====
+// ===== 圆角 =====
+$radius-xs: 4px;
+$radius-sm: 6px;
+$radius-md: 8px;
+$radius-lg: 12px;
+
+// ===== 间距（4 / 8pt 栅格）=====
 $space-1: 4px;
 $space-2: 8px;
 $space-3: 12px;
@@ -33,32 +39,19 @@ $space-5: 20px;
 $space-6: 24px;
 $space-8: 32px;
 
-// ===== 阴影（柔和、低透明度）=====
-$shadow-card:    0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.08);
-$shadow-popover: 0 6px 24px rgba(0, 0, 0, 0.12);
+// ===== 阴影 =====
+$shadow-card:    0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.06);
+$shadow-popover: 0 4px 20px rgba(0, 0, 0, 0.09), 0 0 0 1px rgba(0, 0, 0, 0.05);
 
-// ===== 岛屿(功能模块的 Islands 风格)=====
-// 只用于页面内容区:内容区是画布,侧栏树 / 查询栏 / 表格等功能模块各成一座岛;
-// 岛与岛之间只靠缝隙 + 色阶区分,不画边框。布局外壳(侧栏 / 顶栏 / 页签)不用这套
-$bg-canvas:     #EBECF0;     // 画布:介于 systemGray6 与 systemGray5 之间的冷灰
-$bg-island:     $bg-base;    // 岛屿:纯白
-$island-gap:    $space-2;    // 8px:岛与岛、岛与内容区边缘的统一缝隙
-$radius-island: $radius-lg;  // 14px:岛是页面里最大的容器,用最大一级圆角
-// 克制阴影:1px 极淡描边圈定轮廓 + 1px 软投影托起,不做大面积弥散
-$shadow-island: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.05);
-
-@mixin island {
-  background-color: $bg-island;
-  border-radius: $radius-island;
-  box-shadow: $shadow-island;
-}
+// ===== 布局尺寸 =====
+$topbar-height:           44px;
+$sidebar-width:           220px;
+$sidebar-collapsed-width: 54px;
 
 // ===== 动效 =====
-// 曲线:内置 ease-* 太弱,统一用更有力度的自定义曲线(hover 色彩过渡直接用内置 ease 即可)
-$ease-out:      cubic-bezier(0.23, 1, 0.32, 1);   // 强减速:入场 / 展开,起步快、收尾稳
-$ease-in-out:   cubic-bezier(0.77, 0, 0.175, 1);  // 强对称:在屏元素移动 / 折叠
-$ease-drawer:   cubic-bezier(0.32, 0.72, 0, 1);  // iOS 抽屉曲线:抽屉 / 侧滑面板
-// 时长:UI 动效不超过 300ms;出场恒快于入场
-$duration-fast: 0.15s; // 出场 / hover / 按压反馈
-$duration-base: 0.2s;  // 下拉、浮层入场
-$duration-slow: 0.25s; // 弹窗、路由切换入场
+$ease-out:      cubic-bezier(0.23, 1, 0.32, 1);
+$ease-in-out:   cubic-bezier(0.77, 0, 0.175, 1);
+$ease-drawer:   cubic-bezier(0.32, 0.72, 0, 1);
+$duration-fast: 0.15s;
+$duration-base: 0.2s;
+$duration-slow: 0.25s;

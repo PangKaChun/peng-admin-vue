@@ -38,21 +38,25 @@ const mutations = {
     })
   },
   DEL_OTHERS_CACHED_VIEWS: (state, view) => {
-    const index = state.cachedViews.indexOf(view.name)
-    if (index > -1) {
-      state.cachedViews = state.cachedViews.slice(index, index + 1)
-    } else {
-      state.cachedViews = []
+    const keep = new Set(
+      state.visitedViews.filter(v => v.meta && v.meta.affix && v.name).map(v => v.name)
+    )
+    if (view && view.name) {
+      keep.add(view.name)
     }
+    state.cachedViews = state.cachedViews.filter(name => keep.has(name))
   },
 
   DEL_ALL_VISITED_VIEWS: state => {
     // keep affix tags
-    const affixTags = state.visitedViews.filter(tag => tag.meta.affix)
+    const affixTags = state.visitedViews.filter(tag => tag.meta && tag.meta.affix)
     state.visitedViews = affixTags
   },
   DEL_ALL_CACHED_VIEWS: state => {
-    state.cachedViews = []
+    const affixNames = new Set(
+      state.visitedViews.filter(v => v.meta && v.meta.affix && v.name).map(v => v.name)
+    )
+    state.cachedViews = state.cachedViews.filter(name => affixNames.has(name))
   },
 
   UPDATE_VISITED_VIEW: (state, view) => {

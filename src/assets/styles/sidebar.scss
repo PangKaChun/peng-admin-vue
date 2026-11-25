@@ -1,22 +1,13 @@
 #app {
-
   .main-container {
     min-height: 100%;
     position: relative;
   }
 
-  .sidebarHide {
-    margin-left: 0!important;
-  }
-
   .sidebar-container {
-    // -webkit-transition: width .28s;
-    // transition: width 0.28s;
-    // width: $base-sidebar-width !important;
-    background-color: $base-menu-background;
+    background-color: $bg-subtle;
     height: 100%;
-    // position: fixed;
-    font-size: 0px;
+    font-size: 0;
     top: 0;
     bottom: 0;
     left: 0;
@@ -24,7 +15,6 @@
     overflow: hidden;
     border-right: 1px solid $separator;
 
-    // reset element-ui css
     .horizontal-collapse-transition {
       transition: 0s width ease-in-out, 0s padding-left ease-in-out, 0s padding-right ease-in-out;
     }
@@ -34,7 +24,7 @@
     }
 
     .el-scrollbar__bar.is-vertical {
-      right: 0px;
+      right: 0;
     }
 
     .el-scrollbar {
@@ -43,7 +33,7 @@
 
     &.has-logo {
       .el-scrollbar {
-        height: calc(100% - 50px);
+        height: calc(100% - #{$topbar-height});
       }
     }
 
@@ -59,12 +49,12 @@
 
     .svg-icon,
     .fluent-icon {
-      margin-right: 12px;
-      font-size: 16px;
+      margin-right: 10px;
+      font-size: 15px;
     }
 
     .fluent-icon {
-      transform: translateX(-2px);
+      transform: translateX(-1px);
     }
 
     .el-menu {
@@ -82,7 +72,7 @@
     }
 
     .el-submenu__title .el-submenu__icon-arrow {
-      right: 12px;
+      right: 10px;
     }
 
     .el-menu-item,
@@ -90,30 +80,30 @@
       overflow: hidden !important;
       text-overflow: ellipsis !important;
       white-space: nowrap !important;
-      height: 40px !important;
-      line-height: 40px !important;
-      margin: 2px 0;
+      height: 34px !important;
+      line-height: 34px !important;
+      margin: 1px 0;
       border-radius: $radius-sm;
-      font-size: 14px;
+      font-size: 13px;
       background-color: transparent !important;
-      color: $base-menu-color !important;
-      transition: background-color .15s $ease-out, color .15s $ease-out;
+      color: $label-secondary !important;
+      transition: background-color $duration-fast $ease-out, color $duration-fast $ease-out;
 
       i,
       .svg-icon,
       .fluent-icon {
-        color: $base-menu-color !important;
-        transition: color .15s $ease-out;
+        color: $label-secondary !important;
+        transition: color $duration-fast $ease-out;
       }
 
       &:hover {
-        background-color: $base-sub-menu-hover !important;
-        color: $base-menu-color-active !important;
+        background-color: $fill-hover !important;
+        color: $label !important;
 
         i,
         .svg-icon,
         .fluent-icon {
-          color: $base-menu-color-active !important;
+          color: $label !important;
         }
       }
     }
@@ -121,50 +111,42 @@
     .submenu-title-noDropdown.is-active,
     .el-menu-item.is-active,
     .el-submenu .el-menu-item.is-active {
-      background-color: $base-menu-active-background !important;
-      color: $base-menu-accent !important;
-      font-weight: 600;
+      background-color: rgba($color-primary, 0.09) !important;
+      color: $color-primary !important;
+      font-weight: 500;
 
       i,
       .svg-icon,
       .fluent-icon {
-        color: $base-menu-accent !important;
+        color: $color-primary !important;
       }
 
       &:hover {
-        background-color: $base-menu-active-background !important;
+        background-color: rgba($color-primary, 0.09) !important;
       }
     }
 
-    // 目录下有选中子项时，目录本身仅加深文字色，不整条高亮（避免与子项高亮重复）
     .el-submenu.is-active > .el-submenu__title {
-      color: $base-menu-color-active !important;
+      color: $label !important;
 
       i,
       .svg-icon,
       .fluent-icon {
-        color: $base-menu-color-active !important;
+        color: $label !important;
       }
     }
 
-    // 仅约束宽度，背景色/hover 交给上面通用规则处理（避免同specificity规则打架，被source order反悔覆盖选中态）
     .nest-menu .el-submenu > .el-submenu__title,
     .el-submenu .el-menu-item {
-      min-width: calc(#{$base-sidebar-width} - #{$space-4}) !important;
+      min-width: 0 !important;
     }
   }
 
   .hideSidebar {
     .sidebar-container {
-      width: 54px !important;
+      width: $sidebar-collapsed-width !important;
     }
 
-    .main-container {
-      // margin-left: 54px;
-    }
-
-    // 折叠后菜单项宽 = 54px 侧栏 - 16px 菜单内边距 = 38px，
-    // 图标 16px 要居中即 margin-left (38-16)/2 = 11px（旧值 20px 是菜单无内边距时代的居中值）
     .submenu-title-noDropdown {
       padding: 0 !important;
       position: relative;
@@ -183,7 +165,7 @@
     .el-submenu {
       overflow: hidden;
 
-      &>.el-submenu__title {
+      & > .el-submenu__title {
         padding: 0 !important;
 
         .svg-icon,
@@ -193,16 +175,15 @@
         }
 
         .fluent-icon {
-          transform: translateX(-2px);
+          transform: translateX(-1px);
         }
       }
     }
 
     .el-menu--collapse {
       .el-submenu {
-        &>.el-submenu__title {
-          // 只藏标题文字:FluentIcon 本身也渲染为 span,不能被一并隐藏
-          &>span:not(.fluent-icon) {
+        & > .el-submenu__title {
+          & > span:not(.fluent-icon) {
             height: 0;
             width: 0;
             overflow: hidden;
@@ -210,7 +191,6 @@
             display: inline-block;
           }
 
-          // 菜单项外包了一层 div,Element 自带的折叠态隐藏箭头规则匹配不到
           .el-submenu__icon-arrow {
             display: none;
           }
@@ -220,21 +200,19 @@
   }
 
   .el-menu--collapse .el-menu .el-submenu {
-    min-width: $base-sidebar-width !important;
+    min-width: $sidebar-width !important;
   }
 
-  // mobile responsive
   .mobile {
     .main-container {
-      margin-left: 0px;
+      margin-left: 0;
     }
 
     .sidebar-container {
       position: fixed;
       transition: transform $duration-slow $ease-drawer;
-      width: $base-sidebar-width !important;
+      width: $sidebar-width !important;
 
-      // 减弱动效:抽屉必须移动才有意义,reduce 下改为瞬时定位
       @media (prefers-reduced-motion: reduce) {
         transition: none;
       }
@@ -242,16 +220,14 @@
 
     &.hideSidebar {
       .sidebar-container {
-        width: 0 !important;
         pointer-events: none;
         transition-duration: $duration-base;
-        transform: translate3d(-$base-sidebar-width, 0, 0);
+        transform: translate3d(-$sidebar-width, 0, 0);
       }
     }
   }
 
   .withoutAnimation {
-
     .main-container,
     .sidebar-container {
       transition: none;
@@ -259,91 +235,90 @@
   }
 }
 
-// when menu collapsed
+// 侧栏折叠后悬停弹出菜单
 .el-menu--vertical {
-  &>.el-menu {
+  & > .el-menu {
     .svg-icon,
     .fluent-icon {
-      margin-right: 12px;
+      margin-right: 10px;
+      font-size: 15px;
     }
   }
 
-  .nest-menu .el-submenu>.el-submenu__title,
+  .el-menu a {
+    display: block;
+    width: 100%;
+  }
+
+  .nest-menu .el-submenu > .el-submenu__title,
   .el-menu-item {
     &:hover {
-      background-color: $base-sub-menu-hover !important;
+      background-color: $fill-hover !important;
     }
   }
 
-  // the scroll bar appears when the subMenu is too long
-  >.el-menu--popup {
+  > .el-menu--popup {
     max-height: 100vh;
     overflow-y: auto;
-
-    &::-webkit-scrollbar-track-piece {
-      background: #d3dce6;
-    }
-
-    &::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: #99a9bf;
-      border-radius: 20px;
-    }
   }
 }
 
-// 侧边栏折叠后，鼠标悬停弹出的子菜单（popper append 到 body）：浅色磨砂卡片，与 tokens 的卡片/浮层风格一致
-.el-menu--vertical.el-menu--popup-container,
 .el-menu--vertical > .el-menu--popup {
-  background-color: rgba($base-menu-background, 0.9) !important;
+  background-color: rgba($bg-subtle, 0.94) !important;
   border: 1px solid $separator;
   border-radius: $radius-md;
   box-shadow: $shadow-popover;
   padding: $space-2;
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
+  backdrop-filter: saturate(180%) blur(16px);
 
-  // 弹层挂在 body 下，#app 作用域的胶囊样式够不到，这里单独补一份同款
   .el-menu-item,
   .el-submenu__title {
-    height: 40px;
-    line-height: 40px;
-    margin: 2px 0;
-    font-size: 14px;
+    height: 34px;
+    line-height: 34px;
+    margin: 1px 0;
+    font-size: 13px;
     background-color: transparent !important;
     border-radius: $radius-sm;
-    color: $base-menu-color !important;
+    color: $label-secondary !important;
 
     i,
     .svg-icon,
     .fluent-icon {
-      color: $base-menu-color !important;
+      color: $label-secondary !important;
     }
 
     &:hover {
-      background-color: $base-sub-menu-hover !important;
-      color: $base-menu-color-active !important;
+      background-color: $fill-hover !important;
+      color: $label !important;
 
       i,
       .svg-icon,
       .fluent-icon {
-        color: $base-menu-color-active !important;
+        color: $label !important;
       }
     }
   }
 
-  .el-menu-item.is-active {
-    color: $base-menu-accent !important;
-    background-color: $base-menu-active-background !important;
-    font-weight: 600;
+  .el-submenu.is-active > .el-submenu__title {
+    color: $label !important;
 
     i,
     .svg-icon,
     .fluent-icon {
-      color: $base-menu-accent !important;
+      color: $label !important;
+    }
+  }
+
+  .el-menu-item.is-active {
+    color: $color-primary !important;
+    background-color: rgba($color-primary, 0.09) !important;
+    font-weight: 500;
+
+    i,
+    .svg-icon,
+    .fluent-icon {
+      color: $color-primary !important;
     }
   }
 }

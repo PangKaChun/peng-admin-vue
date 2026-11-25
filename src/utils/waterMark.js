@@ -1,47 +1,48 @@
-let watermarkOption = {}
+const WATERMARK_ID = 'app-watermark'
 
-let setWatermarkContent = (content, content2) => {
-  let id = '1.23452384164.1223412415';
-
-  if (document.getElementById(id) !== null) {
-    document.body.removeChild(document.getElementById(id))
+function renderWatermark(content, content2) {
+  const existing = document.getElementById(WATERMARK_ID)
+  if (existing) {
+    existing.remove()
   }
 
-  let cans = document.createElement("canvas")
-  cans.width = 200
-  cans.height = 130
+  const canvas = document.createElement('canvas')
+  canvas.width = 220
+  canvas.height = 140
 
-  let getCanvas = cans.getContext('2d')
-  getCanvas.rotate(-20 * Math.PI / 180)
-  getCanvas.font = '12px Vedana'
-  getCanvas.fillStyle = 'rgba(200, 200, 200, 0.30)'
-  getCanvas.textAlign = 'center'
-  getCanvas.textBaseline = 'middle'
-  getCanvas.fillText(content, cans.width / 4, cans.height / 2)
-  getCanvas.fillText(content2, cans.width / 4, (cans.height / 2) + 20)
+  const ctx = canvas.getContext('2d')
+  ctx.rotate((-20 * Math.PI) / 180)
+  ctx.font = '12px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif'
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.045)'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(content || '', canvas.width / 4, canvas.height / 2)
+  ctx.fillText(content2 || '', canvas.width / 4, canvas.height / 2 + 18)
 
-  let div = document.createElement('div')
-  div.id = id
-  div.style.pointerEvents = 'none'
-  div.style.top = '0px'
-  div.style.left = '0px'
-  div.style.position = 'fixed'
-  div.style.zIndex = '100000'
-  div.style.width = document.documentElement.clientWidth  + 'px'
-  div.style.height = document.documentElement.clientHeight  + 'px'
-  div.style.background = 'url(' + cans.toDataURL('image/png') + ') left top repeat'
+  const div = document.createElement('div')
+  div.id = WATERMARK_ID
+  div.style.cssText = [
+    'pointer-events:none',
+    'position:fixed',
+    'top:0',
+    'right:0',
+    'bottom:0',
+    'left:0',
+    'z-index:100000',
+    `background:url(${canvas.toDataURL('image/png')}) left top repeat`
+  ].join(';')
   document.body.appendChild(div)
-  return id
 }
 
-watermarkOption.set = (content, content2) => {
-  let id = setWatermarkContent(content, content2)
-  if(document.getElementById(id) === null){
-    id=setWatermarkContent(content, content2)
-  }
-  window.onresize = () => {
-    setWatermarkContent(content, content2)
+export default {
+  set(content, content2) {
+    this.clear()
+    renderWatermark(content, content2)
+  },
+  clear() {
+    const existing = document.getElementById(WATERMARK_ID)
+    if (existing) {
+      existing.remove()
+    }
   }
 }
-
-export default watermarkOption

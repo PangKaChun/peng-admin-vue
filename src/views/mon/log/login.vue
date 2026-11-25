@@ -1,58 +1,60 @@
 <template>
-  <el-container>
-    <el-header>
-      <el-form ref="queryForm" :model="queryParams" inline label-position="right" class="query-form" size="small">
+  <div class="page">
+    <div class="page-toolbar">
+      <el-form ref="queryForm" :model="queryParams" inline size="small" class="page-filters" @submit.native.prevent>
         <el-form-item prop="username">
-          <el-input v-model="queryParams.username" placeholder="请输入登录名" clearable style="width: 240px" @keyup.enter.native="handleQuery" />
+          <el-input
+            v-model="queryParams.username"
+            placeholder="登录名"
+            clearable
+            style="width: 180px"
+            @keyup.enter.native="handleQuery"
+          />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
-          <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
+          <el-button icon="el-icon-search" size="small" @click="handleQuery">搜索</el-button>
+          <el-button type="text" size="small" @click="resetQuery">重置</el-button>
         </el-form-item>
       </el-form>
-    </el-header>
-    <el-main>
+    </div>
+
+    <div class="page-body">
       <el-table
-        border
-        highlight-current-row
-        stripe
-        height="100%"
         v-loading="loading"
         :data="logList"
-        @selection-change="handleSelectionChange"
+        height="100%"
+        highlight-current-row
       >
-        <el-table-column type="selection" width="50" align="center" />
-        <el-table-column label="登录名" align="center" key="username" prop="username" v-if="columns[0].visible" />
-        <el-table-column label="类型" align="center" width="80" key="logType" prop="logType" v-if="columns[1].visible" :formatter="logTypeFormat" />
-        <el-table-column label="登录地址" align="center" key="ipaddr" prop="ipaddr" v-if="columns[2].visible" />
-        <el-table-column label="登录地点" align="center" key="loginLocation" prop="loginLocation" v-if="columns[3].visible" />
-        <el-table-column label="浏览器" align="center" key="browser" prop="browser" v-if="columns[4].visible" />
-        <el-table-column label="操作系统" align="center" key="os" prop="os" v-if="columns[5].visible" />
-        <el-table-column label="登录状态" align="center" key="status" prop="status" v-if="columns[6].visible">
+        <el-table-column label="登录名" align="left" prop="username" min-width="110" show-overflow-tooltip />
+        <el-table-column label="类型" align="center" width="76" prop="logType" :formatter="logTypeFormat" />
+        <el-table-column label="登录地址" align="left" prop="ipaddr" width="130" class-name="mono-cell" />
+        <el-table-column label="登录地点" align="left" prop="loginLocation" min-width="120" show-overflow-tooltip />
+        <el-table-column label="浏览器" align="left" prop="browser" min-width="110" show-overflow-tooltip />
+        <el-table-column label="操作系统" align="left" prop="os" min-width="110" show-overflow-tooltip />
+        <el-table-column label="状态" align="center" prop="status" width="80">
           <template slot-scope="scope">
             <dict-tag :options="dict.type.log_status" :value="scope.row.status" />
           </template>
         </el-table-column>
-        <el-table-column label="操作信息" align="center" key="msg" prop="msg" v-if="columns[7].visible" />
-        <el-table-column label="登录日期" width="150" align="center" key="loginTime" prop="loginTime" v-if="columns[8].visible" />
+        <el-table-column label="操作信息" align="left" prop="msg" min-width="140" show-overflow-tooltip />
+        <el-table-column label="登录时间" align="center" prop="loginTime" width="160" class-name="num-cell" />
       </el-table>
-    </el-main>
-    <el-footer>
+    </div>
+
+    <div v-show="total > 0" class="page-footer">
       <pagination
-        v-show="total>0"
         :total="total"
         :page.sync="queryParams.pageNum"
         :limit.sync="queryParams.pageSize"
         @pagination="getList"
       />
-    </el-footer>
-  </el-container>
+    </div>
+  </div>
 </template>
 
 <script>
 import { loginLog } from '@/api/mon/log'
 
-// 日志类型
 const LOG_TYPE_LABELS = { LOGIN: '登录', LOGOUT: '登出' }
 
 export default {
@@ -60,37 +62,13 @@ export default {
   dicts: ['log_status'],
   data() {
     return {
-      // 选中数组
-      ids: [],
-      // 非单个禁用
-      single: true,
-      // 非多个禁用
-      multiple: true,
-      // 日期范围
-      dateRange: [],
-      // 查询参数
       queryParams: {
         pageNum: 1,
         pageSize: 10,
         username: undefined
       },
-      // 列信息
-      columns: [
-        { key: 0, label: `登录名`, visible: true },
-        { key: 1, label: `类型`, visible: true },
-        { key: 2, label: `登录地址`, visible: true },
-        { key: 3, label: `登录地点`, visible: true },
-        { key: 4, label: `浏览器`, visible: true },
-        { key: 5, label: `操作系统`, visible: true },
-        { key: 6, label: `登录状态`, visible: true },
-        { key: 7, label: `操作信息`, visible: true },
-        { key: 8, label: `登录日期`, visible: true }
-      ],
-      // 字典表格数据
       logList: [],
-      // 总条数
       total: 0,
-      // 遮罩层
       loading: false
     }
   },
@@ -98,33 +76,24 @@ export default {
     this.getList()
   },
   methods: {
-    /** 查询字典列表 */
     getList() {
       this.loading = true
-      loginLog(this.addDateRange(this.queryParams, this.dateRange)).then(response => {
-        this.logList = response.records
-        this.total = response.total
-      }).finally(() => {
-        this.loading = false
-      })
+      loginLog(this.queryParams)
+        .then(response => {
+          this.logList = response.records
+          this.total = response.total
+        })
+        .finally(() => {
+          this.loading = false
+        })
     },
-    /** 日志类型显示名 */
     logTypeFormat(row) {
       return LOG_TYPE_LABELS[row.logType] || row.logType
     },
-    /** 重置按钮操作 */
     resetQuery() {
-      this.dateRange = []
       this.resetForm('queryForm')
       this.handleQuery()
     },
-    // 多选框选中数据
-    handleSelectionChange(selection) {
-      this.ids = selection.map(item => item.loginId)
-      this.single = selection.length != 1
-      this.multiple = !selection.length
-    },
-    /** 搜索按钮操作 */
     handleQuery() {
       this.queryParams.pageNum = 1
       this.getList()

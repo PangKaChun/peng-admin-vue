@@ -12,48 +12,46 @@ export default {
   props: {
     xml: { type: String, default: '' }
   },
-  data() {
-    return {
-      viewer: null
-    }
-  },
   watch: {
     xml(val) {
       this.render(val)
     }
   },
+  created() {
+    this._viewer = null
+  },
   mounted() {
-    this.viewer = new BpmnViewer({ container: this.$refs.canvas })
+    this._viewer = new BpmnViewer({ container: this.$refs.canvas })
     if (this.xml) {
       this.render(this.xml)
     }
   },
   beforeDestroy() {
-    if (this.viewer) {
-      this.viewer.destroy()
-      this.viewer = null
+    if (this._viewer) {
+      this._viewer.destroy()
+      this._viewer = null
     }
   },
   methods: {
     /** 渲染指定 XML（只读） */
     async render(xml) {
-      if (!xml || !this.viewer) {
+      if (!xml || !this._viewer) {
         return
       }
       try {
-        await this.viewer.importXML(xml)
-        this.viewer.get('canvas').zoom('fit-viewport')
+        await this._viewer.importXML(xml)
+        this._viewer.get('canvas').zoom('fit-viewport')
       } catch (e) {
         this.$modal && this.$modal.msgError('渲染流程图失败：' + e.message)
       }
     },
     /** 重新适应视口：对话框展开动画结束后调用，确保画布尺寸已就绪（避免重复 importXML） */
     fit() {
-      if (!this.viewer) {
+      if (!this._viewer) {
         return
       }
       try {
-        this.viewer.get('canvas').zoom('fit-viewport')
+        this._viewer.get('canvas').zoom('fit-viewport')
       } catch (e) {
         // 画布尚未就绪时忽略
       }

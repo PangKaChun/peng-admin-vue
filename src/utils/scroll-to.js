@@ -1,4 +1,4 @@
-Math.easeInOutQuad = function(t, b, c, d) {
+function easeInOutQuad(t, b, c, d) {
   t /= d / 2
   if (t < 1) {
     return c / 2 * t * t + b
@@ -41,7 +41,7 @@ export function scrollTo(to, duration, callback) {
     // increment the time
     currentTime += increment
     // find the value with the quadratic in-out easing function
-    var val = Math.easeInOutQuad(currentTime, start, change, duration)
+    var val = easeInOutQuad(currentTime, start, change, duration)
     // move the document.body
     move(val)
     // do the animation unless its over

@@ -27,7 +27,6 @@
     :title="title"
     :visible.sync="dialogVisible"
     :width="width"
-    top="10vh"
     append-to-body
     @open="onOpen"
   >
@@ -66,8 +65,8 @@
             <el-input v-model="queryParams.phonenumber" placeholder="手机号码" clearable style="width: 150px" @keyup.enter.native="handleQuery" />
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" icon="el-icon-search" @click="handleQuery">搜索</el-button>
-            <el-button icon="el-icon-refresh" @click="resetQuery">重置</el-button>
+            <el-button icon="el-icon-search" @click="handleQuery">搜索</el-button>
+            <el-button type="text" @click="resetQuery">重置</el-button>
           </el-form-item>
         </el-form>
 
@@ -89,13 +88,13 @@
             <el-table-column v-if="multiple" type="selection" reserve-selection width="45" align="center" />
             <el-table-column v-else label="选择" width="55" align="center">
               <template slot-scope="scope">
-                <el-radio v-model="singleSelectedId" :label="scope.row.userId" class="us-radio" />
+                <el-radio v-model="singleSelectedId" :label="String(scope.row.userId)" class="us-radio" />
               </template>
             </el-table-column>
-            <el-table-column label="登录名" prop="username" align="center" show-overflow-tooltip />
-            <el-table-column label="用户昵称" prop="nickName" align="center" show-overflow-tooltip />
-            <el-table-column label="部门" prop="deptName" align="center" show-overflow-tooltip />
-            <el-table-column label="手机号码" prop="phonenumber" align="center" width="120" />
+            <el-table-column label="登录名" prop="username" align="left" show-overflow-tooltip />
+            <el-table-column label="用户昵称" prop="nickName" align="left" show-overflow-tooltip />
+            <el-table-column label="部门" prop="deptName" align="left" show-overflow-tooltip />
+            <el-table-column label="手机号码" prop="phonenumber" align="center" width="120" class-name="num-cell" />
             <el-table-column label="状态" align="center" width="80">
               <template slot-scope="scope">
                 <dict-tag :options="dict.type.user_status" :value="scope.row.status" />
@@ -120,8 +119,8 @@
 
     <div slot="footer" class="dialog-footer">
       <span v-if="multiple" class="us-count">已选 {{ multipleSelection.length }} 项</span>
-      <el-button @click="dialogVisible = false">取 消</el-button>
-      <el-button type="primary" @click="handleConfirm">确 定</el-button>
+      <el-button @click="dialogVisible = false">取消</el-button>
+      <el-button type="primary" @click="handleConfirm">确定</el-button>
     </div>
   </el-dialog>
 </template>
@@ -338,6 +337,8 @@ export default {
 </style>
 
 <style lang="scss" scoped>
+@import '../../assets/styles/tokens.scss';
+
 .user-select {
   display: flex;
   align-items: stretch;
@@ -348,7 +349,7 @@ export default {
     flex-shrink: 0;
     margin-right: 12px;
     padding-right: 12px;
-    border-right: 1px solid #ebeef5;
+    border-right: 1px solid $separator-light;
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -383,6 +384,7 @@ export default {
 
     .us-pagination {
       flex-shrink: 0;
+      margin-top: $space-3;
     }
   }
 
@@ -406,7 +408,7 @@ export default {
 
   .us-count {
     margin-right: auto;
-    color: #6e6e73;
+    color: $label-secondary;
     font-size: 13px;
   }
 }

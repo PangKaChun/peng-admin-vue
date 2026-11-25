@@ -1,13 +1,14 @@
 <template>
-  <el-container>
-    <dict-type class="dict-pane" @update:value="(val)=>dictType=val" />
-    <dict-data class="dict-pane" :dictType="dictType" />
-  </el-container>
+  <div class="page-split">
+    <dict-type class="dict-pane" @update:value="val => (dictType = val)" />
+    <dict-data class="dict-pane dict-pane--right" :dictType="dictType" />
+  </div>
 </template>
 
 <script>
 import dictType from './type'
 import dictData from './data'
+
 export default {
   name: 'Dict',
   components: { dictType, dictData },
@@ -20,9 +21,14 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-// 两栏等分
+@import '../../../assets/styles/tokens.scss';
+
 .dict-pane {
-  flex-basis: 0;
+  flex: 1;
   min-width: 0;
+
+  &--right {
+    border-left: 1px solid $separator;
+  }
 }
 </style>

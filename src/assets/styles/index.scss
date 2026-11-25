@@ -1,11 +1,8 @@
 @import './tokens.scss';
-@import './variables.module.scss';
-@import './mixin.scss';
-@import './transition.scss';
 @import './modern-normalize.css';
+@import './transition.scss';
 @import './sidebar.scss';
-@import './islands.scss'; // 页面级岛屿布局
-@import './motion.scss'; // 交互动效层,需在 transition.scss 之后加载
+@import './motion.scss';
 
 html,
 body,
@@ -14,16 +11,19 @@ body,
 }
 
 body {
-  text-rendering: optimizeLegibility;
-  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-family: $font-sans;
+  font-size: 13px;
   font-weight: 400;
+  color: $label;
+  background-color: $bg-base;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
 }
 
 label {
-  font-weight: 600;
+  font-weight: 500;
 }
 
 a,
@@ -34,51 +34,522 @@ a:hover {
   text-decoration: none;
 }
 
-// 鼠标点击不显示焦点框;键盘导航(:focus-visible)保留主题色焦点环
 a:focus:not(:focus-visible),
 a:active {
   outline: none;
 }
 
 a:focus-visible {
-  outline: 2px solid rgba($color-primary, 0.5);
+  outline: 2px solid rgba($color-primary, 0.45);
   outline-offset: -2px;
   border-radius: $radius-sm;
 }
 
-div:focus {
+div:focus:not(:focus-visible) {
   outline: none;
 }
 
-.clearfix {
-  @include clearfix;
+// 统一极简滚动条
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-// 页面主容器
-.app-container {
-  padding: $space-5;
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background-color: transparent;
 }
 
-.el-container.app-container {
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.16);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 4px;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-width: 1px;
+  }
+}
+
+// ===== 统一页面布局语法（纯白工作区 + 1px 细线分隔）=====
+.page {
+  display: flex;
+  flex-direction: column;
   height: 100%;
-  padding: $space-4;
+  background: $bg-base;
+  overflow: hidden;
+}
 
-  .el-header {
-    height: auto !important;
-    padding: 0;
+.page-split {
+  display: flex;
+  height: 100%;
+  background: $bg-base;
+  overflow: hidden;
+}
+
+.page-aside {
+  flex: none;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: $bg-subtle;
+  border-right: 1px solid $separator;
+
+  &--right {
+    width: 300px;
+    background: $bg-base;
+    border-right: 0;
+    border-left: 1px solid $separator;
   }
 
-  .el-main {
-    padding: 0;
+  &__search {
+    padding: $space-3 $space-3 $space-2;
+    flex: none;
   }
 
-  .el-footer {
-    height: auto !important;
-    border: 1px solid $separator;
+  &__body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0 $space-2 $space-3;
   }
 }
 
-// 描述列表的标签列不换行
+.page-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: $bg-base;
+}
+
+.page-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-3;
+  min-height: 52px;
+  padding: $space-2 $space-4;
+  border-bottom: 1px solid $separator-light;
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    min-width: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: $label;
+    white-space: nowrap;
+    overflow: hidden;
+
+    > span:not(.page-header__sub) {
+      flex: none;
+    }
+  }
+
+  span#{&}__title {
+    display: block;
+    text-overflow: ellipsis;
+  }
+
+  &__sub {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: $font-mono;
+    font-size: 12px;
+    font-weight: 400;
+    color: $label-secondary;
+  }
+}
+
+.page-toolbar {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-2 $space-3;
+  padding: 10px $space-4;
+  border-bottom: 1px solid $separator-light;
+}
+
+.page-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $space-2;
+
+  .el-form-item {
+    margin: 0 !important;
+  }
+}
+
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  flex-shrink: 0;
+
+  .el-button + .el-button {
+    margin-left: 0;
+  }
+}
+
+.page-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+
+  &--scroll {
+    overflow-y: auto;
+    padding: $space-5;
+  }
+}
+
+.page-footer {
+  flex: none;
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  min-height: 44px;
+  padding: $space-2 $space-4;
+  border-top: 1px solid $separator-light;
+  background: $bg-base;
+
+  > * {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-footer {
+    .el-pagination__jump,
+    .el-pagination__sizes {
+      display: none;
+    }
+  }
+}
+
+.page-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: $space-6;
+  color: $label-tertiary;
+  font-size: 13px;
+}
+
+// ===== 语义辅助类 =====
+.mono-text,
+.el-table__body .mono-cell .cell {
+  font-family: $font-mono;
+  font-size: 12px;
+}
+
+.el-table__body .num-cell .cell {
+  font-variant-numeric: tabular-nums;
+}
+
+// ===== Element UI 全局克制覆盖 =====
+.el-form:not(.el-form--inline) .el-form-item__content > .el-select {
+  width: 100%;
+}
+
+.el-select {
+  vertical-align: top;
+
+  > .el-input > .el-input__inner {
+    display: block;
+  }
+}
+
+.el-input__inner,
+.el-textarea__inner {
+  border-color: $separator;
+  color: $label;
+
+  &:focus {
+    border-color: $color-primary;
+    box-shadow: 0 0 0 3px rgba($color-primary, 0.1);
+  }
+}
+
+.el-range-editor.is-active {
+  &,
+  &:hover {
+    border-color: $color-primary;
+    box-shadow: 0 0 0 3px rgba($color-primary, 0.1);
+  }
+}
+
+.el-form-item.is-error {
+  .el-input__inner:focus,
+  .el-textarea__inner:focus,
+  .el-range-editor.is-active {
+    border-color: $color-danger;
+    box-shadow: 0 0 0 3px rgba($color-danger, 0.12);
+  }
+}
+
+.el-table {
+  color: $label;
+  font-size: 13px;
+
+  &::before,
+  .el-table__fixed::before,
+  .el-table__fixed-right::before {
+    display: none;
+  }
+
+  .el-table__fixed-right-patch {
+    background-color: $bg-subtle;
+    border-bottom: 1px solid $separator;
+  }
+
+  &--border {
+    border: 0;
+
+    &::after {
+      display: none;
+    }
+
+    th.el-table__cell,
+    td.el-table__cell {
+      border-right: 0;
+    }
+  }
+
+  .el-table__header-wrapper,
+  .el-table__fixed-header-wrapper {
+    th.el-table__cell {
+      background-color: $bg-subtle;
+      color: $label-secondary;
+      font-size: 12px;
+      font-weight: 500;
+      height: 36px;
+      padding: 6px 0;
+      border-bottom: 1px solid $separator;
+      word-break: break-word;
+    }
+  }
+
+  td.el-table__cell {
+    border-bottom: 1px solid $separator-light;
+    padding: 8px 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .el-table__body tr:hover > td.el-table__cell,
+  .el-table__body tr.hover-row > td.el-table__cell {
+    background-color: $bg-subtle !important;
+  }
+
+  .el-table__body tr.current-row > td.el-table__cell {
+    background-color: rgba($color-primary, 0.055) !important;
+  }
+
+  .el-table__body-wrapper,
+  .el-table__fixed-body-wrapper {
+    .el-button [class*="el-icon-"] + span {
+      margin-left: 2px;
+    }
+  }
+
+  .el-dropdown-link {
+    cursor: pointer;
+    color: $color-primary;
+    margin-left: 8px;
+    font-size: 12px;
+  }
+
+  .el-dropdown,
+  .el-icon-arrow-down {
+    font-size: 12px;
+  }
+
+  .small-padding .cell {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .cell .el-tag {
+    margin-right: 0;
+  }
+}
+
+// 静谧扁平标签
+.el-tag:not(.el-tag--dark):not(.el-tag--plain) {
+  height: 22px;
+  line-height: 22px;
+  padding: 0 7px;
+  border: none;
+  border-radius: $radius-xs;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: rgba($color-primary, 0.09);
+  color: $color-primary;
+
+  &.el-tag--success {
+    background-color: rgba($color-success, 0.1);
+    color: $color-success;
+  }
+
+  &.el-tag--warning {
+    background-color: rgba($color-warning, 0.12);
+    color: $color-warning;
+  }
+
+  &.el-tag--danger {
+    background-color: rgba($color-danger, 0.09);
+    color: $color-danger;
+  }
+
+  &.el-tag--info {
+    background-color: $fill-quaternary;
+    color: $label-secondary;
+  }
+}
+
+// 对话框：左对齐标题、清晰留白与分隔
+.el-dialog {
+  border-radius: $radius-lg;
+  box-shadow: $shadow-popover;
+
+  &:not(.is-fullscreen) {
+    margin-top: 6vh !important;
+  }
+
+  &.is-fullscreen {
+    border-radius: 0;
+  }
+
+  .el-dialog__header {
+    padding: 16px 20px 14px;
+    text-align: left;
+    border-bottom: 1px solid $separator-light;
+
+    .el-dialog__title {
+      color: $label;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .el-dialog__headerbtn {
+      top: 17px;
+      right: 18px;
+    }
+  }
+
+  .el-dialog__body {
+    padding: 20px;
+  }
+
+  .el-dialog__footer {
+    padding: 12px 20px;
+    border-top: 1px solid $separator-light;
+    text-align: right;
+
+    .el-button + .el-button {
+      margin-left: $space-2;
+    }
+  }
+}
+
+.el-dialog__wrapper.scrollbar .el-dialog .el-dialog__body {
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: 70vh;
+}
+
+// Tree 在侧栏与表单中保持清爽
+.el-tree {
+  background: transparent;
+  color: $label;
+  font-size: 13px;
+
+  .el-tree-node__content {
+    height: 30px;
+    border-radius: $radius-sm;
+
+    &:hover {
+      background-color: $fill-hover;
+    }
+  }
+
+  .el-tree-node.is-current > .el-tree-node__content {
+    background-color: rgba($color-primary, 0.09);
+    color: $color-primary;
+    font-weight: 500;
+  }
+}
+
+.el-tree-node__content > .el-checkbox {
+  margin-right: 8px;
+}
+
+.vue-treeselect {
+  font-size: 13px;
+  line-height: 30px;
+
+  .vue-treeselect__control {
+    height: 32px;
+    border-color: $separator;
+    border-radius: $radius-sm;
+  }
+
+  &.vue-treeselect--focused:not(.vue-treeselect--open) .vue-treeselect__control,
+  &.vue-treeselect--open .vue-treeselect__control {
+    border-color: $color-primary;
+    box-shadow: 0 0 0 3px rgba($color-primary, 0.1);
+  }
+
+  .vue-treeselect__placeholder,
+  .vue-treeselect__single-value {
+    line-height: 30px;
+  }
+
+  .vue-treeselect__placeholder {
+    color: $label-tertiary;
+  }
+
+  .vue-treeselect__single-value {
+    color: $label;
+  }
+}
+
+// 浮层与辅助控件
+.el-dropdown-menu .popper__arrow,
+.el-select-dropdown .popper__arrow,
+.el-popover .popper__arrow {
+  display: none;
+}
+
+.el-checkbox__inner::after {
+  top: .5px;
+  border-right-width: 2px;
+  border-bottom-width: 2px;
+}
+
+.el-range-editor.el-input__inner {
+  display: inline-flex !important;
+}
+
+.el-range-separator {
+  box-sizing: content-box;
+}
+
+.el-descriptions__body {
+  overflow: auto;
+}
+
 .el-descriptions-item__cell.el-descriptions-item__label.is-bordered-label {
   white-space: nowrap;
 }

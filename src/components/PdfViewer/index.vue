@@ -278,9 +278,11 @@ export default {
 </script>
 
 <style lang="scss">
+@import '@/assets/styles/tokens.scss';
+
 .pdf-viewer-dialog {
   .viewer-dialog__body {
-    background: #e9ebee;
+    background: $bg-subtle;
   }
 
   .pdf-viewer__pages {
@@ -288,7 +290,7 @@ export default {
     align-items: center;
     gap: 4px;
     font-size: 12px;
-    color: #606266;
+    color: $label-secondary;
   }
 
   .pdf-viewer__page-input {
@@ -303,7 +305,7 @@ export default {
   .pdf-viewer__scale {
     min-width: 42px;
     font-size: 12px;
-    color: #606266;
+    color: $label-secondary;
     text-align: center;
   }
 
@@ -313,10 +315,10 @@ export default {
 
   .pdf-viewer__match {
     font-size: 12px;
-    color: #909399;
+    color: $label-tertiary;
 
     &--none {
-      color: #f56c6c;
+      color: $color-danger;
     }
   }
 

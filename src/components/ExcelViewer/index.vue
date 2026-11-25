@@ -480,7 +480,7 @@ export default {
   .excel-viewer__scale {
     min-width: 42px;
     font-size: 12px;
-    color: #606266;
+    color: $label-secondary;
     text-align: center;
   }
 
@@ -490,7 +490,7 @@ export default {
 
   .excel-viewer__match {
     font-size: 12px;
-    color: #909399;
+    color: $label-tertiary;
 
     &--none {
       color: $color-danger;
@@ -508,7 +508,7 @@ export default {
     align-items: center;
     height: 30px;
     padding: 0 $space-4 0 0;
-    border-bottom: 1px solid #ebeef5;
+    border-bottom: 1px solid $separator-light;
     background: $bg-base;
     font-size: 12px;
   }
@@ -683,7 +683,7 @@ export default {
     align-items: center;
     gap: $space-3;
     padding: 0 $space-4;
-    border-top: 1px solid #ebeef5;
+    border-top: 1px solid $separator-light;
     background: $fill-quaternary;
   }
 

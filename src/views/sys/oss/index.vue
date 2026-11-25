@@ -1,72 +1,61 @@
 <template>
-  <el-container>
-    <el-header>
-      <el-form
-        :model="queryParams"
-        ref="queryForm"
-        label-position="right"
-        class="query-form"
-        size="small"
-        :inline="true"
-        v-show="showSearch"
-        label-width="68px"
-      >
+  <div class="page">
+    <div class="page-toolbar">
+      <el-form ref="queryForm" :model="queryParams" inline size="small" class="page-filters" @submit.native.prevent>
         <el-form-item prop="originalName">
           <el-input
             v-model="queryParams.originalName"
-            placeholder="请输入文件名"
+            placeholder="文件名"
             clearable
-            style="width: 240px"
+            style="width: 180px"
             @keyup.enter.native="handleQuery"
           />
         </el-form-item>
         <el-form-item prop="fileType">
-          <el-select v-model="queryParams.fileType" placeholder="文件类型" clearable style="width: 160px">
+          <el-select v-model="queryParams.fileType" placeholder="文件类型" clearable style="width: 120px">
             <el-option v-for="item in fileTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
         <el-form-item prop="status">
-          <el-select v-model="queryParams.status" placeholder="状态" clearable style="width: 160px">
+          <el-select v-model="queryParams.status" placeholder="状态" clearable style="width: 110px">
             <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
-          <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
+          <el-button icon="el-icon-search" size="small" @click="handleQuery">搜索</el-button>
+          <el-button type="text" size="small" @click="resetQuery">重置</el-button>
         </el-form-item>
       </el-form>
 
-      <el-row :gutter="10" class="button-bar">
-        <el-col :span="1.5">
-          <el-button type="primary" icon="el-icon-upload2" size="mini" @click="openUpload(1)">上传文件</el-button>
-        </el-col>
-        <el-col :span="1.5">
-          <el-button type="primary" icon="el-icon-upload2" size="mini" @click="openUpload(0)">上传私有文件</el-button>
-        </el-col>
-        <el-col :span="1.5">
-          <el-button
-            type="danger"
-            icon="el-icon-delete"
-            size="mini"
-            :disabled="multiple"
-            @click="handleDelete"
-            v-hasPermi="['sys:oss:del']"
-          >删除</el-button>
-        </el-col>
-      </el-row>
-    </el-header>
-    <el-main>
+      <div class="page-actions">
+        <el-button
+          type="primary"
+          icon="el-icon-upload2"
+          size="small"
+          @click="openUpload"
+        >上传</el-button>
+        <el-button
+          v-if="!multiple && $auth.hasPermi('sys:oss:del')"
+          type="danger"
+          plain
+          icon="el-icon-delete"
+          size="small"
+          @click="handleDelete"
+        >删除</el-button>
+      </div>
+    </div>
+
+    <div class="page-body">
       <el-table
-        highlight-current-row
-        stripe
-        size="mini"
         v-loading="loading"
         :data="ossList"
+        height="100%"
+        highlight-current-row
         @selection-change="handleSelectionChange"
       >
-        <el-table-column type="selection" width="50" align="center" />
-        <el-table-column label="文件名" align="center" prop="originalName" :show-overflow-tooltip="true" />
-        <el-table-column label="预览" align="center" width="80">
+        <el-table-column type="selection" width="46" align="center" />
+        <el-table-column label="文件名" align="left" prop="originalName" min-width="180" show-overflow-tooltip />
+        <el-table-column label="预览" align="center" width="76">
           <template slot-scope="scope">
             <i v-if="!canAccess(scope.row)" class="oss-thumb__icon el-icon-lock" title="私有文件，仅上传人或管理员可查看" />
             <el-image
@@ -131,18 +120,18 @@
             <i v-else class="oss-thumb__icon" :class="fileTypeIcon(scope.row.fileType)" />
           </template>
         </el-table-column>
-        <el-table-column label="文件类型" align="center" prop="fileType" width="90">
+        <el-table-column label="类型" align="center" prop="fileType" width="80">
           <template slot-scope="scope">
             <span>{{ fileTypeLabel(scope.row.fileType) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="大小" align="center" prop="fileSize" width="100">
+        <el-table-column label="大小" align="right" prop="fileSize" width="96" class-name="num-cell">
           <template slot-scope="scope">
             <span>{{ formatFileSize(scope.row.fileSize) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="存储后端" align="center" prop="ossType" width="90" />
-        <el-table-column label="是否公开" align="center" prop="publicFlag" width="90">
+        <el-table-column label="存储" align="center" prop="ossType" width="84" />
+        <el-table-column label="公开" align="center" prop="publicFlag" width="76">
           <template slot-scope="scope">
             <el-switch
               v-model="scope.row.publicFlag"
@@ -153,33 +142,37 @@
             />
           </template>
         </el-table-column>
-        <el-table-column label="状态" align="center" prop="status" width="80">
+        <el-table-column label="状态" align="center" prop="status" width="76">
           <template slot-scope="scope">
-            <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'" size="mini">
+            <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'">
               {{ scope.row.status === 1 ? '正常' : '无效' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" align="center" prop="createTime" width="160">
+        <el-table-column label="创建时间" align="center" prop="createTime" width="160" class-name="num-cell">
           <template slot-scope="scope">
             <span>{{ parseTime(scope.row.createTime) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" align="center" width="260" class-name="small-padding fixed-width">
+        <el-table-column label="操作" align="center" width="210" class-name="small-padding">
           <template slot-scope="scope">
             <span v-if="scope.row.fileType === 'video' && scope.row.hlsStatus === 1" class="hls-tip">转码中</span>
             <span v-else-if="scope.row.fileType === 'video' && scope.row.hlsStatus === 3" class="hls-tip hls-tip--fail">转码失败</span>
             <el-button
               size="mini"
               type="text"
-              icon="el-icon-download"
               :disabled="!canAccess(scope.row)"
               @click="handleDownload(scope.row)"
             >下载</el-button>
-            <el-button size="mini" type="text" icon="el-icon-delete" @click="handleDelete(scope.row)" v-hasPermi="['sys:oss:del']">删除</el-button>
-            <el-dropdown size="mini" @command="(command) => handleCommand(command, scope.row)">
+            <el-button
+              v-hasPermi="['sys:oss:del']"
+              size="mini"
+              type="text"
+              @click="handleDelete(scope.row)"
+            >删除</el-button>
+            <el-dropdown size="mini" @command="command => handleCommand(command, scope.row)">
               <span class="el-dropdown-link">
-                <i class="el-icon-d-arrow-right el-icon--right"></i>更多
+                更多<i class="el-icon-arrow-down el-icon--right" />
               </span>
               <el-dropdown-menu slot="dropdown">
                 <template v-if="scope.row.publicFlag === 1 && canPlay(scope.row)">
@@ -194,70 +187,59 @@
                   :disabled="!canAccess(scope.row)"
                 >生成签名地址</el-dropdown-item>
                 <el-dropdown-item
-                  v-if="scope.row.fileType === 'video' && scope.row.hlsStatus === 3"
+                  v-if="scope.row.fileType === 'video' && scope.row.hlsStatus === 3 && $auth.hasPermi('sys:oss:edit')"
                   command="handleRetryHls"
                   icon="el-icon-refresh-right"
-                  v-hasPermi="['sys:oss:edit']"
                 >重试转码</el-dropdown-item>
               </el-dropdown-menu>
             </el-dropdown>
           </template>
         </el-table-column>
       </el-table>
-    </el-main>
-    <el-footer>
+    </div>
+
+    <div v-show="total > 0" class="page-footer">
       <pagination
-        v-show="total>0"
         :total="total"
         :page.sync="queryParams.pageNum"
         :limit.sync="queryParams.pageSize"
         @pagination="getList"
       />
-    </el-footer>
+    </div>
 
-    <!-- 上传文件对话框 -->
-    <el-dialog title="上传文件" :visible.sync="uploadOpen" width="560px" append-to-body>
-      <file-upload :is-public="uploadPublic" @success="handleUploadSuccess" />
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="uploadOpen = false">关 闭</el-button>
+    <el-dialog title="上传文件" :visible.sync="uploadOpen" width="520px" append-to-body @closed="uploadBusy = false">
+      <div class="upload-public">
+        <span class="upload-public__label">公开访问</span>
+        <el-switch v-model="uploadPublic" :active-value="1" :inactive-value="0" :disabled="uploadBusy" />
+      </div>
+      <file-upload v-if="uploadOpen" :is-public="uploadPublic" @busy-change="uploadBusy = $event" @success="handleUploadSuccess" />
+      <div slot="footer">
+        <el-button @click="uploadOpen = false">关闭</el-button>
       </div>
     </el-dialog>
 
-    <!-- 签名地址对话框 -->
-    <el-dialog title="生成签名地址" :visible.sync="signOpen" width="680px" append-to-body>
-      <el-alert title="链接在有效期内任何人可访问，请勿外传" type="warning" :closable="false" show-icon />
-      <el-form label-width="90px" size="small" class="sign-form">
+    <el-dialog title="签名地址" :visible.sync="signOpen" width="620px" append-to-body>
+      <el-form label-width="80px" size="small">
         <el-form-item label="文件名">{{ signInfo.name }}</el-form-item>
         <el-form-item label="有效期至">{{ signInfo.expireTime }}</el-form-item>
         <el-form-item v-for="item in signInfo.urls" :key="item.label" :label="item.label">
           <el-input :value="item.url" readonly>
-            <el-button slot="append" icon="el-icon-document-copy" @click="copyText(item.url, item.label)">复制</el-button>
+            <el-button slot="append" icon="el-icon-document-copy" @click="copyUrl(item.url, item.label)">复制</el-button>
           </el-input>
         </el-form-item>
       </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="signOpen = false">关 闭</el-button>
+      <div slot="footer">
+        <el-button @click="signOpen = false">关闭</el-button>
       </div>
     </el-dialog>
 
-    <!-- 视频播放对话框(HLS) -->
     <video-player ref="videoPlayer" />
-
-    <!-- PDF 预览对话框(pdf.js) -->
     <pdf-viewer ref="pdfViewer" />
-
-    <!-- Excel 预览对话框(SheetJS) -->
     <excel-viewer ref="excelViewer" />
-
-    <!-- Word 预览对话框(docx-preview) -->
     <word-viewer ref="wordViewer" />
-
-    <!-- 压缩包预览对话框(zip/rar/7z:jszip + libarchive.js + el-tree) -->
     <archive-viewer ref="archiveViewer" />
-
-    <!-- Markdown 预览对话框(marked + DOMPurify + highlight.js) -->
     <markdown-viewer ref="markdownViewer" />
-  </el-container>
+  </div>
 </template>
 
 <script>
@@ -265,9 +247,8 @@ import {
   listOss, downloadOssUrl, delOss, changeOssPublic, getOssShare, getOssPreviewBlob, previewOssUrl, hlsPlayUrl, shareOssUrls, retryHlsOss
 } from '@/api/sys/oss'
 import { formatFileSize } from '@/utils/file'
+import { copyText } from '@/utils/clipboard'
 import FileUpload from '@/components/FileUpload'
-// 播放器与各预览器本身很轻,可以直接引入:hls.js / pdf.js / SheetJS / docx-preview / jszip / libarchive.js / marked
-// 这些重型库由组件在首次播放、预览时自行按需加载,不拖累本页打开
 import VideoPlayer from '@/components/VideoPlayer'
 import PdfViewer from '@/components/PdfViewer'
 import ExcelViewer from '@/components/ExcelViewer'
@@ -280,41 +261,27 @@ export default {
   components: { FileUpload, VideoPlayer, PdfViewer, ExcelViewer, WordViewer, ArchiveViewer, MarkdownViewer },
   data() {
     return {
-      // 遮罩层
       loading: false,
-      // 上传对话框
       uploadOpen: false,
-      // 上传是否公开
       uploadPublic: 0,
-      // 选中数组
+      uploadBusy: false,
       ids: [],
-      // 非多个禁用
       multiple: true,
-      // 显示搜索条件
-      showSearch: true,
-      // 总条数
       total: 0,
-      // 文件表格数据
       ossList: [],
-      // 私有图片缩略图地址
       thumbUrls: {},
-      // 签名地址对话框
       signOpen: false,
-      // 签名地址信息
       signInfo: {},
-      // 文件类型选项
       fileTypeOptions: [
         { value: 'image', label: '图片' },
         { value: 'video', label: '视频' },
         { value: 'document', label: '文档' },
         { value: 'other', label: '其它' }
       ],
-      // 状态选项
       statusOptions: [
         { value: 1, label: '正常' },
         { value: 0, label: '无效' }
       ],
-      // 查询参数
       queryParams: {
         pageNum: 1,
         pageSize: 10,
@@ -332,81 +299,70 @@ export default {
     this.revokeThumbs()
   },
   methods: {
-    /** 查询文件列表 */
     getList() {
       this.loading = true
-      listOss(this.queryParams).then(response => {
-        this.ossList = response.records
-        this.total = response.total
-        this.loading = false
-        this.loadThumbs()
-      }).catch(() => {
-        this.loading = false
-      })
+      listOss(this.queryParams)
+        .then(response => {
+          this.ossList = response.records
+          this.total = response.total
+          this.loading = false
+          this.loadThumbs()
+        })
+        .catch(() => {
+          this.loading = false
+        })
     },
-    /** 搜索按钮操作 */
     handleQuery() {
       this.queryParams.pageNum = 1
       this.getList()
     },
-    /** 重置按钮操作 */
     resetQuery() {
       this.resetForm('queryForm')
       this.handleQuery()
     },
-    // 多选框选中数据
     handleSelectionChange(selection) {
       this.ids = selection.map(item => item.ossId)
       this.multiple = !selection.length
     },
-    /** 打开上传对话框 */
-    openUpload(isPublic = 0) {
+    openUpload() {
+      this.uploadPublic = 0
+      this.uploadBusy = false
       this.uploadOpen = true
-      this.uploadPublic = isPublic
     },
-    /** 上传成功回调 */
     handleUploadSuccess() {
       this.$modal.msgSuccess('上传成功')
       this.getList()
     },
-    /** 是否可播放 */
     canPlay(row) {
       return row.fileType === 'video' && row.hlsStatus === 2
     },
-    /** 是否 PDF 文件 */
     isPdf(row) {
       return row.fileMimeType === 'application/pdf' || (row.fileExtension || '').toLowerCase() === 'pdf'
     },
-    /** 预览 PDF(pdf.js 对话框:缩放/翻页/搜索) */
     handlePreviewPdf(row) {
       this.$refs.pdfViewer.open(getOssPreviewBlob(row.ossId), row.originalName)
     },
-    /** 是否 Excel/CSV 文件 */
     isExcel(row) {
       const ext = (row.fileExtension || '').toLowerCase()
       const mime = row.fileMimeType || ''
-      return ['xlsx', 'xls', 'csv'].includes(ext)
-        || mime.includes('spreadsheetml')
-        || mime === 'application/vnd.ms-excel'
-        || mime === 'text/csv'
+      return ['xlsx', 'xls', 'csv'].includes(ext) ||
+        mime.includes('spreadsheetml') ||
+        mime === 'application/vnd.ms-excel' ||
+        mime === 'text/csv'
     },
-    /** 预览 Excel(SheetJS 对话框:多 Sheet/合并单元格) */
     handlePreviewExcel(row) {
       this.$refs.excelViewer.open(getOssPreviewBlob(row.ossId), row.originalName)
     },
-    /** 是否 Word 文件(docx-preview 仅支持 .docx,.doc 打开后由查看器提示降级) */
     isWord(row) {
       const ext = (row.fileExtension || '').toLowerCase()
       const mime = row.fileMimeType || ''
-      return ['doc', 'docx'].includes(ext)
-        || mime.includes('wordprocessingml')
-        || mime === 'application/msword'
+      return ['doc', 'docx'].includes(ext) ||
+        mime.includes('wordprocessingml') ||
+        mime === 'application/msword'
     },
-    /** 预览 Word(docx-preview 对话框:还原页面版式) */
     handlePreviewWord(row) {
       this.$refs.wordViewer.open(getOssPreviewBlob(row.ossId), row.originalName)
     },
-    /** 压缩格式判定:zip 走 jszip,rar/7z 走 libarchive.js;其余(tar/gz 等)不支持返回 null */
     archiveFormat(row) {
       const ext = (row.fileExtension || '').toLowerCase()
       const mime = row.fileMimeType || ''
@@ -421,38 +377,31 @@ export default {
       }
       return null
     },
-    /** 是否可预览的压缩包(zip/rar/7z) */
     isArchive(row) {
       return this.archiveFormat(row) !== null
     },
-    /** 预览压缩包(el-tree 展示目录结构) */
     handlePreviewArchive(row) {
       this.$refs.archiveViewer.open(getOssPreviewBlob(row.ossId), row.originalName, this.archiveFormat(row))
     },
-    /** 是否 Markdown 文件 */
     isMarkdown(row) {
       const ext = (row.fileExtension || '').toLowerCase()
       return ['md', 'markdown'].includes(ext) || row.fileMimeType === 'text/markdown'
     },
-    /** 预览 Markdown(marked 渲染 + 代码高亮) */
     handlePreviewMarkdown(row) {
       this.$refs.markdownViewer.open(getOssPreviewBlob(row.ossId), row.originalName)
     },
-    /** 播放视频(HLS):公开文件不携带令牌(带无效令牌反而会被 401) */
     handlePlay(row) {
       this.$refs.videoPlayer.play(hlsPlayUrl(row.ossId), row.originalName, {
         withToken: row.publicFlag !== 1,
         shareUrl: () => this.shareUrl(row, 'hls')
       })
     },
-    /** 重试 HLS 转码 */
     handleRetryHls(row) {
       retryHlsOss(row.ossId).then(() => {
         this.$modal.msgSuccess('已重新提交转码')
         this.getList()
       })
     },
-    /** 下载按钮操作:交给浏览器原生下载(流式落盘 + Range 续传),私有文件临时换短码 */
     handleDownload(row) {
       const href = row.publicFlag === 1 ? Promise.resolve(downloadOssUrl(row.ossId)) : this.shareUrl(row, 'download')
       href.then(url => {
@@ -464,7 +413,6 @@ export default {
         document.body.removeChild(a)
       })
     },
-    /** 切换公开状态 */
     handleChangePublic(row) {
       changeOssPublic({ ossId: row.ossId, publicFlag: row.publicFlag })
         .then(() => {
@@ -472,38 +420,21 @@ export default {
           this.loadThumb(row)
         })
         .catch(() => {
-          // 失败回滚开关状态
           row.publicFlag = row.publicFlag === 1 ? 0 : 1
         })
     },
-    /** 更多操作 */
     handleCommand(command, row) {
-      switch (command) {
-        case 'handleCopyLink':
-          this.handleCopyLink(row)
-          break
-        case 'handleCopyHlsLink':
-          this.handleCopyHlsLink(row)
-          break
-        case 'handleSign':
-          this.handleSign(row)
-          break
-        case 'handleRetryHls':
-          this.handleRetryHls(row)
-          break
-        default:
-          break
-      }
+      if (command === 'handleCopyLink') this.handleCopyLink(row)
+      else if (command === 'handleCopyHlsLink') this.handleCopyHlsLink(row)
+      else if (command === 'handleSign') this.handleSign(row)
+      else if (command === 'handleRetryHls') this.handleRetryHls(row)
     },
-    /** 复制公开链接 */
     handleCopyLink(row) {
-      this.copyText(previewOssUrl(row.ossId), this.canPlay(row) ? '原文件链接' : '链接')
+      this.copyUrl(previewOssUrl(row.ossId), this.canPlay(row) ? '原文件链接' : '链接')
     },
-    /** 复制公开 HLS 链接 */
     handleCopyHlsLink(row) {
-      this.copyText(hlsPlayUrl(row.ossId), 'HLS 链接')
+      this.copyUrl(hlsPlayUrl(row.ossId), 'HLS 链接')
     },
-    /** 生成签名地址 */
     handleSign(row) {
       getOssShare(row.ossId).then(share => {
         const urls = shareOssUrls(share)
@@ -518,33 +449,11 @@ export default {
         this.signOpen = true
       })
     },
-    /** 复制到剪贴板 */
-    copyText(text, label = '链接') {
-      const done = () => this.$modal.msgSuccess(label + '已复制')
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(done).catch(() => this.fallbackCopy(text, done))
-      } else {
-        this.fallbackCopy(text, done)
-      }
+    copyUrl(text, label = '链接') {
+      copyText(text)
+        .then(() => this.$modal.msgSuccess(label + '已复制'))
+        .catch(() => this.$modal.msgError('复制失败'))
     },
-    /** 兼容性复制(非安全上下文/旧浏览器) */
-    fallbackCopy(text, done) {
-      const ta = document.createElement('textarea')
-      ta.value = text
-      ta.style.position = 'fixed'
-      ta.style.opacity = '0'
-      document.body.appendChild(ta)
-      ta.select()
-      try {
-        document.execCommand('copy')
-        done()
-      } catch (e) {
-        this.$modal.msgError('复制失败，请手动复制：' + text)
-      } finally {
-        document.body.removeChild(ta)
-      }
-    },
-    /** 删除按钮操作 */
     handleDelete(row) {
       const ossIds = row.ossId || this.ids
       this.$modal
@@ -556,179 +465,152 @@ export default {
         })
         .catch(() => {})
     },
-    /** 是否可访问 */
     canAccess(row) {
-      // 对齐后端 isAdmin,hasRole 已涵盖 userId 为 1 时的 admin 角色
       if (row.publicFlag === 1 || this.$auth.hasRole('SYSTEM_ADMIN')) {
         return true
       }
       return !!row.userId && row.userId === this.$store.getters.userInfo.userId
     },
-    /** 短码地址,用于带不了请求头的私有文件访问 */
     shareUrl(row, kind) {
       return getOssShare(row.ossId).then(share => shareOssUrls(share)[kind])
     },
-    /** 缩略图地址 */
     thumbUrl(row) {
       return row.publicFlag === 1 ? previewOssUrl(row.ossId) : this.thumbUrls[row.ossId]
     },
-    /** 拉取私有图片缩略图 */
     loadThumbs() {
       this.revokeThumbs()
-      // 加载令牌
       this._thumbToken = {}
       this.ossList.forEach(row => this.loadThumb(row))
     },
-    /** el-image 带不了请求头,私有图片转 blob 地址 */
     loadThumb(row) {
       if (row.fileType !== 'image' || row.publicFlag === 1 || !this.canAccess(row) || this.thumbUrls[row.ossId]) {
         return
       }
       const token = this._thumbToken
-      getOssPreviewBlob(row.ossId).then(blob => {
-        if (this._thumbToken === token) {
-          this.$set(this.thumbUrls, row.ossId, URL.createObjectURL(blob))
-        }
-      }).catch(() => {})
+      getOssPreviewBlob(row.ossId)
+        .then(blob => {
+          if (this._thumbToken === token) {
+            this.$set(this.thumbUrls, row.ossId, URL.createObjectURL(blob))
+          }
+        })
+        .catch(() => {})
     },
-    /** 释放缩略图地址 */
     revokeThumbs() {
       Object.values(this.thumbUrls).forEach(url => URL.revokeObjectURL(url))
       this.thumbUrls = {}
     },
-    /** 占位图标 */
     fileTypeIcon(fileType) {
       const icons = { image: 'el-icon-picture-outline', video: 'el-icon-video-camera', document: 'el-icon-document' }
       return icons[fileType] || 'el-icon-files'
     },
-    /** 文件类型名称 */
     fileTypeLabel(value) {
       const item = this.fileTypeOptions.find(opt => opt.value === value)
       return item ? item.label : (value || '')
     },
-    // 文件大小格式化(公共工具)
     formatFileSize
   }
 }
 </script>
 
 <style lang="scss" scoped>
-@import '@/assets/styles/tokens.scss';
+@import '../../../assets/styles/tokens.scss';
+
 .upload-public {
-  margin-bottom: 12px;
   display: flex;
   align-items: center;
-  font-size: 14px;
+  justify-content: space-between;
+  margin-bottom: $space-3;
+  padding-bottom: $space-3;
+  border-bottom: 1px solid $separator-light;
+
+  &__label {
+    font-size: 13px;
+    font-weight: 500;
+    color: $label;
+  }
 }
+
 .hls-tip {
   margin-right: 8px;
   font-size: 12px;
-  color: #909399;
+  color: $label-secondary;
+
+  &--fail {
+    color: $color-danger;
+  }
 }
+
 .oss-thumb {
   display: block;
   width: 48px;
   height: 32px;
   margin: 0 auto;
-  border-radius: 4px;
-  background: #f5f7fa;
+  border-radius: $radius-xs;
+  background: $fill-quaternary;
   cursor: pointer;
-}
-.oss-thumb__slot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  font-size: 14px;
-  color: $label-tertiary;
-}
-.oss-thumb--video {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: $label;
-  color: #fff;
-  font-size: 16px;
-  transition: background-color 0.2s ease;
 
-  &:hover {
-    background: mix(#fff, $label, 15%);
+  &__slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-size: 14px;
+    color: $label-tertiary;
   }
-}
-.oss-thumb--pdf {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba($color-danger, 0.08);
-  color: $color-danger;
-  font-size: 16px;
-  transition: background-color 0.2s ease;
 
-  &:hover {
-    background: rgba($color-danger, 0.14);
+  &__icon {
+    font-size: 18px;
+    color: $label-tertiary;
   }
-}
-.oss-thumb--excel {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba($color-success, 0.08);
-  color: $color-success;
-  font-size: 16px;
-  transition: background-color 0.2s ease;
 
-  &:hover {
-    background: rgba($color-success, 0.14);
+  &--video,
+  &--pdf,
+  &--excel,
+  &--word,
+  &--archive,
+  &--md {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: background-color $duration-fast ease;
   }
-}
-.oss-thumb--word {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba($color-primary, 0.08);
-  color: $color-primary;
-  font-size: 16px;
-  transition: background-color 0.2s ease;
 
-  &:hover {
-    background: rgba($color-primary, 0.14);
+  &--video {
+    background: $label;
+    color: #fff;
+    &:hover { background: lighten($label, 12%); }
   }
-}
-.oss-thumb--archive {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba($color-warning, 0.10);
-  color: $color-warning;
-  font-size: 16px;
-  transition: background-color 0.2s ease;
 
-  &:hover {
-    background: rgba($color-warning, 0.18);
+  &--pdf {
+    background: rgba($color-danger, 0.08);
+    color: $color-danger;
+    &:hover { background: rgba($color-danger, 0.14); }
   }
-}
-.oss-thumb--md {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba($label, 0.06);
-  color: $label-secondary;
-  font-size: 16px;
-  transition: background-color 0.2s ease;
 
-  &:hover {
-    background: rgba($label, 0.12);
+  &--excel {
+    background: rgba($color-success, 0.08);
+    color: $color-success;
+    &:hover { background: rgba($color-success, 0.14); }
   }
-}
-.oss-thumb__icon {
-  font-size: 18px;
-  color: $label-tertiary;
-}
-.hls-tip--fail {
-  color: $color-danger;
-}
-.sign-form {
-  margin-top: 16px;
+
+  &--word {
+    background: rgba($color-primary, 0.08);
+    color: $color-primary;
+    &:hover { background: rgba($color-primary, 0.14); }
+  }
+
+  &--archive {
+    background: rgba($color-warning, 0.1);
+    color: $color-warning;
+    &:hover { background: rgba($color-warning, 0.18); }
+  }
+
+  &--md {
+    background: $fill-quaternary;
+    color: $label-secondary;
+    &:hover { background: $fill-active; }
+  }
 }
 </style>
