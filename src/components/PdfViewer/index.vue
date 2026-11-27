@@ -167,8 +167,8 @@ export default {
     },
     /** 页码输入框确认 */
     onPageInput(value) {
-      const n = parseInt(value, 10)
-      if (isNaN(n)) {
+      const n = Number.parseInt(value, 10)
+      if (Number.isNaN(n)) {
         this.pageInput = String(this.pageNumber)
         return
       }
@@ -205,7 +205,7 @@ export default {
         }
         // 预设缩放(如 page-width)按新容器宽度重排;用户手动定过数值缩放则保持不动
         const preset = viewer.currentScaleValue
-        if (preset && isNaN(parseFloat(preset))) {
+        if (preset && Number.isNaN(Number.parseFloat(preset))) {
           viewer.currentScaleValue = preset
         }
         viewer.update()

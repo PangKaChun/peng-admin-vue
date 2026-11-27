@@ -58,13 +58,17 @@
 
     <div class="page-content">
       <div class="page-header">
-        <span class="page-header__title">{{ form.menuId != null ? '编辑菜单' : '新增菜单' }}</span>
+        <div class="page-header__title">
+          <span>{{ form.menuId != null ? '编辑菜单' : '新增菜单' }}</span>
+          <span v-if="form.menuId != null && activeMenuName" class="page-header__sub">{{ activeMenuName }}</span>
+        </div>
         <el-button
           v-if="form.menuId != null ? $auth.hasPermi('sys:menu:edit') : $auth.hasPermi('sys:menu:add')"
           type="primary"
           icon="el-icon-check"
           size="mini"
           :loading="submitting"
+          :disabled="formLoading"
           @click="submitForm"
         >保存</el-button>
       </div>
@@ -80,7 +84,7 @@
         >
           <div class="form-section">
             <h3 class="form-section__title">基本信息</h3>
-            <el-row :gutter="16">
+            <el-row :gutter="16" class="form-grid-row">
               <el-col :span="24">
                 <el-form-item label="上级菜单" prop="parentId">
                   <treeselect v-model="form.parentId" :options="menus" :show-count="true" placeholder="选择上级菜单" />
@@ -137,7 +141,7 @@
                         slot="suffix"
                         class="el-input__icon el-icon-circle-close icon-input__clear"
                         title="清除图标"
-                        @click.stop="form.menuIcon = undefined"
+                        @click.stop="form.menuIcon = ''"
                       />
                     </el-input>
                   </el-popover>
@@ -148,7 +152,7 @@
 
           <div class="form-section">
             <h3 class="form-section__title">{{ routeSectionTitle }}</h3>
-            <el-row :gutter="16">
+            <el-row :gutter="16" class="form-grid-row">
               <el-col v-if="form.menuType !== 'B'" :span="form.menuType === 'M' ? 12 : 24">
                 <el-form-item label="路由地址" prop="routerPath">
                   <el-input v-model="form.routerPath" class="mono-input" placeholder="user" />
@@ -169,7 +173,7 @@
 
           <div v-if="form.menuType !== 'B'" class="form-section">
             <h3 class="form-section__title">显示与状态</h3>
-            <el-row :gutter="16">
+            <el-row :gutter="16" class="form-grid-row">
               <el-col :span="12">
                 <el-form-item label="显示状态" prop="visible">
                   <el-radio-group v-model="form.visible">
@@ -189,7 +193,7 @@
 
           <div class="form-section">
             <h3 class="form-section__title">其他信息</h3>
-            <el-row :gutter="16">
+            <el-row :gutter="16" class="form-grid-row">
               <el-col :span="24">
                 <el-form-item label="备注" prop="remark">
                   <el-input v-model="form.remark" type="textarea" :rows="3" placeholder="备注" />
@@ -221,6 +225,7 @@ export default {
       formLoading: false,
       loading: false,
       submitting: false,
+      activeMenuName: '',
       defaultProps: {
         children: 'children',
         label: 'menuName'
@@ -274,6 +279,7 @@ export default {
       return data.menuName.indexOf(value) !== -1
     },
     reset() {
+      this.activeMenuName = ''
       this.form = {
         menuId: undefined,
         menuName: undefined,
@@ -293,6 +299,8 @@ export default {
       })
     },
     handleAdd(row) {
+      this._detailReqId = (this._detailReqId || 0) + 1
+      this.formLoading = false
       this.reset()
       this.$refs.menu && this.$refs.menu.setCurrentKey(null)
       if (row && row.menuId) {
@@ -317,17 +325,22 @@ export default {
       })
     },
     handleUpdate(row) {
+      const reqId = (this._detailReqId = (this._detailReqId || 0) + 1)
       this.getMenusTree()
       this.formLoading = true
       getMenu(row.menuId)
         .then(response => {
+          if (this._detailReqId !== reqId) return
           this.form = response
+          this.activeMenuName = response.menuName || ''
           this.$nextTick(() => {
             this.$refs.form && this.$refs.form.clearValidate()
           })
         })
         .finally(() => {
-          this.formLoading = false
+          if (this._detailReqId === reqId) {
+            this.formLoading = false
+          }
         })
     },
     handleDelete(row) {
@@ -368,7 +381,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../../../assets/styles/tokens.scss';
+@import '@/assets/styles/tokens.scss';
 
 .tree-aside {
   width: 280px;
@@ -376,16 +389,6 @@ export default {
 
 .detail-form {
   max-width: 640px;
-
-  ::v-deep .el-row {
-    display: flex;
-    flex-wrap: wrap;
-
-    &::before,
-    &::after {
-      display: none;
-    }
-  }
 }
 
 .form-section {
@@ -401,11 +404,6 @@ export default {
     font-weight: 600;
     color: $label-secondary;
   }
-}
-
-.mono-input ::v-deep .el-input__inner {
-  font-family: $font-mono;
-  font-size: 12px;
 }
 
 .icon-input {
@@ -472,10 +470,16 @@ export default {
     align-items: center;
     gap: $space-2;
     opacity: 0;
+    pointer-events: none;
     transition: opacity $duration-fast ease;
 
     .el-button + .el-button {
       margin-left: 0;
+    }
+
+    @media (hover: none) {
+      opacity: 1;
+      pointer-events: auto;
     }
   }
 }
@@ -484,6 +488,7 @@ export default {
   &:hover .tree-node-actions,
   &:focus-within .tree-node-actions {
     opacity: 1;
+    pointer-events: auto;
   }
 }
 </style>

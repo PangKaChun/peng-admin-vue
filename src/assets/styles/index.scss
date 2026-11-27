@@ -39,7 +39,8 @@ a:active {
   outline: none;
 }
 
-a:focus-visible {
+a:focus-visible,
+[role="button"]:focus-visible {
   outline: 2px solid rgba($color-primary, 0.45);
   outline-offset: -2px;
   border-radius: $radius-sm;
@@ -132,7 +133,7 @@ div:focus:not(:focus-visible) {
   align-items: center;
   justify-content: space-between;
   gap: $space-3;
-  min-height: 52px;
+  min-height: 53px;
   padding: $space-2 $space-4;
   border-bottom: 1px solid $separator-light;
 
@@ -162,7 +163,6 @@ div:focus:not(:focus-visible) {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-family: $font-mono;
     font-size: 12px;
     font-weight: 400;
     color: $label-secondary;
@@ -247,15 +247,33 @@ div:focus:not(:focus-visible) {
   font-size: 13px;
 }
 
-// ===== 语义辅助类 =====
+// ===== 共享表单辅助类 =====
+.form-grid-row {
+  display: flex;
+  flex-wrap: wrap;
+
+  &::before,
+  &::after {
+    display: none;
+  }
+}
+
 .mono-text,
 .el-table__body .mono-cell .cell {
   font-family: $font-mono;
   font-size: 12px;
 }
 
-.el-table__body .num-cell .cell {
-  font-variant-numeric: tabular-nums;
+.mono-text {
+  overflow-wrap: anywhere;
+}
+
+.mono-input {
+  .el-input__inner,
+  .el-textarea__inner {
+    font-family: $font-mono;
+    font-size: 12px;
+  }
 }
 
 // ===== Element UI 全局克制覆盖 =====
@@ -544,6 +562,21 @@ div:focus:not(:focus-visible) {
 
 .el-range-separator {
   box-sizing: content-box;
+}
+
+.el-descriptions {
+  font-size: 13px;
+  color: $label;
+
+  .el-descriptions-item__label:not(.is-bordered-label) {
+    color: $label-secondary;
+    margin-right: $space-3;
+  }
+
+  .el-descriptions-item__content {
+    color: $label;
+    overflow-wrap: anywhere;
+  }
 }
 
 .el-descriptions__body {

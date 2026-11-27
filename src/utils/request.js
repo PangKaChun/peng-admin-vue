@@ -7,7 +7,7 @@ import cache from '@/plugins/cache'
 import { refreshToken } from '@/api/login'
 
 // 是否显示重新登录
-export let isRelogin = { show: false }
+export const isRelogin = { show: false }
 // 是否正在刷新 token
 let isRefreshing = false
 // 重试队列，保存需要等待 token 刷新的请求
@@ -95,17 +95,11 @@ async (error) => {
   if (response && response.data) {
     const code = response.data.code
     const originalRequest = error.config
+    const isAuthRequest = (originalRequest.headers || {}).isToken !== false
 
-    if (code === 401 || code === 424) {
-      const skipRefresh =
-        originalRequest._retry ||
-        originalRequest._skipAuthRefresh ||
-        (originalRequest.headers || {}).isToken === false
-      if (skipRefresh) {
-        if (originalRequest._retry) {
-          return reloginMessageBox()
-        }
-        return Promise.reject(error)
+    if ((code === 401 || code === 424) && isAuthRequest) {
+      if (originalRequest._retry) {
+        return reloginMessageBox()
       }
 
       const EToken = getRefreshToken()
@@ -159,7 +153,7 @@ async (error) => {
       } else {
         return reloginMessageBox()
       }
-    } else if (response.data.msg === 'invalid_grant') {
+    } else if (response.data.msg === 'invalid_grant' && isAuthRequest) {
       return reloginMessageBox()
     } else {
       message = response.data.msg || '未知异常'
@@ -186,8 +180,8 @@ function reloginMessageBox() {
       cancelButtonText: '取消',
       type: 'warning'
     }).then(() => {
-      isRelogin.show = false
-      store.dispatch('user/LogOut').then(() => {
+      store.dispatch('user/LogOut').finally(() => {
+        isRelogin.show = false
         location.href = '/index'
       })
     }).catch(() => {

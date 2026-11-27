@@ -95,10 +95,10 @@ export default {
 
 /* GitHub 风格排版 */
 .md-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: $font-sans;
   font-size: 15px;
   line-height: 1.7;
-  color: #24292f;
+  color: $label;
   word-wrap: break-word;
 
   h1, h2, h3, h4, h5, h6 {
@@ -109,13 +109,13 @@ export default {
 
   h1 {
     padding-bottom: 8px;
-    border-bottom: 1px solid #eaecef;
+    border-bottom: 1px solid $separator-light;
     font-size: 28px;
   }
 
   h2 {
     padding-bottom: 6px;
-    border-bottom: 1px solid #eaecef;
+    border-bottom: 1px solid $separator-light;
     font-size: 22px;
   }
 
@@ -146,8 +146,8 @@ export default {
 
   blockquote {
     padding: 2px 14px;
-    border-left: 4px solid #d0d7de;
-    color: #57606a;
+    border-left: 4px solid $separator;
+    color: $label-secondary;
 
     > :last-child {
       margin-bottom: 0;
@@ -157,17 +157,17 @@ export default {
   /* 行内代码 */
   code {
     padding: 2px 5px;
-    border-radius: 4px;
-    background: rgba(175, 184, 193, 0.2);
-    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    border-radius: $radius-xs;
+    background: $fill-quaternary;
+    font-family: $font-mono;
     font-size: 85%;
   }
 
   /* 代码块(高亮配色交给 hljs github 主题) */
   pre {
     padding: 14px 16px;
-    border-radius: 6px;
-    background: #f6f8fa;
+    border-radius: $radius-sm;
+    background: $bg-subtle;
     overflow: auto;
 
     /* hljs 主题样式随渲染链路晚加载,带上 .hljs 才压得过它的 pre code.hljs 内边距;
@@ -193,16 +193,16 @@ export default {
 
     th, td {
       padding: 6px 13px;
-      border: 1px solid #d0d7de;
+      border: 1px solid $separator;
     }
 
     th {
-      background: #f6f8fa;
+      background: $bg-subtle;
       font-weight: 600;
     }
 
     tr:nth-child(even) td {
-      background: #fafbfc;
+      background: mix($bg-base, $bg-subtle, 50%);
     }
   }
 
@@ -215,7 +215,7 @@ export default {
     height: 1px;
     margin: 20px 0;
     border: none;
-    background: #d8dee4;
+    background: $separator-light;
   }
 
   /* GFM 任务列表 */

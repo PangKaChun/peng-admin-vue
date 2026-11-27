@@ -503,6 +503,7 @@ export default {
     margin: 0 12px;
     font-size: 12px;
     font-weight: 500;
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
 
     &--checking,

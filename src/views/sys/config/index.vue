@@ -28,7 +28,7 @@
         <el-form-item>
           <el-date-picker
             v-model="dateRange"
-            style="width: 220px"
+            style="width: 240px"
             value-format="yyyy-MM-dd"
             type="daterange"
             range-separator="-"
@@ -44,6 +44,14 @@
 
       <div class="page-actions">
         <el-button
+          v-if="!multiple && $auth.hasPermi('sys:config:del')"
+          type="danger"
+          plain
+          icon="el-icon-delete"
+          size="small"
+          @click="handleDelete()"
+        >删除</el-button>
+        <el-button
           v-hasPermi="['sys:config:add']"
           type="primary"
           icon="el-icon-plus"
@@ -56,14 +64,6 @@
           size="small"
           @click="handleRefreshCache"
         >刷新缓存</el-button>
-        <el-button
-          v-if="!multiple && $auth.hasPermi('sys:config:del')"
-          type="danger"
-          plain
-          icon="el-icon-delete"
-          size="small"
-          @click="handleDelete"
-        >删除</el-button>
       </div>
     </div>
 
@@ -85,7 +85,7 @@
           </template>
         </el-table-column>
         <el-table-column label="备注" align="left" prop="remark" min-width="140" show-overflow-tooltip />
-        <el-table-column label="创建时间" align="center" prop="createTime" width="160" class-name="num-cell">
+        <el-table-column label="创建时间" align="center" prop="createTime" width="160">
           <template slot-scope="scope">
             <span>{{ parseTime(scope.row.createTime) }}</span>
           </template>
@@ -229,8 +229,7 @@ export default {
     },
     handleUpdate(row) {
       this.reset()
-      const configId = row.configId || this.ids[0]
-      getConfig(configId).then(response => {
+      getConfig(row.configId).then(response => {
         this.form = response
         this.open = true
         this.title = '编辑参数'
@@ -255,9 +254,12 @@ export default {
       })
     },
     handleDelete(row) {
-      const configIds = row.configId || this.ids
+      const configIds = (row && row.configId) || this.ids
+      const message = row && row.configId
+        ? `确认删除参数“${row.configName}”吗？`
+        : `确认删除选中的 ${configIds.length} 项参数吗？`
       this.$modal
-        .confirm('是否确认删除参数编号为"' + configIds + '"的数据项？')
+        .confirm(message)
         .then(() => delConfig(configIds))
         .then(() => {
           this.getList()

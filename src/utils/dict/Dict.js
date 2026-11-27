@@ -24,7 +24,7 @@ export default class Dict {
     if (options instanceof Array) {
       options = { types: options }
     }
-    const opts = mergeRecursive(DEFAULT_DICT_OPTIONS, options)
+    const opts = mergeRecursive({ ...DEFAULT_DICT_OPTIONS }, options)
     if (opts.types === undefined) {
       throw new Error('need dict types')
     }
@@ -49,7 +49,7 @@ export default class Dict {
   reloadDict(type) {
     const dictMeta = this._dictMetas.find(e => e.type === type)
     if (dictMeta === undefined) {
-      return Promise.reject(`the dict meta of ${type} was not found`)
+      return Promise.reject(new Error(`the dict meta of ${type} was not found`))
     }
     return loadDict(this, dictMeta)
   }

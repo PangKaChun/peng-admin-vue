@@ -20,7 +20,7 @@
           <el-form-item>
             <el-date-picker
               v-model="dateRange"
-              style="width: 220px"
+              style="width: 240px"
               value-format="yyyy-MM-dd"
               type="daterange"
               range-separator="-"
@@ -36,20 +36,20 @@
 
         <div class="page-actions">
           <el-button
+            v-if="!multiple && $auth.hasPermi('sys:role:del')"
+            type="danger"
+            plain
+            icon="el-icon-delete"
+            size="small"
+            @click="handleDelete()"
+          >删除</el-button>
+          <el-button
             v-hasPermi="['sys:role:add']"
             type="primary"
             icon="el-icon-plus"
             size="small"
             @click="handleAdd"
           >新增</el-button>
-          <el-button
-            v-if="!multiple && $auth.hasPermi('sys:role:del')"
-            type="danger"
-            plain
-            icon="el-icon-delete"
-            size="small"
-            @click="handleDelete"
-          >删除</el-button>
         </div>
       </div>
 
@@ -78,7 +78,7 @@
               />
             </template>
           </el-table-column>
-          <el-table-column label="创建时间" align="center" prop="createTime" width="160" class-name="num-cell" />
+          <el-table-column label="创建时间" align="center" prop="createTime" width="160" />
           <el-table-column label="操作" align="center" width="120" class-name="small-padding">
             <template v-if="scope.row.roleId !== '1'" slot-scope="scope">
               <el-button
@@ -157,12 +157,12 @@
           </el-tab-pane>
         </el-tabs>
       </div>
-      <div v-else class="page-empty">暂无角色</div>
+      <div v-else-if="!loading" class="page-empty">暂无角色</div>
     </aside>
 
     <el-dialog :title="dialogTitle" :visible.sync="dialogFormVisible" width="560px" append-to-body>
       <el-form ref="form" :model="form" :rules="rules" label-width="80px">
-        <el-row :gutter="16">
+        <el-row :gutter="16" class="form-grid-row">
           <el-col :span="12">
             <el-form-item label="角色名称" prop="roleName">
               <el-input v-model="form.roleName" placeholder="角色名称" maxlength="30" />
@@ -326,17 +326,19 @@ export default {
     },
     handleUpdate(row) {
       this.reset()
-      const roleId = row.roleId || this.ids[0]
-      getRole(roleId).then(response => {
+      getRole(row.roleId).then(response => {
         this.form = response
         this.dialogFormVisible = true
         this.dialogTitle = '编辑角色'
       })
     },
     handleDelete(row) {
-      const roleIds = row.roleId || this.ids
+      const roleIds = (row && row.roleId) || this.ids
+      const message = row && row.roleId
+        ? `确认删除角色“${row.roleName}”吗？`
+        : `确认删除选中的 ${roleIds.length} 项角色吗？`
       this.$modal
-        .confirm('是否确认删除角色编号为"' + roleIds + '"的数据项？')
+        .confirm(message)
         .then(() => delRole(roleIds))
         .then(() => {
           this.getList()
@@ -455,7 +457,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../../../assets/styles/tokens.scss';
+@import '@/assets/styles/tokens.scss';
 
 .role-auth-body {
   flex: 1;

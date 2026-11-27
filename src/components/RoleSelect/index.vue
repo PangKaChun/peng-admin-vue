@@ -34,7 +34,7 @@
   >
     <div class="role-select">
       <!-- 搜索 -->
-      <el-form inline size="small" class="rs-query" @submit.native.prevent>
+      <el-form inline size="small" class="page-filters rs-query" @submit.native.prevent>
         <el-form-item>
           <el-input v-model="queryParams.roleName" placeholder="角色名称" clearable style="width: 160px" @keyup.enter.native="handleQuery" />
         </el-form-item>
@@ -58,9 +58,9 @@
         :key="renderKey"
         v-loading="loading"
         :data="roleList"
-        border
         size="small"
         highlight-current-row
+        empty-text="暂无角色数据"
         :max-height="tableMaxHeight"
         row-key="roleId"
         @row-click="handleRowClick"
@@ -79,9 +79,6 @@
             <dict-tag :options="dict.type.role_status" :value="scope.row.status" />
           </template>
         </el-table-column>
-        <template slot="empty">
-          <el-empty :image-size="80" description="暂无角色数据" />
-        </template>
       </el-table>
 
       <pagination
@@ -272,11 +269,11 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../../assets/styles/tokens.scss';
+@import '@/assets/styles/tokens.scss';
 
 .role-select {
   .rs-query {
-    margin-bottom: 8px;
+    margin-bottom: $space-3;
   }
 
   .rs-pagination {

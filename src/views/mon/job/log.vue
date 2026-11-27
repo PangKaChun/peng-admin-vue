@@ -24,7 +24,7 @@
         <el-form-item>
           <el-date-picker
             v-model="dateRange"
-            style="width: 220px"
+            style="width: 240px"
             value-format="yyyy-MM-dd"
             type="daterange"
             range-separator="-"
@@ -39,15 +39,6 @@
       </el-form>
 
       <div class="page-actions">
-        <el-button icon="el-icon-close" size="small" @click="handleClose">关闭</el-button>
-        <el-button
-          v-hasPermi="['mon:job:del']"
-          type="danger"
-          plain
-          icon="el-icon-delete"
-          size="small"
-          @click="handleClean"
-        >清空</el-button>
         <el-button
           v-if="!multiple && $auth.hasPermi('mon:job:del')"
           type="danger"
@@ -56,6 +47,13 @@
           size="small"
           @click="handleDelete()"
         >删除</el-button>
+        <el-button
+          v-hasPermi="['mon:job:del']"
+          icon="el-icon-brush"
+          size="small"
+          @click="handleClean"
+        >清空</el-button>
+        <el-button icon="el-icon-close" size="small" @click="handleClose">关闭</el-button>
       </div>
     </div>
 
@@ -82,7 +80,7 @@
             <dict-tag :options="dict.type.common_status" :value="scope.row.status" />
           </template>
         </el-table-column>
-        <el-table-column label="执行时间" align="center" prop="createTime" width="160" class-name="num-cell">
+        <el-table-column label="执行时间" align="center" prop="createTime" width="160">
           <template slot-scope="scope">
             <span>{{ parseTime(scope.row.createTime) }}</span>
           </template>
@@ -110,25 +108,27 @@
     </div>
 
     <el-dialog title="调度日志详情" :visible.sync="dialogFormVisible" width="680px" append-to-body>
-      <el-descriptions :column="2" border size="small">
-        <el-descriptions-item label="任务名称">{{ form.jobName }}</el-descriptions-item>
+      <el-descriptions :column="2" size="small" :colon="false">
+        <el-descriptions-item label="任务名称">{{ form.jobName || '-' }}</el-descriptions-item>
         <el-descriptions-item label="任务分组">
           <dict-tag :options="dict.type.job_group" :value="form.jobGroup" />
         </el-descriptions-item>
         <el-descriptions-item label="执行状态">
           <dict-tag :options="dict.type.common_status" :value="form.status" />
         </el-descriptions-item>
-        <el-descriptions-item label="执行时间">{{ parseTime(form.createTime) }}</el-descriptions-item>
+        <el-descriptions-item label="执行时间">{{ parseTime(form.createTime) || '-' }}</el-descriptions-item>
         <el-descriptions-item label="调用目标" :span="2">
-          <code class="mono-text">{{ form.invokeTarget }}</code>
+          <code class="mono-text">{{ form.invokeTarget || '-' }}</code>
         </el-descriptions-item>
-        <el-descriptions-item label="日志信息" :span="2">{{ form.jobMessage }}</el-descriptions-item>
-        <el-descriptions-item v-if="form.exceptionInfo" label="异常信息" :span="2">
-          <pre class="exception-pre">{{ form.exceptionInfo }}</pre>
-        </el-descriptions-item>
+        <el-descriptions-item label="日志信息" :span="2">{{ form.jobMessage || '-' }}</el-descriptions-item>
       </el-descriptions>
-      <div slot="footer">
-        <el-button @click="dialogFormVisible = false">关闭</el-button>
+
+      <div v-if="form.exceptionInfo" class="job-exception">
+        <div class="job-exception__head">
+          <span class="job-exception__title">异常信息</span>
+          <el-button type="text" size="mini" icon="el-icon-document-copy" @click="copyException(form.exceptionInfo)">复制</el-button>
+        </div>
+        <pre class="job-exception__pre">{{ form.exceptionInfo }}</pre>
       </div>
     </el-dialog>
   </div>
@@ -137,6 +137,7 @@
 <script>
 import { getJob } from '@/api/mon/job'
 import { listJobLog, delJobLog, cleanJobLog } from '@/api/mon/jobLog'
+import { copyText } from '@/utils/clipboard'
 
 export default {
   name: 'JobLog',
@@ -207,13 +208,15 @@ export default {
       this.form = row
       this.dialogFormVisible = true
     },
-    handleDelete(row) {
-      const jobLogIds = (row && row.jobLogId) || this.ids
-      const message = row
-        ? '确认删除该条调度日志吗？'
-        : '确认删除选中的 ' + jobLogIds.length + ' 条调度日志吗？'
+    copyException(text) {
+      copyText(text)
+        .then(() => this.$modal.msgSuccess('已复制到剪贴板'))
+        .catch(() => this.$modal.msgError('复制失败'))
+    },
+    handleDelete() {
+      const jobLogIds = this.ids
       this.$modal
-        .confirm(message)
+        .confirm(`确认删除选中的 ${jobLogIds.length} 条调度日志吗？`)
         .then(() => delJobLog(jobLogIds))
         .then(() => {
           this.getList()
@@ -236,20 +239,43 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../../../assets/styles/tokens.scss';
+@import '@/assets/styles/tokens.scss';
 
-.mono-text {
-  word-break: break-all;
-}
+.job-exception {
+  margin-top: $space-4;
+  padding-top: $space-4;
+  border-top: 1px solid $separator-light;
 
-.exception-pre {
-  margin: 0;
-  max-height: 280px;
-  overflow: auto;
-  font-family: $font-mono;
-  font-size: 12px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-all;
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: $space-2;
+
+    .el-button {
+      padding: 0;
+    }
+  }
+
+  &__title {
+    font-size: 12px;
+    font-weight: 600;
+    color: $color-danger;
+  }
+
+  &__pre {
+    margin: 0;
+    max-height: 280px;
+    overflow: auto;
+    padding: $space-3;
+    font-family: $font-mono;
+    font-size: 12px;
+    line-height: 1.6;
+    color: $label;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    background: rgba($color-danger, 0.04);
+    border-radius: $radius-sm;
+  }
 }
 </style>

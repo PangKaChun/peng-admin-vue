@@ -27,7 +27,7 @@
       >
         <el-table-column label="登录名" align="left" prop="username" min-width="110" show-overflow-tooltip />
         <el-table-column label="类型" align="center" width="76" prop="logType" :formatter="logTypeFormat" />
-        <el-table-column label="登录地址" align="left" prop="ipaddr" width="130" class-name="mono-cell" />
+        <el-table-column label="登录地址" align="left" prop="ipaddr" width="130" class-name="mono-cell" show-overflow-tooltip />
         <el-table-column label="登录地点" align="left" prop="loginLocation" min-width="120" show-overflow-tooltip />
         <el-table-column label="浏览器" align="left" prop="browser" min-width="110" show-overflow-tooltip />
         <el-table-column label="操作系统" align="left" prop="os" min-width="110" show-overflow-tooltip />
@@ -37,7 +37,7 @@
           </template>
         </el-table-column>
         <el-table-column label="操作信息" align="left" prop="msg" min-width="140" show-overflow-tooltip />
-        <el-table-column label="登录时间" align="center" prop="loginTime" width="160" class-name="num-cell" />
+        <el-table-column label="登录时间" align="center" prop="loginTime" width="160" />
       </el-table>
     </div>
 
@@ -58,7 +58,7 @@ import { loginLog } from '@/api/mon/log'
 const LOG_TYPE_LABELS = { LOGIN: '登录', LOGOUT: '登出' }
 
 export default {
-  name: 'Log',
+  name: 'LoginLog',
   dicts: ['log_status'],
   data() {
     return {

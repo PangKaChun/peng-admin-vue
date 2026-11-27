@@ -40,9 +40,12 @@ export default {
       }
       try {
         await this._viewer.importXML(xml)
+        if (!this._viewer) return
         this._viewer.get('canvas').zoom('fit-viewport')
       } catch (e) {
-        this.$modal && this.$modal.msgError('渲染流程图失败：' + e.message)
+        if (this._viewer) {
+          this.$modal && this.$modal.msgError('渲染流程图失败：' + e.message)
+        }
       }
     },
     /** 重新适应视口：对话框展开动画结束后调用，确保画布尺寸已就绪（避免重复 importXML） */

@@ -3,7 +3,7 @@
     <div class="page-header">
       <div class="page-header__title">
         <span>字典项</span>
-        <span v-if="dictType" class="page-header__sub">{{ dictType }}</span>
+        <span v-if="dictType" class="page-header__sub mono-text">{{ dictType }}</span>
       </div>
       <el-button
         v-if="dictType && $auth.hasPermi('sys:dict:add')"
@@ -30,7 +30,7 @@
           </template>
         </el-table-column>
         <el-table-column label="字典值" align="left" prop="dictValue" class-name="mono-cell" show-overflow-tooltip />
-        <el-table-column label="排序" align="center" width="70" prop="dictSort" class-name="num-cell" />
+        <el-table-column label="排序" align="center" width="70" prop="dictSort" />
         <el-table-column label="操作" align="center" width="120" class-name="small-padding">
           <template slot-scope="scope">
             <el-button
@@ -48,7 +48,7 @@
           </template>
         </el-table-column>
       </el-table>
-      <div v-else class="page-empty">暂无字典</div>
+      <div v-else-if="dictType === ''" class="page-empty">暂无字典</div>
     </div>
 
     <div v-show="total > 0" class="page-footer">
@@ -156,6 +156,7 @@ export default {
     dictType: {
       immediate: true,
       handler(val) {
+        this._reqSeq = (this._reqSeq || 0) + 1
         if (val) {
           this.queryParams.pageNum = 1
           this.queryParams.dictType = val
@@ -164,6 +165,7 @@ export default {
           this.queryParams.dictType = undefined
           this.dataList = []
           this.total = 0
+          this.loading = false
         }
       }
     }
@@ -172,15 +174,16 @@ export default {
     getList() {
       const targetType = this.queryParams.dictType
       if (!targetType) return
+      const seq = ++this._reqSeq
       this.loading = true
       listData(this.queryParams)
         .then(response => {
-          if (this.queryParams.dictType !== targetType) return
+          if (this._reqSeq !== seq) return
           this.dataList = response.records || []
           this.total = response.total || 0
         })
         .finally(() => {
-          if (this.queryParams.dictType === targetType) {
+          if (this._reqSeq === seq) {
             this.loading = false
           }
         })
@@ -219,7 +222,7 @@ export default {
     },
     handleDelete(row) {
       this.$modal
-        .confirm('是否确认删除字典编号为"' + row.dictCode + '"的数据项？')
+        .confirm(`确认删除字典项“${row.dictLabel}”吗？`)
         .then(() => delData(row.dictCode))
         .then(() => {
           this.getList()

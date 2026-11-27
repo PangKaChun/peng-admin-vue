@@ -559,34 +559,26 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../../assets/styles/tokens.scss';
+@import '@/assets/styles/tokens.scss';
 
 .popup-result {
   box-sizing: border-box;
   line-height: 24px;
-  margin: 20px auto 0;
-  padding: 15px 12px 10px;
-  border: 1px solid $separator;
-  border-radius: $radius-sm;
-  position: relative;
+  margin-top: $space-4;
+  padding-top: $space-4;
+  border-top: 1px solid $separator-light;
 
   .title {
-    position: absolute;
-    top: -15px;
-    left: 50%;
-    width: 140px;
-    margin: 0 0 0 -70px;
-    font-size: 13px;
-    font-weight: 500;
-    color: $label;
-    text-align: center;
-    line-height: 28px;
-    background: $bg-base;
+    margin: 0 0 $space-2;
+    font-size: 12px;
+    font-weight: 600;
+    color: $label-secondary;
+    line-height: 1.4;
   }
 
   .popup-result-scroll {
     margin: 0;
-    padding: 0 4px;
+    padding: $space-2 $space-3;
     list-style: none;
     font-family: $font-mono;
     font-variant-numeric: tabular-nums;
@@ -595,6 +587,9 @@ export default {
     height: 10em;
     overflow-y: auto;
     color: $label;
+    background: $bg-subtle;
+    border: 1px solid $separator-light;
+    border-radius: $radius-sm;
   }
 }
 </style>

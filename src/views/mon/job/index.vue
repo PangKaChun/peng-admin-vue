@@ -29,6 +29,14 @@
 
       <div class="page-actions">
         <el-button
+          v-if="!multiple && $auth.hasPermi('mon:job:del')"
+          type="danger"
+          plain
+          icon="el-icon-delete"
+          size="small"
+          @click="handleDelete()"
+        >删除</el-button>
+        <el-button
           v-hasPermi="['mon:job:add']"
           type="primary"
           icon="el-icon-plus"
@@ -41,14 +49,6 @@
           size="small"
           @click="handleJobLog()"
         >调度日志</el-button>
-        <el-button
-          v-if="!multiple && $auth.hasPermi('mon:job:del')"
-          type="danger"
-          plain
-          icon="el-icon-delete"
-          size="small"
-          @click="handleDelete()"
-        >删除</el-button>
       </div>
     </div>
 
@@ -193,29 +193,28 @@
     </el-dialog>
 
     <el-dialog title="任务详情" :visible.sync="openView" width="680px" append-to-body>
-      <el-descriptions :column="2" border size="small">
-        <el-descriptions-item label="任务编号">{{ detail.jobId }}</el-descriptions-item>
-        <el-descriptions-item label="任务名称">{{ detail.jobName }}</el-descriptions-item>
+      <el-descriptions :column="2" size="small" :colon="false">
+        <el-descriptions-item label="任务编号">
+          <code class="mono-text">{{ detail.jobId || '-' }}</code>
+        </el-descriptions-item>
+        <el-descriptions-item label="任务名称">{{ detail.jobName || '-' }}</el-descriptions-item>
         <el-descriptions-item label="任务分组">
           <dict-tag :options="dict.type.job_group" :value="detail.jobGroup" />
         </el-descriptions-item>
         <el-descriptions-item label="任务状态">
           <dict-tag :options="dict.type.job_status" :value="detail.status" />
         </el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ detail.createTime }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ detail.createTime || '-' }}</el-descriptions-item>
         <el-descriptions-item label="下次执行">{{ parseTime(detail.nextValidTime) || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="Cron 表达式">
-          <code class="mono-text">{{ detail.cronExpression }}</code>
-        </el-descriptions-item>
         <el-descriptions-item label="并发执行">{{ detail.concurrent == 0 ? '允许' : '禁止' }}</el-descriptions-item>
-        <el-descriptions-item label="执行策略" :span="2">{{ misfirePolicyMap[detail.misfirePolicy] }}</el-descriptions-item>
+        <el-descriptions-item label="执行策略">{{ misfirePolicyMap[detail.misfirePolicy] || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="Cron 表达式" :span="2">
+          <code class="mono-text">{{ detail.cronExpression || '-' }}</code>
+        </el-descriptions-item>
         <el-descriptions-item label="调用目标" :span="2">
-          <code class="mono-text">{{ detail.invokeTarget }}</code>
+          <code class="mono-text">{{ detail.invokeTarget || '-' }}</code>
         </el-descriptions-item>
       </el-descriptions>
-      <div slot="footer">
-        <el-button @click="openView = false">关闭</el-button>
-      </div>
     </el-dialog>
   </div>
 </template>
@@ -362,8 +361,7 @@ export default {
     },
     handleUpdate(row) {
       this.reset()
-      const jobId = (row && row.jobId) || this.ids[0]
-      getJob(jobId).then(response => {
+      getJob(row.jobId).then(response => {
         this.form = {
           ...response,
           misfirePolicy: String(response.misfirePolicy),
@@ -402,16 +400,3 @@ export default {
   }
 }
 </script>
-
-<style lang="scss" scoped>
-@import '../../../assets/styles/tokens.scss';
-
-.mono-input ::v-deep .el-input__inner {
-  font-family: $font-mono;
-  font-size: 12px;
-}
-
-.mono-text {
-  word-break: break-all;
-}
-</style>

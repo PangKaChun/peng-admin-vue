@@ -2,8 +2,8 @@
   <div class="page">
     <div class="page-body page-body--scroll">
       <div v-if="groups.length" class="home-directory">
-        <section v-for="group in groups" :key="group.title" class="home-group">
-          <h2 class="home-group__title">{{ group.title }}</h2>
+        <section v-for="group in groups" :key="group.title || '__standalone__'" class="home-group">
+          <h2 v-if="group.title" class="home-group__title">{{ group.title }}</h2>
           <div class="home-grid">
             <template v-for="item in group.items">
               <a
@@ -43,6 +43,7 @@ export default {
     ...mapGetters(['sidebarRouters']),
     groups() {
       const result = []
+      const standalone = []
       const routes = this.sidebarRouters || []
 
       routes.forEach(route => {
@@ -54,31 +55,22 @@ export default {
           if (items.length) {
             result.push({ title: route.meta.title, items })
           }
-        } else if (children.length === 1 && children[0].meta && children[0].meta.title && !(children[0].meta.affix)) {
-          const leaf = children[0]
-          const to = this.resolvePath(route.path || '/', leaf.path)
-          result.push({
-            title: leaf.meta.title,
-            items: [{
-              title: leaf.meta.title,
-              icon: leaf.meta.icon || (route.meta && route.meta.icon) || '',
-              to,
-              external: isExternal(to)
-            }]
-          })
-        } else if (!children.length && route.meta && route.meta.title && !route.meta.affix) {
+        } else if (children.length) {
+          standalone.push(...this.collectItems(children, route.path || '/', (route.meta && route.meta.icon) || ''))
+        } else if (route.meta && route.meta.title && !route.meta.affix) {
           const to = this.resolvePath(route.path || '/', '')
-          result.push({
+          standalone.push({
             title: route.meta.title,
-            items: [{
-              title: route.meta.title,
-              icon: route.meta.icon || '',
-              to,
-              external: isExternal(to)
-            }]
+            icon: route.meta.icon || '',
+            to,
+            external: isExternal(to)
           })
         }
       })
+
+      if (standalone.length) {
+        result.unshift({ title: '', items: standalone })
+      }
       return result
     }
   },
@@ -88,10 +80,10 @@ export default {
       if (isExternal(basePath)) return basePath
       return path.resolve(basePath || '/', routePath || '')
     },
-    collectItems(children, basePath) {
+    collectItems(children, basePath, fallbackIcon = '') {
       const items = []
       children.forEach(child => {
-        if (child.hidden) return
+        if (child.hidden || (child.meta && child.meta.affix)) return
         const fullPath = this.resolvePath(basePath, child.path)
         const nested = (child.children || []).filter(c => !c.hidden)
         if (nested.length) {
@@ -99,7 +91,7 @@ export default {
         } else if (child.meta && child.meta.title) {
           items.push({
             title: child.meta.title,
-            icon: child.meta.icon || '',
+            icon: child.meta.icon || fallbackIcon,
             to: fullPath,
             external: isExternal(fullPath)
           })
@@ -112,7 +104,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../assets/styles/tokens.scss';
+@import '@/assets/styles/tokens.scss';
 
 .home-directory {
   max-width: 960px;

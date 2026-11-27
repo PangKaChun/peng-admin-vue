@@ -66,7 +66,7 @@
           </el-input>
         </el-form-item>
         <el-form-item class="login-actions">
-          <el-button class="login-btn" type="primary" :loading="loginLoading" @click="onVerifyMfa">登录</el-button>
+          <el-button class="login-btn" type="primary" :loading="loginLoading" @click="onVerifyMfa">{{ requirements.pwdChangeRequired ? '继续' : '登录' }}</el-button>
         </el-form-item>
         <div class="login-back">
           <el-button type="text" @click="backToStep1">返回</el-button>
@@ -209,8 +209,7 @@ export default {
         mfaCode: [{ required: true, message: '请输入 6 位验证码', trigger: 'blur' }]
       },
       captchaLoading: true,
-      loginLoading: false,
-      redirect: undefined
+      loginLoading: false
     }
   },
   computed: {
@@ -219,14 +218,6 @@ export default {
     },
     passwordRuleTip() {
       return formatPasswordRule(this.passwordPolicy)
-    }
-  },
-  watch: {
-    $route: {
-      handler(route) {
-        this.redirect = route.query && route.query.redirect
-      },
-      immediate: true
     }
   },
   mounted() {
@@ -257,7 +248,7 @@ export default {
     },
     guid() {
       return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-        const r = (Math.random() * 16) | 0
+        const r = Math.trunc(Math.random() * 16)
         const v = c === 'x' ? r : (r & 0x3) | 0x8
         return v.toString(16)
       })
@@ -375,6 +366,7 @@ export default {
         .dispatch('user/AuthorizeWithPKCE', { ticket: this.ticket })
         .catch(() => {
           this.loginLoading = false
+          this.$modal.msgError('当前环境无法发起安全授权，请确认使用 HTTPS 或 localhost 访问')
           this.backToStep1()
         })
     },
@@ -384,6 +376,8 @@ export default {
       this.requirements = { mfaRequired: false, mfaBindRequired: false, pwdChangeRequired: false }
       this.mfaForm.mfaCode = null
       this.bind = { secret: '', qrDataUrl: '' }
+      this.$refs.mfaForm && this.$refs.mfaForm.clearValidate()
+      this.$refs.bindForm && this.$refs.bindForm.clearValidate()
       this.$refs.pwdForm.resetFields()
       this.loginLoading = false
       this.resetVerify()
@@ -393,7 +387,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../assets/styles/tokens.scss';
+@import '@/assets/styles/tokens.scss';
 
 .login {
   display: flex;

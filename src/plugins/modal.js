@@ -21,19 +21,19 @@ export default {
   },
   // 弹出提示
   alert(content) {
-    MessageBox.alert(content, "系统提示")
+    MessageBox.alert(content, "系统提示").catch(() => {})
   },
   // 错误提示
   alertError(content) {
-    MessageBox.alert(content, "系统提示", { type: 'error' })
+    MessageBox.alert(content, "系统提示", { type: 'error' }).catch(() => {})
   },
   // 成功提示
   alertSuccess(content) {
-    MessageBox.alert(content, "系统提示", { type: 'success' })
+    MessageBox.alert(content, "系统提示", { type: 'success' }).catch(() => {})
   },
   // 警告提示
   alertWarning(content) {
-    MessageBox.alert(content, "系统提示", { type: 'warning' })
+    MessageBox.alert(content, "系统提示", { type: 'warning' }).catch(() => {})
   },
   // 通知提示
   notify(content) {

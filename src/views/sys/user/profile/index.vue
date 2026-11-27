@@ -186,6 +186,7 @@ export default {
         .catch(() => this.$modal.msgError('复制失败'))
     },
     submitPwd() {
+      if (this.pwdLoading) return
       this.$refs.pwdForm.validate(valid => {
         if (!valid) {
           return
@@ -221,6 +222,7 @@ export default {
         })
     },
     confirmEnable() {
+      if (this.loading) return
       if (!this.bindCode) {
         this.$modal.msgError('请输入动态验证码')
         return
@@ -228,7 +230,7 @@ export default {
       this.loading = true
       enableMfa(this.bindCode)
         .then(() => {
-          this.$modal.msgSuccess('多因素认证已启用')
+          this.$modal.msgSuccess('两步验证已启用')
           this.bindVisible = false
           this.getStatus()
         })
@@ -242,6 +244,7 @@ export default {
       this.disableVisible = true
     },
     confirmDisable() {
+      if (this.loading) return
       if (!this.disableCode) {
         this.$modal.msgError('请输入动态验证码')
         return
@@ -249,7 +252,7 @@ export default {
       this.loading = true
       disableMfa(this.disableCode)
         .then(() => {
-          this.$modal.msgSuccess('多因素认证已关闭')
+          this.$modal.msgSuccess('两步验证已关闭')
           this.disableVisible = false
           this.getStatus()
         })
@@ -263,7 +266,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../../../../assets/styles/tokens.scss';
+@import '@/assets/styles/tokens.scss';
 
 .settings-sheet {
   max-width: 560px;

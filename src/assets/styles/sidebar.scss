@@ -264,13 +264,11 @@
 }
 
 .el-menu--vertical > .el-menu--popup {
-  background-color: rgba($bg-subtle, 0.94) !important;
+  background-color: $bg-base !important;
   border: 1px solid $separator;
   border-radius: $radius-md;
   box-shadow: $shadow-popover;
   padding: $space-2;
-  -webkit-backdrop-filter: saturate(180%) blur(16px);
-  backdrop-filter: saturate(180%) blur(16px);
 
   .el-menu-item,
   .el-submenu__title {

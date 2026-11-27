@@ -13,7 +13,7 @@
     </el-form>
     <div slot="footer">
       <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" @click="submit">确定</el-button>
+      <el-button type="primary" :loading="submitting" @click="submit">确定</el-button>
     </div>
   </el-dialog>
 </template>
@@ -59,6 +59,7 @@ export default {
     }
     return {
       visible: false,
+      submitting: false,
       form: {
         password: '',
         checkPassword: ''
@@ -77,12 +78,18 @@ export default {
   },
   methods: {
     submit() {
+      if (this.submitting) return
       this.$refs.form.validate(valid => {
         if (!valid) return
-        resetUserPwd(this.userId, this.form.password).then(() => {
-          this.$modal.msgSuccess('密码已重置')
-          this.visible = false
-        })
+        this.submitting = true
+        resetUserPwd(this.userId, this.form.password)
+          .then(() => {
+            this.$modal.msgSuccess('密码已重置，该用户下次登录须修改')
+            this.visible = false
+          })
+          .finally(() => {
+            this.submitting = false
+          })
       })
     },
     reset() {
@@ -104,7 +111,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../../../assets/styles/tokens.scss';
+@import '@/assets/styles/tokens.scss';
 
 .pwd-hint-item {
   margin-bottom: 0;

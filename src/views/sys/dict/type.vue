@@ -7,7 +7,7 @@
             v-model="queryParams.dictName"
             placeholder="字典名称或类型"
             clearable
-            style="width: 180px"
+            style="width: 150px"
             @keyup.enter.native="handleQuery"
           />
         </el-form-item>
@@ -18,6 +18,14 @@
       </el-form>
 
       <div class="page-actions">
+        <el-button
+          v-if="!multiple && $auth.hasPermi('sys:dict:del')"
+          type="danger"
+          plain
+          icon="el-icon-delete"
+          size="small"
+          @click="handleDelete()"
+        >删除</el-button>
         <el-button
           v-hasPermi="['sys:dict:add']"
           type="primary"
@@ -31,14 +39,6 @@
           size="small"
           @click="handleRefreshCache"
         >刷新缓存</el-button>
-        <el-button
-          v-if="!multiple && $auth.hasPermi('sys:dict:del')"
-          type="danger"
-          plain
-          icon="el-icon-delete"
-          size="small"
-          @click="handleDelete"
-        >删除</el-button>
       </div>
     </div>
 
@@ -121,15 +121,13 @@ export default {
     return {
       ids: [],
       multiple: true,
-      dateRange: [],
       queryParams: {
         pageNum: 1,
         pageSize: 10,
-        dictName: undefined,
-        dictType: undefined,
-        status: undefined
+        dictName: undefined
       },
       dictList: [],
+      activeDictId: undefined,
       activeDictType: undefined,
       total: 0,
       loading: false,
@@ -148,21 +146,27 @@ export default {
   methods: {
     getList() {
       this.loading = true
-      listType(this.addDateRange(this.queryParams, this.dateRange))
+      listType(this.queryParams)
         .then(response => {
           this.dictList = response.records || []
           this.total = response.total || 0
           this.$nextTick(() => {
             if (!this.dictList.length) {
-              this.activeDictType = undefined
-              this.$emit('update:value', undefined)
+              this.activeDictId = undefined
+              this.activeDictType = ''
+              this.$emit('update:value', '')
               return
             }
-            const kept = this.activeDictType
-              ? this.dictList.find(item => item.dictType === this.activeDictType)
+            const kept = this.activeDictId
+              ? this.dictList.find(item => item.dictId === this.activeDictId)
               : null
             const target = kept || this.dictList[0]
             this.$refs.table && this.$refs.table.setCurrentRow(target)
+            this.activeDictId = target.dictId
+            if (target.dictType !== this.activeDictType) {
+              this.activeDictType = target.dictType
+              this.$emit('update:value', target.dictType)
+            }
           })
         })
         .finally(() => {
@@ -170,7 +174,6 @@ export default {
         })
     },
     resetQuery() {
-      this.dateRange = []
       this.resetForm('queryForm')
       this.handleQuery()
     },
@@ -181,11 +184,13 @@ export default {
     handleCurrentChange(row) {
       if (!row) {
         if (!this.dictList.length) {
-          this.activeDictType = undefined
-          this.$emit('update:value', undefined)
+          this.activeDictId = undefined
+          this.activeDictType = ''
+          this.$emit('update:value', '')
         }
         return
       }
+      this.activeDictId = row.dictId
       this.activeDictType = row.dictType
       this.$emit('update:value', row.dictType)
     },
@@ -216,17 +221,19 @@ export default {
     },
     handleUpdate(row) {
       this.reset()
-      const dictId = row.dictId || this.ids[0]
-      getType(dictId).then(response => {
+      getType(row.dictId).then(response => {
         this.form = response
         this.dialogFormVisible = true
         this.dialogTitle = '编辑字典'
       })
     },
     handleDelete(row) {
-      const dictIds = row.dictId || this.ids
+      const dictIds = (row && row.dictId) || this.ids
+      const message = row && row.dictId
+        ? `确认删除字典“${row.dictName}”吗？`
+        : `确认删除选中的 ${dictIds.length} 项字典吗？`
       this.$modal
-        .confirm('是否确认删除字典编号为"' + dictIds + '"的数据项？')
+        .confirm(message)
         .then(() => delType(dictIds))
         .then(() => {
           this.getList()

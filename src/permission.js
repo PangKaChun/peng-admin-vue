@@ -20,19 +20,18 @@ router.beforeEach((to, from, next) => {
     } else if (store.getters.roles.length === 0) {
       isRelogin.show = true
       store.dispatch('user/GetInfo').then(() => {
-        isRelogin.show = false
         return store.dispatch('GenerateRoutes').then(accessRoutes => {
           accessRoutes.forEach(route => {
             router.addRoute(route)
           })
+          isRelogin.show = false
           next({ ...to, replace: true })
         })
       }).catch(err => {
-        isRelogin.show = false
         store.dispatch('user/LogOut').finally(() => {
-          const msg = typeof err === 'string' ? err : (err && err.message)
-          if (msg && !(err && err.response)) {
-            Message.error(msg)
+          isRelogin.show = false
+          if (typeof err === 'string' && err) {
+            Message.error(err)
           }
           next({ path: '/login' })
           NProgress.done()
@@ -44,7 +43,7 @@ router.beforeEach((to, from, next) => {
   } else if (whiteList.indexOf(to.path) !== -1) {
     next()
   } else {
-    next(`/login?redirect=${to.fullPath}`)
+    next({ path: '/login', query: { redirect: to.fullPath } })
     NProgress.done()
   }
 })

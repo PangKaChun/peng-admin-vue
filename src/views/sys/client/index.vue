@@ -28,20 +28,20 @@
 
       <div class="page-actions">
         <el-button
+          v-if="!multiple && $auth.hasPermi('sys:client:del')"
+          type="danger"
+          plain
+          icon="el-icon-delete"
+          size="small"
+          @click="handleDelete()"
+        >删除</el-button>
+        <el-button
           v-hasPermi="['sys:client:add']"
           type="primary"
           icon="el-icon-plus"
           size="small"
           @click="handleAdd"
         >新增</el-button>
-        <el-button
-          v-if="!multiple && $auth.hasPermi('sys:client:del')"
-          type="danger"
-          plain
-          icon="el-icon-delete"
-          size="small"
-          @click="handleDelete"
-        >删除</el-button>
       </div>
     </div>
 
@@ -70,7 +70,7 @@
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="签发时间" align="center" prop="clientIdIssuedAt" width="160" class-name="num-cell">
+        <el-table-column label="签发时间" align="center" prop="clientIdIssuedAt" width="160">
           <template slot-scope="scope">
             <span>{{ parseTime(scope.row.clientIdIssuedAt) }}</span>
           </template>
@@ -107,7 +107,7 @@
       <el-form ref="form" :model="form" :rules="rules" label-width="110px">
         <div class="form-section">
           <h3 class="form-section__title">基本信息</h3>
-          <el-row :gutter="16">
+          <el-row :gutter="16" class="form-grid-row">
             <el-col :span="12">
               <el-form-item label="客户端 ID" prop="clientId">
                 <el-input v-model="form.clientId" placeholder="客户端 ID" />
@@ -129,14 +129,14 @@
                 />
               </el-form-item>
             </el-col>
-            <el-col :span="12">
+            <el-col :span="24">
               <el-form-item label="认证方式" prop="clientAuthenticationMethods">
                 <el-select v-model="form.clientAuthenticationMethods" multiple placeholder="选择认证方式">
                   <el-option v-for="method in authMethodOptions" :key="method" :label="method" :value="method" />
                 </el-select>
               </el-form-item>
             </el-col>
-            <el-col :span="12">
+            <el-col :span="24">
               <el-form-item label="授权类型" prop="authorizationGrantTypes">
                 <el-select v-model="form.authorizationGrantTypes" multiple placeholder="选择授权类型">
                   <el-option v-for="grant in grantTypeOptions" :key="grant" :label="grant" :value="grant" />
@@ -167,7 +167,7 @@
 
         <div class="form-section">
           <h3 class="form-section__title">客户端设置</h3>
-          <el-row :gutter="16">
+          <el-row :gutter="16" class="form-grid-row">
             <el-col :span="12">
               <el-form-item label="要求 PKCE">
                 <el-switch v-model="form.requireProofKey" />
@@ -197,7 +197,7 @@
 
         <div class="form-section">
           <h3 class="form-section__title">令牌设置</h3>
-          <el-row :gutter="12">
+          <el-row :gutter="16" class="form-grid-row">
             <el-col :span="12">
               <el-form-item label="访问令牌格式">
                 <el-select v-model="form.accessTokenFormat">
@@ -362,8 +362,7 @@ export default {
     },
     handleUpdate(row) {
       this.reset()
-      const id = row.id || this.ids[0]
-      getClient(id).then(response => {
+      getClient(row.id).then(response => {
         this.form = response
         this.redirectUrisText = (response.redirectUris || []).join('\n')
         this.open = true
@@ -396,9 +395,12 @@ export default {
       })
     },
     handleDelete(row) {
-      const ids = row.id || this.ids
+      const ids = (row && row.id) || this.ids
+      const message = row && row.id
+        ? `确认删除客户端“${row.clientName || row.clientId}”吗？`
+        : `确认删除选中的 ${ids.length} 项客户端吗？`
       this.$modal
-        .confirm('是否确认删除客户端编号为"' + ids + '"的数据项？')
+        .confirm(message)
         .then(() => delClient(ids))
         .then(() => {
           this.getList()
@@ -411,7 +413,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../../../assets/styles/tokens.scss';
+@import '@/assets/styles/tokens.scss';
 
 .chip-list {
   display: inline-flex;

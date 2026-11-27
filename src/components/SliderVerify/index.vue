@@ -146,7 +146,7 @@ export default {
       if (!this.travel) return
       // 复位动画途中被再次按住:从当前视觉位置接着拖,不跳回起点
       const matrix = /matrix\(([^)]+)\)/.exec(getComputedStyle(rail).transform)
-      if (matrix) this.p = clamp(parseFloat(matrix[1].split(',')[4]) / this.travel)
+      if (matrix) this.p = clamp(Number.parseFloat(matrix[1].split(',')[4]) / this.travel)
       this.startX = (touch ? e.touches[0] : e).clientX - this.p * this.travel
       this.status = 'dragging'
       this.touch = touch
@@ -243,7 +243,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../../assets/styles/tokens.scss';
+@import '@/assets/styles/tokens.scss';
 
 $sv-height: 44px; // 与登录页输入框、按钮同高
 $sv-border: 1px;

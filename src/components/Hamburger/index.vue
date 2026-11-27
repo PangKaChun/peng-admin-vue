@@ -45,7 +45,7 @@ export default {
   width: 16px;
   height: 16px;
   opacity: 0.72;
-  transition: opacity 0.15s ease, transform 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+  transition: opacity 0.15s ease;
 }
 
 .hamburger.is-active {

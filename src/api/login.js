@@ -1,4 +1,6 @@
 import request from '@/utils/request'
+import authRequest from '@/utils/auth-request'
+import { getToken } from '@/utils/auth'
 import { encrypt } from '@/utils/jsencrypt.js'
 
 const authAPI = '/api-auth'
@@ -94,14 +96,11 @@ export async function changePwdForLogin(ticket, password) {
 
 // 刷新 token
 export function refreshToken(token) {
-  return request({
+  return authRequest({
     url: authAPI + '/oauth2/token',
     method: 'post',
-    _skipAuthRefresh: true,
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      isToken: false,
-      repeatSubmit: false
+      'Content-Type': 'application/x-www-form-urlencoded'
     },
     data: {
       client_id: process.env.VUE_APP_OAUTH_CLIENT_ID,
@@ -121,21 +120,21 @@ export function getInfo() {
 
 // 退出登录
 export function logout() {
-  return request({
+  const token = getToken()
+  return authRequest({
     url: authAPI + '/logout?redirect_url=localhost',
-    method: 'get'
+    method: 'get',
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
   })
 }
 
 // PKCE：authorization_code + code_verifier 换 access_token / refresh_token
 export function exchangeCodeForToken({ code, codeVerifier }) {
-  return request({
+  return authRequest({
     url: authAPI + '/oauth2/token',
     method: 'post',
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      isToken: false,
-      repeatSubmit: false
+      'Content-Type': 'application/x-www-form-urlencoded'
     },
     data: {
       client_id: process.env.VUE_APP_OAUTH_CLIENT_ID,

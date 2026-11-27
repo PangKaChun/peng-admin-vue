@@ -231,7 +231,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../../assets/styles/tokens.scss';
+@import '@/assets/styles/tokens.scss';
 
 .dept-select {
   .ds-tree-scroll {

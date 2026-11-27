@@ -47,7 +47,7 @@
       <el-table v-loading="loading" :data="definitionList" height="100%" highlight-current-row>
         <el-table-column label="流程名称" align="left" prop="name" min-width="160" show-overflow-tooltip />
         <el-table-column label="流程标识" align="left" prop="key" min-width="140" class-name="mono-cell" show-overflow-tooltip />
-        <el-table-column label="版本" align="center" width="76" class-name="mono-cell num-cell">
+        <el-table-column label="版本" align="center" width="76" class-name="mono-cell">
           <template slot-scope="scope">v{{ scope.row.version }}</template>
         </el-table-column>
         <el-table-column label="分类" align="left" prop="category" min-width="120" show-overflow-tooltip />
@@ -56,8 +56,8 @@
             <el-tag :type="scope.row.suspended ? 'danger' : 'success'">{{ scope.row.suspended ? '挂起' : '激活' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="部署时间" align="center" prop="deploymentTime" width="160" class-name="num-cell" />
-        <el-table-column label="操作" align="center" width="240" class-name="small-padding">
+        <el-table-column label="部署时间" align="center" prop="deploymentTime" width="160" />
+        <el-table-column label="操作" align="center" width="185" fixed="right" class-name="small-padding">
           <template slot-scope="scope">
             <el-button
               v-hasPermi="['flowable:definition:save']"
@@ -92,25 +92,43 @@
       <pagination :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize" @pagination="getList" />
     </div>
 
-    <el-dialog :title="designForm.id ? '编辑流程设计' : '新建流程设计'" :visible.sync="designOpen" fullscreen append-to-body :destroy-on-close="true">
-      <el-form :inline="true" :model="designForm" size="small">
+    <el-dialog
+      :title="designForm.id ? '编辑流程设计' : '新建流程设计'"
+      :visible.sync="designOpen"
+      fullscreen
+      append-to-body
+      custom-class="bpmn-design-dialog"
+    >
+      <el-form :inline="true" :model="designForm" size="small" class="bpmn-design-bar" @submit.native.prevent>
         <el-form-item label="流程分类">
           <el-input v-model="designForm.category" placeholder="流程分类" style="width: 220px" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" icon="el-icon-check" @click="handleSave">保存部署</el-button>
           <el-button @click="designOpen = false">取消</el-button>
+          <el-button type="primary" icon="el-icon-check" :disabled="designLoading" @click="handleSave">保存部署</el-button>
         </el-form-item>
       </el-form>
-      <bpmn-designer v-if="designOpen" ref="designer" :xml="designXml" style="height: calc(100vh - 170px)" />
+      <div v-loading="designLoading" class="bpmn-design-canvas">
+        <bpmn-designer
+          v-if="designOpen && !designLoading"
+          ref="designer"
+          :xml="designXml"
+        />
+      </div>
     </el-dialog>
 
     <el-dialog title="流程图" :visible.sync="viewOpen" width="70%" append-to-body @opened="onViewOpened">
-      <bpmn-viewer v-if="viewOpen" ref="viewer" :xml="currentXml" style="height: 60vh" />
+      <div v-loading="viewLoading" class="bpmn-view-canvas">
+        <bpmn-viewer
+          v-if="viewOpen && !viewLoading"
+          ref="viewer"
+          :xml="currentXml"
+        />
+      </div>
     </el-dialog>
 
     <el-dialog title="导入流程文件" :visible.sync="importOpen" width="460px" append-to-body>
-      <el-form :model="importForm" label-width="80px" size="small">
+      <el-form :model="importForm" label-width="80px">
         <el-form-item label="流程名称">
           <el-input v-model="importForm.name" placeholder="留空使用文件名" />
         </el-form-item>
@@ -126,6 +144,7 @@
             accept=".bpmn,.xml"
             :on-change="onFileChange"
             :on-remove="onFileRemove"
+            :on-exceed="onFileExceed"
             :file-list="fileList"
           >
             <el-button size="small">选择 .bpmn / .xml 文件</el-button>
@@ -143,11 +162,35 @@
 <script>
 import { listDefinition, importFile, readXml, saveModel, changeState, delDefinition } from '@/api/flowable/definition'
 
+const AsyncLoading = {
+  render(h) {
+    return h('div', { class: 'page-empty' }, '正在加载组件...')
+  }
+}
+
+const AsyncLoadError = {
+  render(h) {
+    return h('div', { class: 'page-empty' }, '组件加载失败，请关闭后重试')
+  }
+}
+
 export default {
   name: 'ProcessDefinition',
   components: {
-    BpmnDesigner: () => import(/* webpackChunkName: "flowable-designer" */ '@/components/BpmnDesigner'),
-    BpmnViewer: () => import(/* webpackChunkName: "flowable-viewer" */ '@/components/BpmnViewer')
+    BpmnDesigner: () => ({
+      component: import(/* webpackChunkName: "flowable-designer" */ '@/components/BpmnDesigner'),
+      loading: AsyncLoading,
+      error: AsyncLoadError,
+      delay: 200,
+      timeout: 15000
+    }),
+    BpmnViewer: () => ({
+      component: import(/* webpackChunkName: "flowable-viewer" */ '@/components/BpmnViewer'),
+      loading: AsyncLoading,
+      error: AsyncLoadError,
+      delay: 200,
+      timeout: 15000
+    })
   },
   data() {
     return {
@@ -155,9 +198,11 @@ export default {
       total: 0,
       definitionList: [],
       designOpen: false,
+      designLoading: false,
       designForm: { id: undefined, category: undefined },
       designXml: '',
       viewOpen: false,
+      viewLoading: false,
       currentXml: '',
       importOpen: false,
       importForm: { name: undefined, category: undefined, file: null },
@@ -194,31 +239,53 @@ export default {
       this.handleQuery()
     },
     handleDesign() {
+      this._designReqId = (this._designReqId || 0) + 1
       this.designForm = { id: undefined, category: undefined }
       this.designXml = ''
+      this.designLoading = false
       this.designOpen = true
     },
     handleEdit(row) {
-      readXml(row.id).then(xml => {
-        this.designForm = { id: row.id, category: row.category }
-        this.designXml = xml
-        this.designOpen = true
-      })
+      const reqId = (this._designReqId = (this._designReqId || 0) + 1)
+      this.designForm = { id: row.id, category: row.category }
+      this.designXml = ''
+      this.designLoading = true
+      this.designOpen = true
+      readXml(row.id)
+        .then(xml => {
+          if (this._designReqId !== reqId || !this.designOpen) return
+          this.designXml = xml
+        })
+        .catch(() => {
+          if (this._designReqId === reqId) {
+            this.designOpen = false
+          }
+        })
+        .finally(() => {
+          if (this._designReqId === reqId) {
+            this.designLoading = false
+          }
+        })
     },
     async handleSave() {
       if (!this.$refs.designer || !this.$refs.designer.getXml) {
         this.$modal.msgWarning('设计器正在加载，请稍候')
         return
       }
+      let xml
       try {
-        const xml = await this.$refs.designer.getXml()
-        await saveModel({ category: this.designForm.category, xml })
-        this.$modal.msgSuccess('保存成功')
-        this.designOpen = false
-        this.getList()
+        xml = await this.$refs.designer.getXml()
       } catch (e) {
-        this.$modal.msgError('保存失败：' + (e.message || e))
+        this.$modal.msgError('获取流程图数据失败：' + (e.message || e))
+        return
       }
+      saveModel({ category: this.designForm.category, xml })
+        .then(() => {
+          this.$modal.msgSuccess('保存成功')
+          this.designOpen = false
+          this.getList()
+        })
+        .catch(() => {})
     },
     handleImport() {
       this.importForm = { name: undefined, category: undefined, file: null }
@@ -230,6 +297,10 @@ export default {
     },
     onFileRemove() {
       this.importForm.file = null
+    },
+    onFileExceed(files) {
+      this.$refs.upload.clearFiles()
+      this.$refs.upload.handleStart(files[0])
     },
     submitImport() {
       if (!this.importForm.file) {
@@ -254,10 +325,25 @@ export default {
       })
     },
     handleView(row) {
-      readXml(row.id).then(xml => {
-        this.currentXml = xml
-        this.viewOpen = true
-      })
+      const reqId = (this._viewReqId = (this._viewReqId || 0) + 1)
+      this.currentXml = ''
+      this.viewLoading = true
+      this.viewOpen = true
+      readXml(row.id)
+        .then(xml => {
+          if (this._viewReqId !== reqId || !this.viewOpen) return
+          this.currentXml = xml
+        })
+        .catch(() => {
+          if (this._viewReqId === reqId) {
+            this.viewOpen = false
+          }
+        })
+        .finally(() => {
+          if (this._viewReqId === reqId) {
+            this.viewLoading = false
+          }
+        })
     },
     onViewOpened() {
       if (this.$refs.viewer && this.$refs.viewer.fit) {
@@ -268,7 +354,7 @@ export default {
       const suspended = !row.suspended
       const action = suspended ? '挂起' : '激活'
       this.$modal
-        .confirm('确认' + action + '流程「' + row.name + '」?')
+        .confirm(`确认${action}流程“${row.name}”吗？`)
         .then(() => changeState(row.id, suspended))
         .then(() => {
           this.$modal.msgSuccess(action + '成功')
@@ -278,7 +364,7 @@ export default {
     },
     handleDelete(row) {
       this.$modal
-        .confirm('确认删除流程「' + row.name + '」及其部署?')
+        .confirm(`确认删除流程“${row.name}”及其部署吗？`)
         .then(() => delDefinition(row.deploymentId))
         .then(() => {
           this.$modal.msgSuccess('删除成功')
@@ -289,3 +375,32 @@ export default {
   }
 }
 </script>
+
+<style lang="scss">
+.bpmn-design-dialog {
+  display: flex;
+  flex-direction: column;
+
+  .el-dialog__body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+}
+</style>
+
+<style lang="scss" scoped>
+.bpmn-design-bar {
+  flex: none;
+}
+
+.bpmn-design-canvas {
+  flex: 1;
+  min-height: 0;
+}
+
+.bpmn-view-canvas {
+  height: 60vh;
+}
+</style>

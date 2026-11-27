@@ -1,7 +1,7 @@
 <template>
   <!-- 视频播放对话框(HLS) -->
   <el-dialog :title="title" :visible.sync="visible" width="820px" append-to-body @closed="destroyHls">
-    <video ref="video" controls style="width: 100%; max-height: 70vh; background: #000"></video>
+    <video ref="video" controls style="display: block; width: 100%; max-height: 70vh; background: #000; border-radius: 6px;"></video>
   </el-dialog>
 </template>
 

@@ -251,20 +251,36 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../../../assets/styles/tokens.scss';
+@import '@/assets/styles/tokens.scss';
 
 .log-detail ::v-deep .el-dialog__body {
   padding: 0;
+  border-radius: 0 0 $radius-lg $radius-lg;
 }
 
 .detail-wrap {
   max-height: 72vh;
   overflow-y: auto;
-  padding: 0 $space-5 $space-5;
+  padding: $space-4 $space-5 $space-5;
+}
+
+.detail-sub {
+  margin-left: $space-2;
+  font-family: $font-sans;
+  font-size: 13px;
+  color: $label-secondary;
 }
 
 .detail-section {
   padding: $space-4 0;
+
+  &:first-child {
+    padding-top: 0;
+  }
+
+  &:last-child {
+    padding-bottom: 0;
+  }
 
   & + & {
     border-top: 1px solid $separator-light;
@@ -325,7 +341,7 @@ export default {
   flex: 1;
   min-width: 0;
   color: $label;
-  word-break: break-all;
+  overflow-wrap: anywhere;
 
   &.is-mono {
     font-family: $font-mono;
@@ -337,36 +353,9 @@ export default {
   }
 }
 
-.detail-sub {
-  margin-left: $space-2;
-  font-family: $font-sans;
-  color: $label-secondary;
-}
-
 .text-success { color: $color-success; }
 .text-warning { color: $color-warning; }
 .text-danger { color: $color-danger; }
-
-$method-colors: (get: $color-success, post: $color-primary, put: $color-warning, delete: $color-danger);
-
-.method-tag {
-  display: inline-block;
-  margin-right: $space-2;
-  padding: 0 5px;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 18px;
-  color: $label-secondary;
-  background: $fill-quaternary;
-  border-radius: $radius-xs;
-}
-
-@each $name, $color in $method-colors {
-  .method-tag.is-#{$name} {
-    color: $color;
-    background: rgba($color, 0.1);
-  }
-}
 
 .code-block {
   margin: 0;
@@ -378,7 +367,7 @@ $method-colors: (get: $color-success, post: $color-primary, put: $color-warning,
   line-height: 1.6;
   color: $label;
   white-space: pre-wrap;
-  word-break: break-all;
+  overflow-wrap: anywhere;
   background: $fill-quaternary;
   border-radius: $radius-sm;
 
@@ -399,5 +388,26 @@ $method-colors: (get: $color-success, post: $color-primary, put: $color-warning,
   color: $label-tertiary;
   background: $fill-quaternary;
   border-radius: $radius-sm;
+}
+
+$method-colors: (get: $color-success, post: $color-primary, put: $color-warning, delete: $color-danger);
+
+.method-tag {
+  display: inline-block;
+  margin-right: $space-2;
+  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  color: $label-secondary;
+  background: $fill-quaternary;
+  border-radius: $radius-xs;
+}
+
+@each $name, $color in $method-colors {
+  .method-tag.is-#{$name} {
+    color: $color;
+    background: rgba($color, 0.1);
+  }
 }
 </style>

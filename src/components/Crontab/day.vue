@@ -44,7 +44,7 @@
 		<el-form-item>
 			<el-radio v-model='radioValue' :label="7">
 				指定
-				<el-select clearable v-model="checkboxList" placeholder="可多选" multiple style="width:100%">
+				<el-select clearable v-model="checkboxList" placeholder="可多选" multiple style="width: 240px">
 					<el-option v-for="item in 31" :key="item" :value="item">{{item}}</el-option>
 				</el-select>
 			</el-radio>
@@ -71,7 +71,6 @@ export default {
 	methods: {
 		// 单选按钮值变化时
 		radioChange() {
-			('day rachange');
 			if (this.radioValue !== 2 && this.cron.week !== '?') {
 				this.$emit('update', 'week', '?', 'day')
 			}
@@ -99,7 +98,6 @@ export default {
 					this.$emit('update', 'day', this.checkboxString);
 					break;
 			}
-			('day rachange end');
 		},
 		// 周期两个值变化时
 		cycleChange() {

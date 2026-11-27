@@ -519,7 +519,7 @@ export default {
     padding: 0 $space-2;
     border-right: 1px solid $separator-light;
     color: $label-secondary;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-family: $font-mono;
     text-align: center;
     line-height: 30px;
     user-select: none;
@@ -556,7 +556,7 @@ export default {
     border-top: 1px solid $separator;
     border-left: 1px solid $separator;
     background: $bg-base;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-family: $font-sans;
     font-size: 12px;
     color: $label;
 
@@ -646,7 +646,7 @@ export default {
 
   /* 斑马纹,原表填充色是内联样式,盖不掉 */
   .excel-grid tbody tr:nth-child(even) td {
-    background: #fafafb;
+    background: mix($bg-base, $bg-subtle, 50%);
   }
 
   /* 悬停整行,用内阴影叠色留住原表填充色 */

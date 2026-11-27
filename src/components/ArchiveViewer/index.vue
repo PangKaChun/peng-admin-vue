@@ -72,6 +72,15 @@ const INDENT = 18
 // 视口上下各多渲染的行数,滚动时不露白
 const OVERSCAN = 10
 
+/** 去掉路径末尾多余的斜杠 */
+function stripTrailingSlashes(path) {
+  let end = path.length
+  while (end > 0 && path[end - 1] === '/') {
+    end -= 1
+  }
+  return end === path.length ? path : path.slice(0, end)
+}
+
 export default {
   name: 'ArchiveViewer',
   mixins: [viewer({ title: '压缩包预览', failText: '压缩包解析失败，可能已加密或文件损坏，请下载后查看' })],
@@ -150,7 +159,7 @@ export default {
       return Object.keys(zip.files).map(path => {
         const entry = zip.files[path]
         if (entry.dir) {
-          return { path: path.replace(/\/+$/, ''), dir: true, size: 0 }
+          return { path: stripTrailingSlashes(path), dir: true, size: 0 }
         }
         // 解压后大小取自 jszip 内部元数据(仅读目录,未解压);缺失则记 0
         const size = entry._data && typeof entry._data.uncompressedSize === 'number'

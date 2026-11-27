@@ -24,13 +24,6 @@
 
       <div class="page-actions">
         <el-button
-          v-hasPermi="['flowable:expression:add']"
-          type="primary"
-          icon="el-icon-plus"
-          size="small"
-          @click="handleAdd"
-        >新增</el-button>
-        <el-button
           v-if="!multiple && $auth.hasPermi('flowable:expression:del')"
           type="danger"
           plain
@@ -38,6 +31,13 @@
           size="small"
           @click="handleDelete()"
         >删除</el-button>
+        <el-button
+          v-hasPermi="['flowable:expression:add']"
+          type="primary"
+          icon="el-icon-plus"
+          size="small"
+          @click="handleAdd"
+        >新增</el-button>
       </div>
     </div>
 
@@ -58,7 +58,7 @@
           </template>
         </el-table-column>
         <el-table-column label="备注" align="left" prop="remark" min-width="140" show-overflow-tooltip />
-        <el-table-column label="创建时间" align="center" prop="createTime" width="160" class-name="num-cell">
+        <el-table-column label="创建时间" align="center" prop="createTime" width="160">
           <template slot-scope="scope">
             <span>{{ parseTime(scope.row.createTime) }}</span>
           </template>
@@ -108,6 +108,7 @@
             :rows="4"
             :maxlength="500"
             show-word-limit
+            class="mono-input"
             placeholder="例如 ${days > 3}"
           />
         </el-form-item>
@@ -202,8 +203,7 @@ export default {
     },
     handleUpdate(row) {
       this.reset()
-      const expressionId = row.expressionId || this.ids[0]
-      getExpression(expressionId).then(response => {
+      getExpression(row.expressionId).then(response => {
         this.form = response
         this.open = true
         this.title = '编辑表达式'
@@ -212,19 +212,13 @@ export default {
     submitForm() {
       this.$refs.form.validate(valid => {
         if (!valid) return
-        if (this.form.expressionId != undefined) {
-          updateExpression(this.form).then(() => {
-            this.$modal.msgSuccess('修改成功')
-            this.open = false
-            this.getList()
-          })
-        } else {
-          addExpression(this.form).then(() => {
-            this.$modal.msgSuccess('新增成功')
-            this.open = false
-            this.getList()
-          })
-        }
+        const isUpdate = this.form.expressionId !== undefined
+        const req = isUpdate ? updateExpression(this.form) : addExpression(this.form)
+        req.then(() => {
+          this.$modal.msgSuccess(isUpdate ? '修改成功' : '新增成功')
+          this.open = false
+          this.getList()
+        })
       })
     },
     handleDelete(row) {

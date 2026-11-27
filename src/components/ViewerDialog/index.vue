@@ -17,6 +17,7 @@
         class="viewer-dialog__maximize"
         :title="maximized ? '还原' : '最大化'"
         @click="toggleMaximize"
+        @dblclick.stop
       >
         <i :class="maximized ? 'el-icon-copy-document' : 'el-icon-full-screen'" />
       </button>
@@ -98,6 +99,12 @@ export default {
 
   &:hover {
     color: $color-primary;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba($color-primary, 0.45);
+    outline-offset: 2px;
+    border-radius: $radius-xs;
   }
 }
 

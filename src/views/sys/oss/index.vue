@@ -29,19 +29,19 @@
 
       <div class="page-actions">
         <el-button
-          type="primary"
-          icon="el-icon-upload2"
-          size="small"
-          @click="openUpload"
-        >上传</el-button>
-        <el-button
           v-if="!multiple && $auth.hasPermi('sys:oss:del')"
           type="danger"
           plain
           icon="el-icon-delete"
           size="small"
-          @click="handleDelete"
+          @click="handleDelete()"
         >删除</el-button>
+        <el-button
+          type="primary"
+          icon="el-icon-upload2"
+          size="small"
+          @click="openUpload"
+        >上传</el-button>
       </div>
     </div>
 
@@ -125,7 +125,7 @@
             <span>{{ fileTypeLabel(scope.row.fileType) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="大小" align="right" prop="fileSize" width="96" class-name="num-cell">
+        <el-table-column label="大小" align="right" prop="fileSize" width="96">
           <template slot-scope="scope">
             <span>{{ formatFileSize(scope.row.fileSize) }}</span>
           </template>
@@ -149,7 +149,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" align="center" prop="createTime" width="160" class-name="num-cell">
+        <el-table-column label="创建时间" align="center" prop="createTime" width="160">
           <template slot-scope="scope">
             <span>{{ parseTime(scope.row.createTime) }}</span>
           </template>
@@ -207,21 +207,36 @@
       />
     </div>
 
-    <el-dialog title="上传文件" :visible.sync="uploadOpen" width="520px" append-to-body @closed="uploadBusy = false">
+    <el-dialog
+      title="上传文件"
+      :visible.sync="uploadOpen"
+      width="520px"
+      append-to-body
+      :before-close="handleUploadBeforeClose"
+      @closed="uploadBusy = false"
+    >
       <div class="upload-public">
         <span class="upload-public__label">公开访问</span>
         <el-switch v-model="uploadPublic" :active-value="1" :inactive-value="0" :disabled="uploadBusy" />
       </div>
-      <file-upload v-if="uploadOpen" :is-public="uploadPublic" @busy-change="uploadBusy = $event" @success="handleUploadSuccess" />
+      <file-upload
+        v-if="uploadOpen"
+        :is-public="uploadPublic"
+        @busy-change="uploadBusy = $event"
+        @success="handleUploadSuccess"
+      />
       <div slot="footer">
-        <el-button @click="uploadOpen = false">关闭</el-button>
+        <el-button @click="closeUpload">关闭</el-button>
       </div>
     </el-dialog>
 
     <el-dialog title="签名地址" :visible.sync="signOpen" width="620px" append-to-body>
       <el-form label-width="80px" size="small">
         <el-form-item label="文件名">{{ signInfo.name }}</el-form-item>
-        <el-form-item label="有效期至">{{ signInfo.expireTime }}</el-form-item>
+        <el-form-item label="有效期至">
+          <span>{{ signInfo.expireTime }}</span>
+          <span class="sign-hint">有效期内持链接可直接访问</span>
+        </el-form-item>
         <el-form-item v-for="item in signInfo.urls" :key="item.label" :label="item.label">
           <el-input :value="item.url" readonly>
             <el-button slot="append" icon="el-icon-document-copy" @click="copyUrl(item.url, item.label)">复制</el-button>
@@ -305,10 +320,9 @@ export default {
         .then(response => {
           this.ossList = response.records
           this.total = response.total
-          this.loading = false
           this.loadThumbs()
         })
-        .catch(() => {
+        .finally(() => {
           this.loading = false
         })
     },
@@ -328,6 +342,21 @@ export default {
       this.uploadPublic = 0
       this.uploadBusy = false
       this.uploadOpen = true
+    },
+    closeUpload() {
+      this.handleUploadBeforeClose(() => {
+        this.uploadOpen = false
+      })
+    },
+    handleUploadBeforeClose(done) {
+      if (!this.uploadBusy) {
+        done()
+        return
+      }
+      this.$modal
+        .confirm('文件正在上传或合并中，关闭将中断当前任务，确定关闭吗？')
+        .then(() => done())
+        .catch(() => {})
     },
     handleUploadSuccess() {
       this.$modal.msgSuccess('上传成功')
@@ -452,12 +481,15 @@ export default {
     copyUrl(text, label = '链接') {
       copyText(text)
         .then(() => this.$modal.msgSuccess(label + '已复制'))
-        .catch(() => this.$modal.msgError('复制失败'))
+        .catch(() => this.$modal.msgError('复制失败，请手动复制：' + text))
     },
     handleDelete(row) {
-      const ossIds = row.ossId || this.ids
+      const ossIds = (row && row.ossId) || this.ids
+      const message = row && row.ossId
+        ? `确认删除文件“${row.originalName}”吗？`
+        : `确认删除选中的 ${ossIds.length} 个文件吗？`
       this.$modal
-        .confirm('是否确认删除选中的文件？')
+        .confirm(message)
         .then(() => delOss(ossIds))
         .then(() => {
           this.getList()
@@ -513,7 +545,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../../../assets/styles/tokens.scss';
+@import '@/assets/styles/tokens.scss';
 
 .upload-public {
   display: flex;
@@ -530,8 +562,14 @@ export default {
   }
 }
 
+.sign-hint {
+  margin-left: $space-2;
+  font-size: 12px;
+  color: $label-tertiary;
+}
+
 .hls-tip {
-  margin-right: 8px;
+  margin-right: $space-2;
   font-size: 12px;
   color: $label-secondary;
 
@@ -579,7 +617,7 @@ export default {
 
   &--video {
     background: $label;
-    color: #fff;
+    color: $bg-base;
     &:hover { background: lighten($label, 12%); }
   }
 

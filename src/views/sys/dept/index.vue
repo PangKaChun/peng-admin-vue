@@ -58,19 +58,31 @@
 
     <div class="page-content">
       <div class="page-header">
-        <span class="page-header__title">{{ title }}</span>
+        <div class="page-header__title">
+          <span>{{ form.deptId != null ? '编辑部门' : '新增部门' }}</span>
+          <span v-if="form.deptId != null && activeDeptName" class="page-header__sub">{{ activeDeptName }}</span>
+        </div>
         <el-button
           v-if="form.deptId != null ? $auth.hasPermi('sys:dept:edit') : $auth.hasPermi('sys:dept:add')"
           type="primary"
           icon="el-icon-check"
           size="mini"
+          :loading="submitting"
+          :disabled="formLoading"
           @click="submitForm"
         >保存</el-button>
       </div>
 
       <div v-loading="formLoading" class="page-body page-body--scroll">
-        <el-form ref="form" :model="form" :rules="rules" label-width="88px" class="detail-form">
-          <el-row :gutter="16">
+        <el-form
+          ref="form"
+          :model="form"
+          :rules="rules"
+          label-width="88px"
+          class="detail-form"
+          @submit.native.prevent="submitForm"
+        >
+          <el-row :gutter="16" class="form-grid-row">
             <el-col v-if="form.parentId !== '0'" :span="24">
               <el-form-item label="上级部门" prop="parentId">
                 <treeselect v-model="form.parentId" :options="depts" :show-count="true" placeholder="上级部门" />
@@ -121,12 +133,13 @@ export default {
       deptName: undefined,
       formLoading: false,
       loading: false,
+      submitting: false,
+      activeDeptName: '',
       defaultProps: {
         children: 'children',
         label: 'deptName'
       },
       form: {},
-      title: '新增部门',
       rules: {
         parentId: [{ required: true, message: '上级部门不能为空', trigger: 'blur' }],
         deptName: [{ required: true, message: '部门名称不能为空', trigger: 'blur' }],
@@ -165,6 +178,7 @@ export default {
       return data.deptName.indexOf(value) !== -1
     },
     reset() {
+      this.activeDeptName = ''
       this.form = {
         deptId: undefined,
         parentId: undefined,
@@ -179,6 +193,8 @@ export default {
       })
     },
     handleAdd(row) {
+      this._detailReqId = (this._detailReqId || 0) + 1
+      this.formLoading = false
       this.reset()
       this.$refs.dept && this.$refs.dept.setCurrentKey(null)
       if (row && row.deptId) {
@@ -190,21 +206,24 @@ export default {
         this.form.orderNum = this.deptList.length + 1
       }
       this.getDeptsTree()
-      this.title = '新增部门'
     },
     handleUpdate(row) {
+      const reqId = (this._detailReqId = (this._detailReqId || 0) + 1)
       this.getDeptsTree()
       this.formLoading = true
       getDept(row.deptId)
         .then(response => {
+          if (this._detailReqId !== reqId) return
           this.form = response
-          this.title = response.deptName ? `编辑部门（${response.deptName}）` : '编辑部门'
+          this.activeDeptName = response.deptName || ''
           this.$nextTick(() => {
             this.$refs.form && this.$refs.form.clearValidate()
           })
         })
         .finally(() => {
-          this.formLoading = false
+          if (this._detailReqId === reqId) {
+            this.formLoading = false
+          }
         })
     },
     handleDelete(row) {
@@ -223,21 +242,22 @@ export default {
         .catch(() => {})
     },
     submitForm() {
+      if (this.submitting) return
       this.$refs.form.validate(valid => {
         if (!valid) return
-        if (this.form.deptId != undefined) {
-          updateDept(this.form).then(() => {
-            this.$modal.msgSuccess('修改成功')
+        this.submitting = true
+        const isUpdate = this.form.deptId != undefined
+        const request = isUpdate
+          ? updateDept(this.form).then(() => this.$modal.msgSuccess('修改成功'))
+          : addDept(this.form).then(() => this.$modal.msgSuccess('新增成功'))
+        request
+          .then(() => {
             this.handleAdd()
             this.getList()
           })
-        } else {
-          addDept(this.form).then(() => {
-            this.$modal.msgSuccess('新增成功')
-            this.handleAdd()
-            this.getList()
+          .finally(() => {
+            this.submitting = false
           })
-        }
       })
     }
   }
@@ -245,7 +265,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../../../assets/styles/tokens.scss';
+@import '@/assets/styles/tokens.scss';
 
 .tree-aside {
   width: 280px;
@@ -290,19 +310,25 @@ export default {
     align-items: center;
     gap: $space-2;
     opacity: 0;
+    pointer-events: none;
     transition: opacity $duration-fast ease;
 
     .el-button + .el-button {
       margin-left: 0;
     }
-  }
 
+    @media (hover: none) {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
 }
 
 .el-tree ::v-deep .el-tree-node__content {
   &:hover .tree-node-actions,
   &:focus-within .tree-node-actions {
     opacity: 1;
+    pointer-events: auto;
   }
 }
 </style>

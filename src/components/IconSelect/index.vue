@@ -1,28 +1,32 @@
 <template>
   <div class="icon-body">
-    <el-input v-model="name" clearable placeholder="搜索图标" style="margin-bottom: 8px;" @clear="filterIcons" @input="filterIcons">
+    <el-input v-model="name" clearable placeholder="搜索图标" class="icon-search" @clear="filterIcons" @input="filterIcons">
       <i slot="suffix" class="el-icon-search el-input__icon" />
     </el-input>
     <el-tabs v-model="activeTab" @tab-click="onTabClick">
       <el-tab-pane label="默认图标" name="svg">
-        <div class="icon-list">
-          <div v-for="(item, index) in iconList" :key="index" @click="selectedIcon(item)">
-            <svg-icon :icon-class="item" style="height: 30px;width: 16px;" />
+        <div v-if="iconList.length" class="icon-list">
+          <div v-for="item in iconList" :key="item" @click="selectedIcon(item)">
+            <svg-icon :icon-class="item" class="icon-list__glyph" />
             <span :title="item">{{ item }}</span>
           </div>
         </div>
+        <div v-else class="icon-empty">无匹配图标</div>
       </el-tab-pane>
       <el-tab-pane label="Fluent 图标" name="fluent">
-        <div v-loading="fluentLoading" class="fluent-icon-list">
-          <div
-            v-for="(item, index) in fluentIconList"
-            :key="index"
-            class="fluent-icon-item"
-            :title="item"
-            @click="selectedFluentIcon(item)"
-          >
-            <fluent-icon :name="item" />
+        <div v-loading="fluentLoading" class="fluent-icon-scroll" @scroll="onFluentScroll">
+          <div v-if="visibleFluentIcons.length" class="fluent-icon-list">
+            <div
+              v-for="item in visibleFluentIcons"
+              :key="item"
+              class="fluent-icon-item"
+              :title="item"
+              @click="selectedFluentIcon(item)"
+            >
+              <fluent-icon :name="item" />
+            </div>
           </div>
+          <div v-else-if="!fluentLoading" class="icon-empty">无匹配图标</div>
         </div>
       </el-tab-pane>
     </el-tabs>
@@ -31,6 +35,8 @@
 
 <script>
 import icons from './requireIcons'
+
+const FLUENT_BATCH_SIZE = 120
 
 export default {
   name: 'IconSelect',
@@ -41,7 +47,13 @@ export default {
       iconList: icons,
       allFluentIcons: [],
       fluentIconList: [],
+      fluentLimit: FLUENT_BATCH_SIZE,
       fluentLoading: false
+    }
+  },
+  computed: {
+    visibleFluentIcons() {
+      return this.fluentIconList.slice(0, this.fluentLimit)
     }
   },
   methods: {
@@ -61,10 +73,17 @@ export default {
           })
       }
     },
+    onFluentScroll(e) {
+      const el = e.target
+      if (this.fluentLimit < this.fluentIconList.length && el.scrollTop + el.clientHeight >= el.scrollHeight - 40) {
+        this.fluentLimit += FLUENT_BATCH_SIZE
+      }
+    },
     filterIcons() {
-      const q = this.name
+      const q = this.name.trim()
       this.iconList = q ? icons.filter(item => item.includes(q)) : icons
       this.fluentIconList = q ? this.allFluentIcons.filter(item => item.includes(q)) : this.allFluentIcons
+      this.fluentLimit = FLUENT_BATCH_SIZE
     },
     selectedIcon(name) {
       this.$emit('selected', name)
@@ -83,11 +102,24 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../../assets/styles/tokens.scss';
+@import '@/assets/styles/tokens.scss';
 
 .icon-body {
   width: 100%;
   padding: $space-2;
+
+  .icon-search {
+    margin-bottom: $space-2;
+  }
+
+  .icon-empty {
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: $label-tertiary;
+  }
 
   .icon-list {
     height: 200px;
@@ -96,6 +128,12 @@ export default {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     align-content: flex-start;
     gap: 4px;
+
+    &__glyph {
+      flex: none;
+      width: 16px;
+      height: 16px;
+    }
 
     div {
       display: flex;
@@ -124,17 +162,18 @@ export default {
     }
   }
 
-  .fluent-icon-list {
+  .fluent-icon-scroll {
     height: 200px;
     overflow-y: auto;
-    display: flex;
-    flex-wrap: wrap;
-    align-content: flex-start;
+  }
+
+  .fluent-icon-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+    gap: 6px;
 
     .fluent-icon-item {
-      width: 36px;
       height: 36px;
-      margin: 0 8px 8px 0;
       display: flex;
       align-items: center;
       justify-content: center;

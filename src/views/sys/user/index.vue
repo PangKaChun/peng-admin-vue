@@ -50,7 +50,7 @@
           <el-form-item>
             <el-date-picker
               v-model="dateRange"
-              style="width: 220px"
+              style="width: 240px"
               value-format="yyyy-MM-dd"
               type="daterange"
               range-separator="-"
@@ -66,20 +66,20 @@
 
         <div class="page-actions">
           <el-button
+            v-if="!multiple && $auth.hasPermi('sys:user:del')"
+            type="danger"
+            plain
+            icon="el-icon-delete"
+            size="small"
+            @click="handleDelete()"
+          >删除</el-button>
+          <el-button
             v-hasPermi="['sys:user:add']"
             type="primary"
             icon="el-icon-plus"
             size="small"
             @click="handleAdd"
           >新增</el-button>
-          <el-button
-            v-if="!multiple && $auth.hasPermi('sys:user:del')"
-            type="danger"
-            plain
-            icon="el-icon-delete"
-            size="small"
-            @click="handleDelete"
-          >删除</el-button>
         </div>
       </div>
 
@@ -95,8 +95,8 @@
           <el-table-column label="登录名" align="left" prop="username" min-width="120" show-overflow-tooltip />
           <el-table-column label="用户昵称" align="left" prop="nickName" min-width="120" show-overflow-tooltip />
           <el-table-column label="部门" align="left" prop="deptName" min-width="120" show-overflow-tooltip />
-          <el-table-column label="手机号码" align="center" prop="phonenumber" width="120" class-name="num-cell" />
-          <el-table-column label="创建时间" align="center" prop="createTime" width="160" class-name="num-cell" />
+          <el-table-column label="手机号码" align="center" prop="phonenumber" width="120" />
+          <el-table-column label="创建时间" align="center" prop="createTime" width="160" />
           <el-table-column label="操作" align="center" width="160" class-name="small-padding">
             <template v-if="scope.row.userId !== '1'" slot-scope="scope">
               <el-button
@@ -336,8 +336,7 @@ export default {
     handleUpdate(row) {
       this.reset()
       this.getTreeselect()
-      const userId = row.userId || this.ids[0]
-      getUser(userId).then(response => {
+      getUser(row.userId).then(response => {
         this.form = response
         this.dialogFormVisible = true
         this.dialogTitle = '编辑用户'
@@ -356,9 +355,12 @@ export default {
       this.$refs.authRole.visible = true
     },
     handleDelete(row) {
-      const userIds = row.userId || this.ids
+      const userIds = (row && row.userId) || this.ids
+      const message = row && row.userId
+        ? `确认删除用户“${row.username}”吗？`
+        : `确认删除选中的 ${userIds.length} 位用户吗？`
       this.$modal
-        .confirm('是否确认删除用户编号为"' + userIds + '"的数据项？')
+        .confirm(message)
         .then(() => delUser(userIds))
         .then(() => {
           this.getList()
@@ -391,10 +393,5 @@ export default {
 <style lang="scss" scoped>
 .user-aside {
   width: 220px;
-}
-
-.form-grid-row {
-  display: flex;
-  flex-wrap: wrap;
 }
 </style>

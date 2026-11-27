@@ -31,7 +31,7 @@
   >
     <div class="expression-select">
       <!-- 搜索 -->
-      <el-form inline size="small" class="es-query" @submit.native.prevent>
+      <el-form inline size="small" class="page-filters es-query" @submit.native.prevent>
         <el-form-item>
           <el-input
             v-model="queryParams.expressionName"
@@ -58,9 +58,9 @@
         :key="renderKey"
         v-loading="loading"
         :data="expressionList"
-        border
         size="small"
         highlight-current-row
+        empty-text="暂无表达式数据"
         :max-height="tableMaxHeight"
         row-key="expressionId"
         @row-click="handleRowClick"
@@ -77,9 +77,6 @@
             <dict-tag :options="dict.type.flow_expression_type" :value="scope.row.expressionType" />
           </template>
         </el-table-column>
-        <template slot="empty">
-          <el-empty :image-size="80" description="暂无表达式数据" />
-        </template>
       </el-table>
 
       <pagination
@@ -228,11 +225,11 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../../assets/styles/tokens.scss';
+@import '@/assets/styles/tokens.scss';
 
 .expression-select {
   .es-query {
-    margin-bottom: 8px;
+    margin-bottom: $space-3;
   }
 
   .es-pagination {

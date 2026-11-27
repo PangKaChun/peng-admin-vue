@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-tabs type="border-card">
+    <el-tabs class="crontab-tabs">
       <el-tab-pane label="秒" v-if="shouldHide('second')">
         <CrontabSecond
           @update="updateCrontabValue"
@@ -201,14 +201,14 @@ export default {
           insValue = 1;
         } else if (value.indexOf("-") > -1) {
           let indexArr = value.split("-");
-          isNaN(indexArr[0])
+          Number.isNaN(Number(indexArr[0]))
             ? (this.$refs[refName].cycle01 = 0)
             : (this.$refs[refName].cycle01 = indexArr[0]);
           this.$refs[refName].cycle02 = indexArr[1];
           insValue = 2;
         } else if (value.indexOf("/") > -1) {
           let indexArr = value.split("/");
-          isNaN(indexArr[0])
+          Number.isNaN(Number(indexArr[0]))
             ? (this.$refs[refName].average01 = 0)
             : (this.$refs[refName].average01 = indexArr[0]);
           this.$refs[refName].average02 = indexArr[1];
@@ -224,21 +224,21 @@ export default {
           insValue = 2;
         } else if (value.indexOf("-") > -1) {
           let indexArr = value.split("-");
-          isNaN(indexArr[0])
+          Number.isNaN(Number(indexArr[0]))
             ? (this.$refs[refName].cycle01 = 0)
             : (this.$refs[refName].cycle01 = indexArr[0]);
           this.$refs[refName].cycle02 = indexArr[1];
           insValue = 3;
         } else if (value.indexOf("/") > -1) {
           let indexArr = value.split("/");
-          isNaN(indexArr[0])
+          Number.isNaN(Number(indexArr[0]))
             ? (this.$refs[refName].average01 = 0)
             : (this.$refs[refName].average01 = indexArr[0]);
           this.$refs[refName].average02 = indexArr[1];
           insValue = 4;
         } else if (value.indexOf("W") > -1) {
           let indexArr = value.split("W");
-          isNaN(indexArr[0])
+          Number.isNaN(Number(indexArr[0]))
             ? (this.$refs[refName].workday = 0)
             : (this.$refs[refName].workday = indexArr[0]);
           insValue = 5;
@@ -255,23 +255,22 @@ export default {
           insValue = 2;
         } else if (value.indexOf("-") > -1) {
           let indexArr = value.split("-");
-          isNaN(indexArr[0])
-            ? (this.$refs[refName].cycle01 = 0)
-            : (this.$refs[refName].cycle01 = indexArr[0]);
-          this.$refs[refName].cycle02 = indexArr[1];
+          const cycle01 = Number(indexArr[0]);
+          const cycle02 = Number(indexArr[1]);
+          this.$refs[refName].cycle01 = Number.isNaN(cycle01) ? 1 : this.checkNumber(cycle01, 1, 7);
+          this.$refs[refName].cycle02 = Number.isNaN(cycle02) ? 7 : this.checkNumber(cycle02, 1, 7);
           insValue = 3;
         } else if (value.indexOf("#") > -1) {
           let indexArr = value.split("#");
-          isNaN(indexArr[0])
-            ? (this.$refs[refName].average01 = 1)
-            : (this.$refs[refName].average01 = indexArr[0]);
-          this.$refs[refName].average02 = indexArr[1];
+          const average01 = Number(indexArr[0]);
+          const average02 = Number(indexArr[1]);
+          this.$refs[refName].average01 = Number.isNaN(average01) ? 1 : this.checkNumber(average01, 1, 4);
+          this.$refs[refName].average02 = Number.isNaN(average02) ? 2 : this.checkNumber(average02, 1, 7);
           insValue = 4;
         } else if (value.indexOf("L") > -1) {
           let indexArr = value.split("L");
-          isNaN(indexArr[0])
-            ? (this.$refs[refName].weekday = 1)
-            : (this.$refs[refName].weekday = indexArr[0]);
+          const weekday = Number(indexArr[0]);
+          this.$refs[refName].weekday = Number.isNaN(weekday) ? 1 : this.checkNumber(weekday, 1, 7);
           insValue = 5;
         } else {
           this.$refs[refName].checkboxList = value.split(",");
@@ -370,7 +369,11 @@ export default {
 };
 </script>
 <style lang="scss" scoped>
-@import '../../assets/styles/tokens.scss';
+@import '@/assets/styles/tokens.scss';
+
+.crontab-tabs ::v-deep .el-tabs__header {
+  margin-bottom: $space-3;
+}
 
 .pop_btn {
   display: flex;
@@ -385,51 +388,52 @@ export default {
 
 .popup-main {
   position: relative;
-  margin: 10px auto 0;
+  margin: $space-2 auto 0;
   background: $bg-base;
-  border-radius: $radius-sm;
   font-size: 12px;
 }
 
 .popup-result {
   box-sizing: border-box;
   line-height: 24px;
-  margin: 20px auto;
-  padding: 15px 12px 12px;
-  border: 1px solid $separator;
-  border-radius: $radius-sm;
-  position: relative;
+  margin-top: $space-4;
+  padding-top: $space-4;
+  border-top: 1px solid $separator-light;
 }
 
 .popup-result .title {
-  position: absolute;
-  top: -15px;
-  left: 50%;
-  width: 140px;
-  font-size: 13px;
-  font-weight: 500;
-  color: $label;
-  margin-left: -70px;
-  text-align: center;
-  line-height: 28px;
-  background: $bg-base;
+  margin: 0 0 $space-2;
+  font-size: 12px;
+  font-weight: 600;
+  color: $label-secondary;
+  line-height: 1.4;
 }
 
 .popup-result table {
   text-align: center;
   width: 100%;
   margin: 0 auto;
+  table-layout: fixed;
+}
+
+.popup-result table th {
+  font-weight: 500;
+  color: $label-secondary;
+  padding-bottom: $space-1;
 }
 
 .popup-result table span {
   display: block;
   width: 100%;
+  padding: 0 6px;
+  box-sizing: border-box;
   font-family: $font-mono;
   font-variant-numeric: tabular-nums;
   line-height: 30px;
   height: 30px;
   white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
   border: 1px solid $separator-light;
   border-radius: $radius-xs;
   background: $bg-subtle;

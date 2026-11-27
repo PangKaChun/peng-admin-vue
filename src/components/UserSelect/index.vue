@@ -54,7 +54,7 @@
       <!-- 右侧内容 -->
       <div class="us-content">
         <!-- 搜索 -->
-        <el-form inline size="small" class="us-query" @submit.native.prevent>
+        <el-form inline size="small" class="page-filters us-query" @submit.native.prevent>
           <el-form-item>
             <el-input v-model="queryParams.username" placeholder="登录名" clearable style="width: 150px" @keyup.enter.native="handleQuery" />
           </el-form-item>
@@ -77,9 +77,9 @@
             :key="renderKey"
             v-loading="loading"
             :data="userList"
-            border
             size="small"
             highlight-current-row
+            empty-text="暂无用户数据"
             height="100%"
             row-key="userId"
             @row-click="handleRowClick"
@@ -94,15 +94,12 @@
             <el-table-column label="登录名" prop="username" align="left" show-overflow-tooltip />
             <el-table-column label="用户昵称" prop="nickName" align="left" show-overflow-tooltip />
             <el-table-column label="部门" prop="deptName" align="left" show-overflow-tooltip />
-            <el-table-column label="手机号码" prop="phonenumber" align="center" width="120" class-name="num-cell" />
+            <el-table-column label="手机号码" prop="phonenumber" align="center" width="120" />
             <el-table-column label="状态" align="center" width="80">
               <template slot-scope="scope">
                 <dict-tag :options="dict.type.user_status" :value="scope.row.status" />
               </template>
             </el-table-column>
-            <template slot="empty">
-              <el-empty :image-size="80" description="暂无用户数据" />
-            </template>
           </el-table>
         </div>
 
@@ -221,9 +218,11 @@ export default {
     },
     /** 查询部门下拉树结构 */
     getTreeselect() {
-      treeselect().then(res => {
-        this.depts = res
-      })
+      treeselect()
+        .then(res => {
+          this.depts = res || []
+        })
+        .catch(() => {})
     },
     // 筛选部门节点
     filterNode(value, data) {
@@ -337,7 +336,7 @@ export default {
 </style>
 
 <style lang="scss" scoped>
-@import '../../assets/styles/tokens.scss';
+@import '@/assets/styles/tokens.scss';
 
 .user-select {
   display: flex;
@@ -374,7 +373,7 @@ export default {
 
     .us-query {
       flex-shrink: 0;
-      margin-bottom: 8px;
+      margin-bottom: $space-3;
     }
 
     .us-table-wrap {

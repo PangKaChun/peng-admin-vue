@@ -1,7 +1,7 @@
 <template>
   <div class="page-split">
-    <dict-type class="dict-pane" @update:value="val => (dictType = val)" />
-    <dict-data class="dict-pane dict-pane--right" :dictType="dictType" />
+    <dict-type @update:value="val => (dictType = val)" />
+    <dict-data class="dict-pane--right" :dictType="dictType" />
   </div>
 </template>
 
@@ -21,14 +21,9 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../../../assets/styles/tokens.scss';
+@import '@/assets/styles/tokens.scss';
 
-.dict-pane {
-  flex: 1;
-  min-width: 0;
-
-  &--right {
-    border-left: 1px solid $separator;
-  }
+.dict-pane--right {
+  border-left: 1px solid $separator;
 }
 </style>

@@ -80,43 +80,41 @@ const user = {
     },
 
     // authorization_code + PKCE：凭挑战票据完成发码
-    AuthorizeWithPKCE(_ctx, { ticket }) {
-      return new Promise(async (resolve, reject) => {
-        try {
-          const verifier = generateCodeVerifier()
-          const challenge = await generateCodeChallenge(verifier)
-          const state = generateState()
-          const redirectAfterLogin =
-            (router.currentRoute && router.currentRoute.query && router.currentRoute.query.redirect) || '/'
+    async AuthorizeWithPKCE(_ctx, { ticket }) {
+      try {
+        const verifier = generateCodeVerifier()
+        const challenge = await generateCodeChallenge(verifier)
+        const state = generateState()
+        const redirectAfterLogin =
+          (router.currentRoute && router.currentRoute.query && router.currentRoute.query.redirect) || '/'
 
-          sessionStorage.setItem(PKCE_VERIFIER_KEY, verifier)
-          sessionStorage.setItem(PKCE_STATE_KEY, state)
-          sessionStorage.setItem(OAUTH_REDIRECT_KEY, redirectAfterLogin)
+        sessionStorage.setItem(PKCE_VERIFIER_KEY, verifier)
+        sessionStorage.setItem(PKCE_STATE_KEY, state)
+        sessionStorage.setItem(OAUTH_REDIRECT_KEY, redirectAfterLogin)
 
-          const form = document.createElement('form')
-          form.method = 'POST'
-          form.action = buildAuthorizeUrl()
-          form.style.display = 'none'
+        const form = document.createElement('form')
+        form.method = 'POST'
+        form.action = buildAuthorizeUrl()
+        form.style.display = 'none'
 
-          appendHiddenInput(form, 'response_type', 'code')
-          appendHiddenInput(form, 'client_id', process.env.VUE_APP_OAUTH_CLIENT_ID)
-          appendHiddenInput(form, 'redirect_uri', buildRedirectUri())
-          appendHiddenInput(form, 'scope', process.env.VUE_APP_OAUTH_SCOPE)
-          appendHiddenInput(form, 'state', state)
-          appendHiddenInput(form, 'code_challenge', challenge)
-          appendHiddenInput(form, 'code_challenge_method', 'S256')
-          appendHiddenInput(form, 'loginTicket', ticket)
+        appendHiddenInput(form, 'response_type', 'code')
+        appendHiddenInput(form, 'client_id', process.env.VUE_APP_OAUTH_CLIENT_ID)
+        appendHiddenInput(form, 'redirect_uri', buildRedirectUri())
+        appendHiddenInput(form, 'scope', process.env.VUE_APP_OAUTH_SCOPE)
+        appendHiddenInput(form, 'state', state)
+        appendHiddenInput(form, 'code_challenge', challenge)
+        appendHiddenInput(form, 'code_challenge_method', 'S256')
+        appendHiddenInput(form, 'loginTicket', ticket)
 
-          document.body.appendChild(form)
-          form.submit()
-        } catch (e) {
-          console.error('AuthorizeWithPKCE error:', e)
-          sessionStorage.removeItem(PKCE_VERIFIER_KEY)
-          sessionStorage.removeItem(PKCE_STATE_KEY)
-          sessionStorage.removeItem(OAUTH_REDIRECT_KEY)
-          reject(e)
-        }
-      })
+        document.body.appendChild(form)
+        form.submit()
+      } catch (e) {
+        console.error('AuthorizeWithPKCE error:', e)
+        sessionStorage.removeItem(PKCE_VERIFIER_KEY)
+        sessionStorage.removeItem(PKCE_STATE_KEY)
+        sessionStorage.removeItem(OAUTH_REDIRECT_KEY)
+        throw e
+      }
     },
 
     // PKCE 回调换 token
@@ -125,10 +123,12 @@ const user = {
         exchangeCodeForToken({ code, codeVerifier })
           .then(res => {
             const token = res.data && res.data.access_token
-            if (token) {
-              commit('SET_TOKEN', token)
-              setToken(token)
+            if (!token) {
+              reject(new Error('换取访问令牌缺少 access_token'))
+              return
             }
+            commit('SET_TOKEN', token)
+            setToken(token)
             const refresh = res.data && res.data.refresh_token
             if (refresh) {
               commit('SET_REFRESH_TOKEN', refresh)

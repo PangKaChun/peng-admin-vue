@@ -186,10 +186,13 @@ export default {
     async createDiagram(xml) {
       try {
         await this._modeler.importXML(xml)
+        if (!this._modeler) return
         this.fitViewport()
         this.updateUndoRedo()
       } catch (e) {
-        this.$modal && this.$modal.msgError('加载流程图失败：' + e.message)
+        if (this._modeler) {
+          this.$modal && this.$modal.msgError('加载流程图失败：' + e.message)
+        }
       }
     },
     /** 适应画布 */
@@ -277,19 +280,26 @@ export default {
     },
     /** 新建空白流程 */
     async handleNew() {
-      await this._modeler.createDiagram();
-      const root = this._modeler.get('canvas').getRootElement()
-      const elementRegistry = this._modeler.get('elementRegistry');
-      this._modeler.get('modeling').updateProperties(root, {
-        id: this.genProcessId(),
-        name: this.genProcessName(),
-        isExecutable: true
-      })
-      const startEventElement = elementRegistry.find(el => el.type === 'bpmn:StartEvent');
-      if (startEventElement) {
-        this._modeler.get('modeling').updateProperties(startEventElement, {
-          name: '开始'
-        });
+      try {
+        await this._modeler.createDiagram()
+        if (!this._modeler) return
+        const root = this._modeler.get('canvas').getRootElement()
+        const elementRegistry = this._modeler.get('elementRegistry')
+        this._modeler.get('modeling').updateProperties(root, {
+          id: this.genProcessId(),
+          name: this.genProcessName(),
+          isExecutable: true
+        })
+        const startEventElement = elementRegistry.find(el => el.type === 'bpmn:StartEvent')
+        if (startEventElement) {
+          this._modeler.get('modeling').updateProperties(startEventElement, {
+            name: '开始'
+          })
+        }
+      } catch (e) {
+        if (this._modeler) {
+          this.$modal && this.$modal.msgError('初始化流程图失败：' + e.message)
+        }
       }
     },
     /** 后退 */

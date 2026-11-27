@@ -33,17 +33,18 @@
             <dict-tag :options="dict.type.sys_oper_type" :value="scope.row.bizType" />
           </template>
         </el-table-column>
-        <el-table-column label="耗时" align="right" width="84" prop="costTime" class-name="mono-cell num-cell">
+        <el-table-column label="耗时" align="right" width="84" prop="costTime" class-name="mono-cell">
           <template slot-scope="scope">
-            <span :class="costClass(scope.row.costTime)">{{ scope.row.costTime }}ms</span>
+            <span v-if="scope.row.costTime != null" :class="costClass(scope.row.costTime)">{{ scope.row.costTime }}ms</span>
+            <template v-else>-</template>
           </template>
         </el-table-column>
         <el-table-column label="操作人员" align="left" prop="username" width="110" show-overflow-tooltip />
         <el-table-column label="浏览器" align="left" prop="browser" min-width="110" show-overflow-tooltip />
         <el-table-column label="操作系统" align="left" prop="os" min-width="110" show-overflow-tooltip />
-        <el-table-column label="主机地址" align="left" prop="requestIp" width="130" class-name="mono-cell" />
+        <el-table-column label="主机地址" align="left" prop="requestIp" width="130" class-name="mono-cell" show-overflow-tooltip />
         <el-table-column label="操作地点" align="left" prop="address" min-width="110" show-overflow-tooltip />
-        <el-table-column label="操作时间" align="center" prop="createTime" width="160" class-name="num-cell" />
+        <el-table-column label="操作时间" align="center" prop="createTime" width="160" />
         <el-table-column label="操作" align="center" width="76" fixed="right" class-name="small-padding">
           <template slot-scope="scope">
             <el-button size="mini" type="text" @click="handleDetail(scope.row)">详情</el-button>
@@ -125,7 +126,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../../../assets/styles/tokens.scss';
+@import '@/assets/styles/tokens.scss';
 
 .cost-normal { color: $label-secondary; }
 .cost-warning { color: $color-warning; font-weight: 500; }

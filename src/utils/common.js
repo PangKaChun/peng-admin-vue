@@ -13,7 +13,7 @@ export function parseTime(time, pattern) {
     date = time
   } else {
     if (typeof time === 'string' && /^[0-9]+$/.test(time)) {
-      time = parseInt(time)
+      time = Number.parseInt(time, 10)
     } else if (typeof time === 'string') {
       time = time
         .replace(/-/gm, '/')
@@ -25,7 +25,7 @@ export function parseTime(time, pattern) {
     }
     date = new Date(time)
   }
-  if (isNaN(date.getTime())) {
+  if (Number.isNaN(date.getTime())) {
     return null
   }
   const formatObj = {

@@ -156,7 +156,7 @@ function scanCellStyles(bytes, rowLimit, onCell) {
     while ((m = tagRe.exec(text))) {
       const ref = attr(m[2], 'r')
       if (m[1] === 'row') {
-        r = ref ? parseInt(ref, 10) - 1 : r + 1
+        r = ref ? Number.parseInt(ref, 10) - 1 : r + 1
         c = -1
         if (r >= rowLimit) {
           return
@@ -168,7 +168,7 @@ function scanCellStyles(bytes, rowLimit, onCell) {
       c = letters ? colIndex(letters[0]) : c + 1
       const style = attr(m[2], 's')
       if (style !== null) {
-        onCell(r, c, parseInt(style, 10))
+        onCell(r, c, Number.parseInt(style, 10))
       }
     }
   }

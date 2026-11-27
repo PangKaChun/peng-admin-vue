@@ -19,7 +19,7 @@ function base64UrlEncode(arrayBuffer) {
   for (let i = 0; i < bytes.byteLength; i++) {
     str += String.fromCharCode(bytes[i])
   }
-  return window.btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  return window.btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 }
 
 // 生成 code_verifier：64 字符随机串，字符集严格符合 RFC 7636
