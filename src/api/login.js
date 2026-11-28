@@ -94,8 +94,8 @@ export async function changePwdForLogin(ticket, password) {
   })
 }
 
-// 刷新 token
-export function refreshToken(token) {
+// 刷新 token，浏览器自动通过 HttpOnly Cookie 携带 refresh_token
+export function refreshToken() {
   return authRequest({
     url: authAPI + '/oauth2/token',
     method: 'post',
@@ -104,8 +104,7 @@ export function refreshToken(token) {
     },
     data: {
       client_id: process.env.VUE_APP_OAUTH_CLIENT_ID,
-      grant_type: 'refresh_token',
-      refresh_token: token
+      grant_type: 'refresh_token'
     }
   })
 }
@@ -123,7 +122,7 @@ export function logout() {
   const token = getToken()
   return authRequest({
     url: authAPI + '/logout?redirect_url=localhost',
-    method: 'get',
+    method: 'post',
     headers: token ? { Authorization: `Bearer ${token}` } : {}
   })
 }

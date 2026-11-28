@@ -9,10 +9,16 @@ import { isRelogin } from '@/utils/request'
 NProgress.configure({ showSpinner: false })
 
 const whiteList = ['/login', '/oauth/callback']
+let sessionRestored = false
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   NProgress.start()
   store.dispatch('settings/setTitle', to.meta && to.meta.title ? to.meta.title : '')
+  // 内存令牌随页面刷新丢失，首次导航用 HttpOnly Cookie 静默续期一次
+  if (!getToken() && !sessionRestored && to.path !== '/oauth/callback') {
+    sessionRestored = true
+    await store.dispatch('user/RefreshToken').catch(() => {})
+  }
   if (getToken()) {
     if (to.path === '/login' || to.path === '/oauth/callback') {
       next({ path: '/' })

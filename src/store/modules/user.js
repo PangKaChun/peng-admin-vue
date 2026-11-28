@@ -1,5 +1,6 @@
 import { logout, getInfo, exchangeCodeForToken, buildAuthorizeUrl, buildRedirectUri, precheck, verifyMfa } from '@/api/login'
-import { getToken, setToken, removeToken, getRefreshToken, setRefreshToken, removeRefreshToken } from '@/utils/auth'
+import { getToken, setToken, removeToken } from '@/utils/auth'
+import { refreshAccessToken, broadcastLogout } from '@/utils/token-refresh'
 import { generateCodeVerifier, generateCodeChallenge, generateState } from '@/utils/pkce'
 import router from '@/router'
 
@@ -20,7 +21,6 @@ const user = {
 
   state: {
     token: getToken(),
-    refreshToken: getRefreshToken(),
     name: '',
     avatar: '',
     roles: [],
@@ -31,9 +31,6 @@ const user = {
   mutations: {
     SET_TOKEN: (state, token) => {
       state.token = token
-    },
-    SET_REFRESH_TOKEN: (state, refreshToken) => {
-      state.refreshToken = refreshToken
     },
     SET_NAME: (state, name) => {
       state.name = name
@@ -129,11 +126,6 @@ const user = {
             }
             commit('SET_TOKEN', token)
             setToken(token)
-            const refresh = res.data && res.data.refresh_token
-            if (refresh) {
-              commit('SET_REFRESH_TOKEN', refresh)
-              setRefreshToken(refresh)
-            }
             sessionStorage.removeItem(PKCE_VERIFIER_KEY)
             sessionStorage.removeItem(PKCE_STATE_KEY)
             resolve(res)
@@ -171,29 +163,32 @@ const user = {
       })
     },
 
+    // 用 HttpOnly Cookie 静默续期（页面刷新后恢复会话）
+    RefreshToken({ commit }) {
+      return refreshAccessToken().then(token => {
+        commit('SET_TOKEN', token)
+        return token
+      })
+    },
+
     // 退出系统
     LogOut({ commit }) {
       return logout()
         .catch(() => {})
         .finally(() => {
           commit('SET_TOKEN', '')
-          commit('SET_REFRESH_TOKEN', '')
           commit('SET_ROLES', [])
           commit('SET_PERMISSIONS', [])
           commit('SET_USER_INFO', {})
           commit('SET_NAME', '')
           commit('SET_AVATAR', '')
           removeToken()
-          removeRefreshToken()
+          broadcastLogout()
         })
     },
 
     setToken({ commit }, token) {
       commit('SET_TOKEN', token)
-    },
-
-    setRefreshToken({ commit }, refreshToken) {
-      commit('SET_REFRESH_TOKEN', refreshToken)
     }
   }
 }

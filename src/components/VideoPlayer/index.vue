@@ -6,8 +6,8 @@
 </template>
 
 <script>
-import { getToken, getRefreshToken, setToken, setRefreshToken } from '@/utils/auth'
-import { refreshToken } from '@/api/login'
+import { getToken } from '@/utils/auth'
+import { refreshAccessToken } from '@/utils/token-refresh'
 
 // hls.js 首次播放时才加载,加载后留在模块变量里
 let Hls = null
@@ -150,7 +150,7 @@ export default {
       hls.stopLoad()
       let token = null
       try {
-        token = await this.refreshAccessToken()
+        token = await refreshAccessToken()
       } catch (e) {
         // 刷新请求失败按拿不到令牌处理
       }
@@ -179,26 +179,6 @@ export default {
       return details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR
         || details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT
         || details === Hls.ErrorDetails.LEVEL_LOAD_ERROR
-    },
-    /** 使用 refresh_token 刷新 access_token,返回新令牌(失败/无刷新令牌返回 null) */
-    refreshAccessToken() {
-      const refresh = getRefreshToken()
-      if (!refresh) {
-        return Promise.resolve(null)
-      }
-      return refreshToken(refresh).then((res) => {
-        const data = res && res.data
-        const token = data && data.access_token
-        if (token) {
-          this.$store.dispatch('user/setToken', token)
-          setToken(token)
-          if (data.refresh_token) {
-            this.$store.dispatch('user/setRefreshToken', data.refresh_token)
-            setRefreshToken(data.refresh_token)
-          }
-        }
-        return token
-      })
     },
     /** 释放播放器,进行中的初始化一并作废 */
     destroyHls() {

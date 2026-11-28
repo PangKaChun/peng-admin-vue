@@ -1,17 +1,13 @@
 import axios from 'axios'
 import { MessageBox, Message } from 'element-ui'
 import store from '@/store'
-import { getToken, setToken, getRefreshToken, setRefreshToken } from '@/utils/auth'
+import { getToken } from '@/utils/auth'
 import { tansParams } from '@/utils/common'
 import cache from '@/plugins/cache'
-import { refreshToken } from '@/api/login'
+import { refreshAccessToken } from '@/utils/token-refresh'
 
 // 是否显示重新登录
 export const isRelogin = { show: false }
-// 是否正在刷新 token
-let isRefreshing = false
-// 重试队列，保存需要等待 token 刷新的请求
-let requests = []
 
 axios.defaults.headers['Content-Type'] = 'application/json;charset=utf-8'
 
@@ -101,56 +97,15 @@ async (error) => {
       if (originalRequest._retry) {
         return reloginMessageBox()
       }
-
-      const EToken = getRefreshToken()
-
-      if (!isRefreshing && EToken) {
-        isRefreshing = true
-        try {
-          const { data } = await refreshToken(EToken)
-          const token = data && data.access_token
-          if (!token) {
-            throw new Error('刷新令牌缺少 access_token')
-          }
-
-          store.dispatch('user/setToken', token)
-          setToken(token)
-
-          if (data.refresh_token) {
-            store.dispatch('user/setRefreshToken', data.refresh_token)
-            setRefreshToken(data.refresh_token)
-          }
-
-          requests.forEach(cb => cb(token))
-          requests = []
-
-          originalRequest._retry = true
-          originalRequest.headers = originalRequest.headers || {}
-          originalRequest.headers.repeatSubmit = false
-          originalRequest.headers.Authorization = `Bearer ${token}`
-          return service(originalRequest)
-        } catch (refreshError) {
-          requests.forEach(cb => cb(null))
-          requests = []
-          return reloginMessageBox()
-        } finally {
-          isRefreshing = false
-        }
-      } else if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          requests.push((token) => {
-            if (!token) {
-              reject(new Error('token 刷新失败'))
-              return
-            }
-            originalRequest._retry = true
-            originalRequest.headers = originalRequest.headers || {}
-            originalRequest.headers.repeatSubmit = false
-            originalRequest.headers.Authorization = `Bearer ${token}`
-            resolve(service(originalRequest))
-          })
-        })
-      } else {
+      try {
+        const failedToken = (originalRequest.headers.Authorization || '').replace('Bearer ', '')
+        const token = await refreshAccessToken(failedToken)
+        store.dispatch('user/setToken', token)
+        originalRequest._retry = true
+        originalRequest.headers.repeatSubmit = false
+        originalRequest.headers.Authorization = `Bearer ${token}`
+        return service(originalRequest)
+      } catch (refreshError) {
         return reloginMessageBox()
       }
     } else if (response.data.msg === 'invalid_grant' && isAuthRequest) {

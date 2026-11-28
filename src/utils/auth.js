@@ -1,28 +1,20 @@
 import Cookies from 'js-cookie'
 
-const AccessTokenKey = 'Access-Token'
-const RefreshTokenKey = 'Refresh-Token'
+// Access Token 只放内存；Refresh Token 由服务端以 HttpOnly Cookie 下发，前端不可见
+let accessToken = ''
+
+// 令牌不得以脚本可读的 Cookie 留存
+Cookies.remove('Access-Token')
+Cookies.remove('Refresh-Token')
 
 export function getToken () {
-  return Cookies.get(AccessTokenKey)
+  return accessToken
 }
 
 export function setToken (token) {
-  return Cookies.set(AccessTokenKey, token)
+  accessToken = token || ''
 }
 
 export function removeToken () {
-  return Cookies.remove(AccessTokenKey)
-}
-
-export function getRefreshToken () {
-  return Cookies.get(RefreshTokenKey)
-}
-
-export function setRefreshToken (token) {
-  return Cookies.set(RefreshTokenKey, token)
-}
-
-export function removeRefreshToken () {
-  return Cookies.remove(RefreshTokenKey)
+  accessToken = ''
 }
